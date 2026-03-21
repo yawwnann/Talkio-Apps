@@ -1,0 +1,453 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../anak/providers/anak_provider.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../shared/widgets/parent_bottom_nav.dart';
+
+/// Parent Dashboard Page
+/// Halaman dashboard modern untuk orang tua dengan desain mirip therapist dashboard
+class ParentDashboardPage extends ConsumerStatefulWidget {
+  const ParentDashboardPage({super.key});
+
+  @override
+  ConsumerState<ParentDashboardPage> createState() =>
+      _ParentDashboardPageState();
+}
+
+class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        ref.read(anakProvider.notifier).getAnakList(user.id);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    ref.watch(anakProvider);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FE),
+      appBar: const CustomAppBar(
+        title: 'Talkio',
+        showBackButton: false,
+        showLogo: true,
+        centerTitle: false,
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          if (user != null) {
+            await ref.read(anakProvider.notifier).getAnakList(user.id);
+          }
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildWelcomeCard(user?.name ?? 'Orang Tua'),
+              const SizedBox(height: 20),
+              _buildChildDevelopment(),
+              const SizedBox(height: 20),
+              _buildNearestTherapy(),
+              const SizedBox(height: 20),
+              _buildQuickAccess(),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: const ParentBottomNav(currentIndex: 0),
+    );
+  }
+
+  Widget _buildWelcomeCard(String name) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      decoration: BoxDecoration(
+        color: const Color(0xFF005BAC),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4A90E2).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Halo, Bunda $name!',
+            style: GoogleFonts.poppins(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Mari temani tumbuh kembang si kecil\ndengan penuh kasih hari ini.',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.95),
+              height: 1.6,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChildDevelopment() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Perkembangan\nAnak',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                  height: 1.3,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Bulan 24',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppConstants.primaryBlue,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildProgressItem('Komunikasi', 0.75, const Color(0xFF8B7355)),
+          const SizedBox(height: 16),
+          _buildProgressItem('Motorik Halus', 0.80, const Color(0xFF6B9B6E)),
+          const SizedBox(height: 16),
+          _buildProgressItem('Sosialisasi', 0.88, const Color(0xFF5A8F5A)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressItem(String label, double progress, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF64748B),
+              ),
+            ),
+            Text(
+              '${(progress * 100).toInt()}%',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 8,
+            backgroundColor: const Color(0xFFE2E8F0),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNearestTherapy() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Jadwal Terapi Terdekat',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF9E6),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB8860B),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.calendar_today, color: Colors.white, size: 20),
+                      const SizedBox(height: 2),
+                      Text(
+                        '12',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Terapi Wicara',
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Pukul 14.00 WIB',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.access_time, size: 16, color: const Color(0xFF64748B)),
+              const SizedBox(width: 6),
+              Text(
+                'Klinik Permata Hati',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {},
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: const Color(0xFFE2E8F0)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Lihat Detail',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAccess() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Akses Cepat',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildQuickAccessItem(
+            Icons.games_outlined,
+            'Mulai Game Terapi',
+            'Aktivitas interaktif hari ini',
+            const Color(0xFFFFF9E6),
+            const Color(0xFFB8860B),
+            () => context.push('/game'),
+          ),
+          const SizedBox(height: 12),
+          _buildQuickAccessItem(
+            Icons.chat_bubble_outline,
+            'Konsultasi Terapis',
+            'Chat langsung dengan ahli',
+            const Color(0xFFE3F2FD),
+            const Color(0xFF2196F3),
+            () => context.push('/konsultasi'),
+          ),
+          const SizedBox(height: 12),
+          _buildQuickAccessItem(
+            Icons.assignment_outlined,
+            'Hasil Diagnosa',
+            'Laporan medis & evaluasi',
+            const Color(0xFFE8F5E9),
+            const Color(0xFF4CAF50),
+            () => context.push('/diagnosa'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAccessItem(
+    IconData icon,
+    String title,
+    String subtitle,
+    Color bgColor,
+    Color iconColor,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 24, color: iconColor),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
