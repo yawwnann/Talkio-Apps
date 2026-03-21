@@ -62,12 +62,10 @@ class AppTheme {
         primary: primaryColor,
         secondary: accentColor,
         surface: surfaceColor,
-        background: backgroundColor,
         error: errorColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: textPrimaryColor,
-        onBackground: textPrimaryColor,
         onError: Colors.white,
       ),
 
@@ -88,7 +86,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: surfaceColor,
         elevation: 4,
-        shadowColor: primaryColor.withOpacity(0.1),
+        shadowColor: primaryColor.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -101,7 +99,7 @@ class AppTheme {
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           elevation: 2,
-          shadowColor: primaryColor.withOpacity(0.3),
+          shadowColor: primaryColor.withValues(alpha: 0.3),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -303,7 +301,7 @@ class AppTheme {
 
       // Chip Theme
       chipTheme: ChipThemeData(
-        backgroundColor: primaryColor.withOpacity(0.1),
+        backgroundColor: primaryColor.withValues(alpha: 0.1),
         deleteIconColor: primaryColor,
         labelStyle: const TextStyle(color: primaryColor, fontSize: 13),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -355,12 +353,10 @@ class AppTheme {
         primary: primaryColor,
         secondary: accentColor,
         surface: Color(0xFF1E1E1E),
-        background: Color(0xFF121212),
         error: errorColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: Colors.white,
-        onBackground: Colors.white,
         onError: Colors.white,
       ),
 
@@ -373,7 +369,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: const Color(0xFF1E1E1E),
         elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Colors.black.withValues(alpha: 0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),

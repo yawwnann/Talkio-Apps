@@ -91,7 +91,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppConstants.primaryBlue.withOpacity(0.3),
+            color: AppConstants.primaryBlue.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -116,7 +116,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
                   'Kelola informasi dan pantau tumbuh\nkembang setiap anak Anda',
                   style: GoogleFonts.poppins(
                     fontSize: 11,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     height: 1.4,
                   ),
                 ),
@@ -127,7 +127,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -152,7 +152,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppConstants.primaryBlue.withOpacity(0.08),
+            color: AppConstants.primaryBlue.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -169,8 +169,8 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppConstants.primaryBlue.withOpacity(0.2),
-                      AppConstants.lightBlue.withOpacity(0.1),
+                      AppConstants.primaryBlue.withValues(alpha: 0.2),
+                      AppConstants.lightBlue.withValues(alpha: 0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -288,10 +288,10 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppConstants.primaryBlue.withOpacity(0.1),
+                      color: AppConstants.primaryBlue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppConstants.primaryBlue.withOpacity(0.2),
+                        color: AppConstants.primaryBlue.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(
@@ -326,7 +326,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppConstants.warningOrange.withOpacity(0.1),
+                    color: AppConstants.warningOrange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -353,7 +353,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppConstants.primaryBlue.withOpacity(0.3),
+            color: AppConstants.primaryBlue.withValues(alpha: 0.3),
             width: 2,
             style: BorderStyle.solid,
           ),
@@ -364,7 +364,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppConstants.primaryBlue.withOpacity(0.1),
+                color: AppConstants.primaryBlue.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -408,7 +408,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppConstants.primaryBlue.withOpacity(0.1),
+                color: AppConstants.primaryBlue.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -481,7 +481,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

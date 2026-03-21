@@ -107,18 +107,32 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
     // Simple assessment logic
     int score = 0;
     
-    if (_assessmentData['first_word'] == 'Ya') score += 20;
-    if (_assessmentData['vocabulary_count'] == 'Lebih dari 50') score += 20;
-    else if (_assessmentData['vocabulary_count'] == '10-50') score += 10;
+    if (_assessmentData['first_word'] == 'Ya') {
+      score += 20;
+    }
+    if (_assessmentData['vocabulary_count'] == 'Lebih dari 50') {
+      score += 20;
+    } else if (_assessmentData['vocabulary_count'] == '10-50') {
+      score += 10;
+    }
     
-    if (_assessmentData['simple_sentences'] == 'Ya') score += 20;
-    else if (_assessmentData['simple_sentences'] == 'Kadang-kadang') score += 10;
+    if (_assessmentData['simple_sentences'] == 'Ya') {
+      score += 20;
+    } else if (_assessmentData['simple_sentences'] == 'Kadang-kadang') {
+      score += 10;
+    }
     
-    if (_assessmentData['speech_clarity'] == 'Selalu') score += 20;
-    else if (_assessmentData['speech_clarity'] == 'Kadang-kadang') score += 10;
+    if (_assessmentData['speech_clarity'] == 'Selalu') {
+      score += 20;
+    } else if (_assessmentData['speech_clarity'] == 'Kadang-kadang') {
+      score += 10;
+    }
     
-    if (_assessmentData['name_response'] == 'Selalu') score += 20;
-    else if (_assessmentData['name_response'] == 'Kadang-kadang') score += 10;
+    if (_assessmentData['name_response'] == 'Selalu') {
+      score += 20;
+    } else if (_assessmentData['name_response'] == 'Kadang-kadang') {
+      score += 10;
+    }
 
     String level;
     String recommendation;
@@ -151,7 +165,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: levelColor.withOpacity(0.1),
+                  color: levelColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: levelColor),
                 ),
@@ -567,7 +581,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.blue),
             ),

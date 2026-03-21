@@ -145,7 +145,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: CircleAvatar(
         radius: 18,
-        backgroundColor: fgColor.withOpacity(0.1),
+        backgroundColor: fgColor.withValues(alpha: 0.1),
         child: Text(
           'U',
           style: GoogleFonts.poppins(

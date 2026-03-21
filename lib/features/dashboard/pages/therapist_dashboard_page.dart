@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
@@ -55,7 +54,7 @@ class TherapistDashboardPage extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppConstants.primaryBlue.withOpacity(0.3),
+            color: AppConstants.primaryBlue.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -148,7 +147,7 @@ class TherapistDashboardPage extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -338,7 +337,7 @@ class TherapistDashboardPage extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -350,7 +349,7 @@ class TherapistDashboardPage extends ConsumerWidget {
             width: 60,
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -399,7 +398,7 @@ class TherapistDashboardPage extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -463,7 +462,7 @@ class TherapistDashboardPage extends ConsumerWidget {
         const SizedBox(height: 8),
         LinearProgressIndicator(
           value: 0.7,
-          backgroundColor: color.withOpacity(0.1),
+          backgroundColor: color.withValues(alpha: 0.1),
           valueColor: AlwaysStoppedAnimation<Color>(color),
           minHeight: 6,
           borderRadius: BorderRadius.circular(3),
@@ -534,7 +533,7 @@ class TherapistDashboardPage extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -544,7 +543,7 @@ class TherapistDashboardPage extends ConsumerWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: AppConstants.primaryBlue.withOpacity(0.1),
+            backgroundColor: AppConstants.primaryBlue.withValues(alpha: 0.1),
             child: Text(
               name[0],
               style: GoogleFonts.poppins(

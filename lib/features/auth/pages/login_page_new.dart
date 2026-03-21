@@ -81,7 +81,7 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                   child: Column(
                     children: [
                       // Logo
-                      Container(
+                      SizedBox(
                         width: 100,
                         height: 100,
 

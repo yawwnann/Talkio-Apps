@@ -160,7 +160,7 @@ class _PembayaranListPageState extends ConsumerState<PembayaranListPage> {
                             radix: 16,
                           ) +
                           0xFF000000,
-                    ).withOpacity(0.1),
+                    ).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -200,13 +200,13 @@ class _PembayaranListPageState extends ConsumerState<PembayaranListPage> {
                 Icon(
                   _getPaymentMethodIcon(pembayaran.paymentMethod),
                   size: 16,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   pembayaran.paymentMethodName,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -220,13 +220,13 @@ class _PembayaranListPageState extends ConsumerState<PembayaranListPage> {
                 Icon(
                   Icons.access_time,
                   size: 16,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   Helpers.formatDateTime(pembayaran.createdAt),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],

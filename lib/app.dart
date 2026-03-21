@@ -43,7 +43,7 @@ class App extends ConsumerWidget {
           // Ensure text scale factor doesn't exceed 1.3 for better UI consistency
           data: MediaQuery.of(context).copyWith(
             textScaler: TextScaler.linear(
-              MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.3),
+              MediaQuery.textScalerOf(context).scale(1).clamp(0.8, 1.3),
             ),
           ),
           child: child!,

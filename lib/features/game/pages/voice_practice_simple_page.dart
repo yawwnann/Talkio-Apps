@@ -243,7 +243,7 @@ class _VoicePracticeSimplePageState extends ConsumerState<VoicePracticeSimplePag
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.orange),
               ),
@@ -309,7 +309,7 @@ class _VoicePracticeSimplePageState extends ConsumerState<VoicePracticeSimplePag
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: theme.primaryColor.withOpacity(0.1),
+                        color: theme.primaryColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -355,7 +355,7 @@ class _VoicePracticeSimplePageState extends ConsumerState<VoicePracticeSimplePag
                           boxShadow: [
                             BoxShadow(
                               color: (_isRecording ? Colors.red : theme.primaryColor)
-                                  .withOpacity(0.3),
+                                  .withValues(alpha: 0.3),
                               blurRadius: 20,
                               spreadRadius: 5,
                             ),

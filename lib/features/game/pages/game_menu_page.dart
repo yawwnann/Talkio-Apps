@@ -102,7 +102,7 @@ class GameMenuPage extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppConstants.primaryBlue.withOpacity(0.3),
+            color: AppConstants.primaryBlue.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -127,7 +127,7 @@ class GameMenuPage extends ConsumerWidget {
                   'Pilih permainan seru untuk melatih kemampuan bicaramu',
                   style: GoogleFonts.poppins(
                     fontSize: 11,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     height: 1.3,
                   ),
                 ),
@@ -138,7 +138,7 @@ class GameMenuPage extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -163,7 +163,7 @@ class GameMenuPage extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: (game['bgColor'] as Color).withOpacity(0.3),
+              color: (game['bgColor'] as Color).withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -393,7 +393,7 @@ class GameMenuPage extends ConsumerWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: iconColor.withOpacity(0.2),
+                  color: iconColor.withValues(alpha: 0.2),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),

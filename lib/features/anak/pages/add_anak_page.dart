@@ -94,10 +94,10 @@ class _AddAnakPageState extends ConsumerState<AddAnakPage> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppConstants.primaryBlue.withOpacity(0.1), AppConstants.darkBlue.withOpacity(0.05)],
+                    colors: [AppConstants.primaryBlue.withValues(alpha: 0.1), AppConstants.darkBlue.withValues(alpha: 0.05)],
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppConstants.primaryBlue.withOpacity(0.2)),
+                  border: Border.all(color: AppConstants.primaryBlue.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
@@ -119,7 +119,7 @@ class _AddAnakPageState extends ConsumerState<AddAnakPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,18 +225,30 @@ class _AddAnakPageState extends ConsumerState<AddAnakPage> {
     return InkWell(
       onTap: () => setState(() => _selectedGender = value),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : const Color(0xFFF8FAFC),
+          color: isSelected ? color.withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
           border: Border.all(color: isSelected ? color : const Color(0xFFE2E8F0), width: isSelected ? 2 : 1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 20, color: isSelected ? color : Colors.grey),
             const SizedBox(width: 8),
-            Text(label, style: GoogleFonts.poppins(fontSize: 14, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal, color: isSelected ? color : Colors.grey)),
+            Flexible(
+              child: Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? color : Colors.grey,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),

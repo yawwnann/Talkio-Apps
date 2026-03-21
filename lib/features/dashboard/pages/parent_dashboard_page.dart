@@ -79,7 +79,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4A90E2).withOpacity(0.3),
+            color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -89,7 +89,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Halo, Bunda $name!',
+            'Halo, Bunda $name !',
             style: GoogleFonts.poppins(
               fontSize: 26,
               fontWeight: FontWeight.bold,
@@ -102,7 +102,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             'Mari temani tumbuh kembang si kecil\ndengan penuh kasih hari ini.',
             style: GoogleFonts.poppins(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.95),
+              color: Colors.white.withValues(alpha: 0.95),
               height: 1.6,
               letterSpacing: 0.2,
             ),
@@ -120,7 +120,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -147,7 +147,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppConstants.primaryBlue.withOpacity(0.1),
+                  color: AppConstants.primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -219,7 +219,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -344,7 +344,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -416,7 +416,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.2),
+                color: iconColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, size: 24, color: iconColor),

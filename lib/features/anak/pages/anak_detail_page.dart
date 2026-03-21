@@ -90,6 +90,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
       backgroundColor: const Color(0xFFF8F9FE),
       appBar: CustomAppBar(
         title: 'Detail Anak',
+        showBackButton: true,
         showUserMenu: true,
         actions: [
           IconButton(
@@ -206,7 +207,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -297,12 +298,12 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppConstants.primaryBlue.withOpacity(0.1),
-                  AppConstants.lightBlue.withOpacity(0.05),
+                  AppConstants.primaryBlue.withValues(alpha: 0.1),
+                  AppConstants.lightBlue.withValues(alpha: 0.05),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppConstants.primaryBlue.withOpacity(0.2)),
+              border: Border.all(color: AppConstants.primaryBlue.withValues(alpha: 0.2)),
             ),
             child: Column(
               children: [
@@ -379,7 +380,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -442,7 +443,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -493,7 +494,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: completed
-            ? AppConstants.successColor.withOpacity(0.05)
+            ? AppConstants.successColor.withValues(alpha: 0.05)
             : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
       ),
@@ -624,7 +625,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -672,8 +673,8 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             height: 48,
             decoration: BoxDecoration(
               color: status == 'completed'
-                  ? AppConstants.successColor.withOpacity(0.1)
-                  : AppConstants.warningOrange.withOpacity(0.1),
+                  ? AppConstants.successColor.withValues(alpha: 0.1)
+                  : AppConstants.warningOrange.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -726,7 +727,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -779,9 +780,9 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -815,7 +816,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

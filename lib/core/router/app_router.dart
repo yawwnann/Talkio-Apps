@@ -16,6 +16,8 @@ import '../../features/game/pages/voice_practice_simple_page.dart';
 import '../../features/pembayaran/pages/pembayaran_list_page.dart';
 import '../../features/jadwal/pages/jadwal_terapi_page.dart';
 import '../../features/profile/pages/profile_page.dart';
+import '../../features/therapist/pages/patient_list_page.dart';
+import '../../features/therapist/pages/patient_detail_page.dart';
 
 /// App Router Configuration
 /// Konfigurasi routing aplikasi menggunakan GoRouter
@@ -27,30 +29,30 @@ class AppRouter {
       navigatorKey: _rootNavigatorKey,
       initialLocation: '/splash',
       redirect: (context, state) {
-        final authState = ref.read(authProvider);
+        final authState = ref.watch(authProvider);
         final isAuthenticated = authState.isAuthenticated;
         final isLoading = authState.isLoading;
-        
+
         // Don't redirect while loading
         if (isLoading) return null;
-        
-        final isOnAuthPage = state.matchedLocation == '/login' || 
+
+        final isOnAuthPage = state.matchedLocation == '/login' ||
                             state.matchedLocation == '/register';
         final isOnSplash = state.matchedLocation == '/splash';
-        
+
         // Allow splash page
         if (isOnSplash) return null;
-        
+
         // Redirect to login if not authenticated and not on auth page
         if (!isAuthenticated && !isOnAuthPage) {
           return '/login';
         }
-        
+
         // Redirect to dashboard if authenticated and on auth page
         if (isAuthenticated && isOnAuthPage) {
           return '/dashboard';
         }
-        
+
         return null;
       },
       routes: [
@@ -78,7 +80,7 @@ class AppRouter {
           path: '/dashboard',
           name: 'dashboard',
           builder: (context, state) {
-            final user = ref.read(currentUserProvider);
+            final user = ref.watch(currentUserProvider);
             // Show therapist dashboard if user role is terapis
             if (user?.role == 'terapis') {
               return const TherapistDashboardPage();
@@ -223,7 +225,24 @@ class AppRouter {
           name: 'terapis-dashboard',
           builder: (context, state) => const TherapistDashboardPage(),
         ),
-        
+
+        // Therapist Patient Routes
+        GoRoute(
+          path: '/therapist/pasien',
+          name: 'therapist-patient',
+          builder: (context, state) => const TherapistPatientPage(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              name: 'therapist-patient-detail',
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return TherapistPatientDetailPage(patientId: id);
+              },
+            ),
+          ],
+        ),
+
         // Admin Dashboard Route
         GoRoute(
           path: '/admin-dashboard',

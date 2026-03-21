@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/anak_provider.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../../../core/models/anak_model.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/constants/app_constants.dart';
@@ -14,10 +13,7 @@ import '../../../shared/widgets/custom_app_bar.dart';
 class EditAnakPage extends ConsumerStatefulWidget {
   final String anakId;
 
-  const EditAnakPage({
-    super.key,
-    required this.anakId,
-  });
+  const EditAnakPage({super.key, required this.anakId});
 
   @override
   ConsumerState<EditAnakPage> createState() => _EditAnakPageState();
@@ -157,9 +153,13 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
       updatedAt: DateTime.now(),
     );
 
-    final success = await ref.read(anakProvider.notifier).updateAnak(updatedAnak);
+    final success = await ref
+        .read(anakProvider.notifier)
+        .updateAnak(updatedAnak);
 
-    if (success && mounted) {
+    if (!mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Data anak berhasil diupdate'),
@@ -187,9 +187,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
     if (_isLoading) {
       return Scaffold(
         appBar: const SimpleAppBar(title: 'Edit Data Anak'),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -208,13 +206,13 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppConstants.primaryBlue.withOpacity(0.1),
-                      AppConstants.darkBlue.withOpacity(0.05),
+                      AppConstants.primaryBlue.withValues(alpha: 0.1),
+                      AppConstants.darkBlue.withValues(alpha: 0.05),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppConstants.primaryBlue.withOpacity(0.2),
+                    color: AppConstants.primaryBlue.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -255,7 +253,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -474,7 +472,11 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                      const Icon(
+                        Icons.delete_outline,
+                        size: 20,
+                        color: Colors.red,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Hapus Data Anak',
@@ -506,9 +508,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected
-              ? color.withOpacity(0.1)
-              : const Color(0xFFF8FAFC),
+          color: isSelected ? color.withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
           border: Border.all(
             color: isSelected ? color : const Color(0xFFE2E8F0),
             width: isSelected ? 2 : 1,
@@ -518,11 +518,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: isSelected ? color : Colors.grey,
-            ),
+            Icon(icon, size: 20, color: isSelected ? color : Colors.grey),
             const SizedBox(width: 8),
             Text(
               label,
@@ -554,19 +550,13 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-          color: AppConstants.primaryBlue,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: AppConstants.primaryBlue, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.red),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 
@@ -574,9 +564,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         icon: Icon(
           Icons.warning_amber_rounded,
           color: AppConstants.warningOrange,
@@ -616,7 +604,9 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
     );
 
     if (confirmed == true) {
-      final success = await ref.read(anakProvider.notifier).deleteAnak(widget.anakId);
+      final success = await ref
+          .read(anakProvider.notifier)
+          .deleteAnak(widget.anakId);
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

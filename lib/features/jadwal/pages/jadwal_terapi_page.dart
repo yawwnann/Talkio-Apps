@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/parent_bottom_nav.dart';
@@ -49,8 +48,6 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
     );
   }
 
-
-
   Widget _buildGreeting() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +81,7 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF005BAC).withOpacity(0.2),
+            color: const Color(0xFF005BAC).withValues(alpha: 0.2),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -96,7 +93,7 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -132,7 +129,7 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
                     '/ 7 tugas selesai',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
                   ),
                 ],
@@ -147,7 +144,9 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
                       value: 4 / 7,
                       strokeWidth: 6,
                       backgroundColor: Color(0xFF004482),
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFB800)),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFFFFB800),
+                      ),
                       strokeCap: StrokeCap.round,
                     ),
                   ),
@@ -289,10 +288,7 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: Color(0xFFD1D5DB),
-            ),
+            const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
           ],
         ),
       ),
@@ -307,7 +303,7 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2E7D32).withOpacity(0.3),
+            color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -335,7 +331,7 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -352,10 +348,7 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
               const SizedBox(width: 8),
               Text(
                 'Kamis, 24 Okt 2023',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.white,
-                ),
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.white),
               ),
             ],
           ),
@@ -366,10 +359,7 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
               const SizedBox(width: 8),
               Text(
                 '14:00 - 15:30 WIB',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Colors.white,
-                ),
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.white),
               ),
             ],
           ),
