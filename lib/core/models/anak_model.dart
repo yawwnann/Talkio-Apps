@@ -1,98 +1,100 @@
 /// Anak Model
 /// Model untuk data anak yang akan diterapi
+/// Matches backend API response format
 class AnakModel {
   final String id;
   final String parentId; // ID orang tua
   final String name;
-  final DateTime birthDate;
-  final String gender; // L/P
-  final String? profileImage;
-  final String? medicalHistory;
-  final String? currentCondition;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  
+  final DateTime dateOfBirth;
+  final String gender; // MALE or FEMALE
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
   AnakModel({
     required this.id,
     required this.parentId,
     required this.name,
-    required this.birthDate,
+    required this.dateOfBirth,
     required this.gender,
-    this.profileImage,
-    this.medicalHistory,
-    this.currentCondition,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt,
+    this.updatedAt,
   });
-  
+
   // Calculate age
   int get age {
     final now = DateTime.now();
-    int age = now.year - birthDate.year;
-    
-    if (now.month < birthDate.month || 
-        (now.month == birthDate.month && now.day < birthDate.day)) {
+    int age = now.year - dateOfBirth.year;
+
+    if (now.month < dateOfBirth.month ||
+        (now.month == dateOfBirth.month && now.day < dateOfBirth.day)) {
       age--;
     }
-    
+
     return age;
   }
-  
+
   // Get age in months for more precise calculation
   int get ageInMonths {
     final now = DateTime.now();
-    int months = (now.year - birthDate.year) * 12;
-    months += now.month - birthDate.month;
-    
-    if (now.day < birthDate.day) {
+    int months = (now.year - dateOfBirth.year) * 12;
+    months += now.month - dateOfBirth.month;
+
+    if (now.day < dateOfBirth.day) {
       months--;
     }
-    
+
     return months;
   }
-  
-  // Convert from JSON
+
+  // Gender display value
+  String get genderDisplay {
+    switch (gender) {
+      case 'MALE':
+        return 'Laki-laki';
+      case 'FEMALE':
+        return 'Perempuan';
+      default:
+        return gender;
+    }
+  }
+
+  // Convert from JSON - matches backend response format
   factory AnakModel.fromJson(Map<String, dynamic> json) {
     return AnakModel(
       id: json['id'] ?? '',
-      parentId: json['parent_id'] ?? '',
+      parentId: json['parentId'] ?? json['parent_id'] ?? '',
       name: json['name'] ?? '',
-      birthDate: DateTime.parse(json['birth_date'] ?? DateTime.now().toIso8601String()),
+      dateOfBirth: DateTime.parse(json['dateOfBirth'] ?? json['date_of_birth'] ?? DateTime.now().toIso8601String()),
       gender: json['gender'] ?? '',
-      profileImage: json['profile_image'],
-      medicalHistory: json['medical_history'],
-      currentCondition: json['current_condition'],
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
+          : null,
+      updatedAt: json['updatedAt'] != null 
+          ? DateTime.parse(json['updatedAt']) 
+          : null,
     );
   }
-  
-  // Convert to JSON
+
+  // Convert to JSON - for API requests
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'parent_id': parentId,
+      'parentId': parentId,
       'name': name,
-      'birth_date': birthDate.toIso8601String(),
+      'dateOfBirth': dateOfBirth.toIso8601String().split('T')[0], // YYYY-MM-DD format
       'gender': gender,
-      'profile_image': profileImage,
-      'medical_history': medicalHistory,
-      'current_condition': currentCondition,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
-  
+
   // Copy with new values
   AnakModel copyWith({
     String? id,
     String? parentId,
     String? name,
-    DateTime? birthDate,
+    DateTime? dateOfBirth,
     String? gender,
-    String? profileImage,
-    String? medicalHistory,
-    String? currentCondition,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -100,39 +102,36 @@ class AnakModel {
       id: id ?? this.id,
       parentId: parentId ?? this.parentId,
       name: name ?? this.name,
-      birthDate: birthDate ?? this.birthDate,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       gender: gender ?? this.gender,
-      profileImage: profileImage ?? this.profileImage,
-      medicalHistory: medicalHistory ?? this.medicalHistory,
-      currentCondition: currentCondition ?? this.currentCondition,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
-  
+
   @override
   String toString() {
     return 'AnakModel(id: $id, name: $name, age: $age, gender: $gender)';
   }
-  
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    
+
     return other is AnakModel &&
         other.id == id &&
         other.parentId == parentId &&
         other.name == name &&
-        other.birthDate == birthDate &&
+        other.dateOfBirth == dateOfBirth &&
         other.gender == gender;
   }
-  
+
   @override
   int get hashCode {
     return id.hashCode ^
         parentId.hashCode ^
         name.hashCode ^
-        birthDate.hashCode ^
+        dateOfBirth.hashCode ^
         gender.hashCode;
   }
 }

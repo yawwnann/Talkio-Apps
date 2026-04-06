@@ -1,0 +1,150 @@
+{
+  "success": true,
+  "message": "Mock data jadwal loaded successfully",
+  "data": [
+    {
+      "id": "1",
+      "anak_id": "1",
+      "terapis_id": "2",
+      "parent_id": "1",
+      "title": "Terapi Wicara - Sesi 1",
+      "description": "Evaluasi awal dan latihan artikulasi dasar",
+      "date": "2024-03-25",
+      "start_time": "09:00",
+      "end_time": "10:00",
+      "location": "Klinik Permata Hati, Ruang 3",
+      "status": "scheduled",
+      "notes": "Bawa buku latihan dari rumah",
+      "created_at": "2024-03-20T08:00:00.000Z",
+      "updated_at": "2024-03-20T08:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "anak_id": "1",
+      "terapis_id": "2",
+      "parent_id": "1",
+      "title": "Terapi Wicara - Sesi 2",
+      "description": "Latihan motorik oral dan artikulasi huruf vokal",
+      "date": "2024-03-28",
+      "start_time": "09:00",
+      "end_time": "10:00",
+      "location": "Klinik Permata Hati, Ruang 3",
+      "status": "scheduled",
+      "notes": "Lanjutkan latihan di rumah",
+      "created_at": "2024-03-20T08:05:00.000Z",
+      "updated_at": "2024-03-20T08:05:00.000Z"
+    },
+    {
+      "id": "3",
+      "anak_id": "2",
+      "terapis_id": "2",
+      "parent_id": "1",
+      "title": "Evaluasi Perkembangan",
+      "description": "Evaluasi bulanan perkembangan bahasa ekspresif",
+      "date": "2024-03-26",
+      "start_time": "14:00",
+      "end_time": "15:30",
+      "location": "Klinik Permata Hati, Ruang 5",
+      "status": "scheduled",
+      "notes": "Bawa hasil latihan rumah",
+      "created_at": "2024-03-19T10:00:00.000Z",
+      "updated_at": "2024-03-19T10:00:00.000Z"
+    },
+    {
+      "id": "4",
+      "anak_id": "3",
+      "terapis_id": "5",
+      "parent_id": "4",
+      "title": "Terapi Psikologi Anak",
+      "description": "Stimulasi kognitif dan bahasa reseptif",
+      "date": "2024-03-27",
+      "start_time": "10:00",
+      "end_time": "11:00",
+      "location": "Klinik Sejahtera, Lantai 2",
+      "status": "scheduled",
+      "notes": "Orang tua diminta mendampingi",
+      "created_at": "2024-03-18T14:00:00.000Z",
+      "updated_at": "2024-03-18T14:00:00.000Z"
+    },
+    {
+      "id": "5",
+      "anak_id": "1",
+      "terapis_id": "2",
+      "parent_id": "1",
+      "title": "Terapi Wicara - Sesi 1",
+      "description": "Evaluasi awal dan latihan artikulasi dasar",
+      "date": "2024-03-18",
+      "start_time": "09:00",
+      "end_time": "10:00",
+      "location": "Klinik Permata Hati, Ruang 3",
+      "status": "completed",
+      "notes": "Anak kooperatif, progress baik",
+      "created_at": "2024-03-10T08:00:00.000Z",
+      "updated_at": "2024-03-18T10:00:00.000Z"
+    }
+  ],
+  "endpoints": {
+    "get_by_terapis": {
+      "success": {
+        "success": true,
+        "message": "Jadwal terapis berhasil diambil",
+        "data": []
+      },
+      "empty": {
+        "success": true,
+        "message": "Tidak ada jadwal",
+        "data": []
+      }
+    },
+    "get_by_parent": {
+      "success": {
+        "success": true,
+        "message": "Jadwal berhasil diambil",
+        "data": []
+      }
+    },
+    "get_by_anak": {
+      "success": {
+        "success": true,
+        "message": "Riwayat jadwal anak berhasil diambil",
+        "data": []
+      }
+    },
+    "create": {
+      "success": {
+        "success": true,
+        "message": "Jadwal berhasil ditambahkan",
+        "data": {}
+      },
+      "error": {
+        "success": false,
+        "message": "Gagal menambahkan jadwal",
+        "data": null
+      }
+    },
+    "update": {
+      "success": {
+        "success": true,
+        "message": "Jadwal berhasil diupdate",
+        "data": {}
+      },
+      "not_found": {
+        "success": false,
+        "message": "Jadwal tidak ditemukan",
+        "data": null
+      }
+    },
+    "delete": {
+      "success": {
+        "success": true,
+        "message": "Jadwal berhasil dihapus",
+        "data": null
+      },
+      "error": {
+        "success": false,
+        "message": "Gagal menghapus jadwal",
+        "data": null
+      }
+    }
+  }
+}

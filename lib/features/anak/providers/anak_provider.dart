@@ -33,47 +33,71 @@ class AnakState {
 
 /// Anak Provider
 class AnakNotifier extends StateNotifier<AnakState> {
-  AnakNotifier(ApiService apiService) : super(const AnakState());
+  final ApiService _apiService;
 
-  /// Get all anak by parent ID
+  AnakNotifier(this._apiService) : super(const AnakState());
+
+  /// Get all anak by parent ID (now calls GET /api/children)
   Future<void> getAnakList(String parentId) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Mock API call - replace with actual API
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await _apiService.getChildren();
 
-      // Mock data
-      final mockData = [
-        {
-          'id': '1',
-          'parent_id': parentId,
-          'name': 'Ahmad Rizki',
-          'birth_date': '2020-05-15T00:00:00.000Z',
-          'gender': 'L',
-          'medical_history': 'Tidak ada riwayat penyakit khusus',
-          'current_condition': 'Belum bisa mengucapkan kata dengan jelas',
-          'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-        },
-        {
-          'id': '2',
-          'parent_id': parentId,
-          'name': 'Siti Aisyah',
-          'birth_date': '2019-08-20T00:00:00.000Z',
-          'gender': 'P',
-          'medical_history': 'Lahir prematur',
-          'current_condition': 'Kesulitan dalam komunikasi verbal',
-          'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-        },
-      ];
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic> && data['status'] == 'success') {
+          final anakListData = data['data'];
+          List<AnakModel> anakList = [];
+          
+          if (anakListData is List) {
+            anakList = anakListData
+                .whereType<Map<String, dynamic>>()
+                .map((item) => AnakModel.fromJson(item))
+                .toList();
+          }
 
-      final anakList = mockData
-          .map((data) => AnakModel.fromJson(data))
-          .toList();
+          state = state.copyWith(anakList: anakList, isLoading: false);
+        } else {
+          state = state.copyWith(
+            error: data['message'] ?? 'Gagal memuat data anak',
+            isLoading: false,
+          );
+        }
+      }
+    } catch (e) {
+      state = state.copyWith(error: e.toString(), isLoading: false);
+    }
+  }
 
-      state = state.copyWith(anakList: anakList, isLoading: false);
+  /// Get all anak (for therapist) - now calls GET /api/therapist/patients
+  Future<void> fetchAllAnak() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final response = await _apiService.getTherapistPatients();
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic> && data['status'] == 'success') {
+          final anakListData = data['data'];
+          List<AnakModel> anakList = [];
+          
+          if (anakListData is List) {
+            anakList = anakListData
+                .whereType<Map<String, dynamic>>()
+                .map((item) => AnakModel.fromJson(item))
+                .toList();
+          }
+
+          state = state.copyWith(anakList: anakList, isLoading: false);
+        } else {
+          state = state.copyWith(
+            error: data['message'] ?? 'Gagal memuat data anak',
+            isLoading: false,
+          );
+        }
+      }
     } catch (e) {
       state = state.copyWith(error: e.toString(), isLoading: false);
     }
@@ -84,76 +108,109 @@ class AnakNotifier extends StateNotifier<AnakState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Mock API call - replace with actual API
-      await Future.delayed(const Duration(seconds: 1));
-
-      final newAnak = anak.copyWith(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+      final response = await _apiService.createChild(
+        name: anak.name,
+        dateOfBirth: anak.dateOfBirth.toIso8601String().split('T')[0],
+        gender: anak.gender,
       );
 
-      final updatedList = [...state.anakList, newAnak];
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        if (data is Map<String, dynamic> && data['status'] == 'success') {
+          final newAnakData = data['data'] as Map<String, dynamic>;
+          final newAnak = AnakModel.fromJson(newAnakData);
 
-      state = state.copyWith(anakList: updatedList, isLoading: false);
+          final updatedList = [...state.anakList, newAnak];
 
-      return true;
+          state = state.copyWith(anakList: updatedList, isLoading: false);
+
+          return true;
+        } else {
+          final message = data['message'] ?? 'Gagal menambahkan data anak';
+          state = state.copyWith(error: message, isLoading: false);
+          return false;
+        }
+      }
+      return false;
     } catch (e) {
       state = state.copyWith(error: e.toString(), isLoading: false);
       return false;
     }
   }
 
-  /// Update anak
+  /// Update anak (not supported by backend - mock only)
   Future<bool> updateAnak(AnakModel anak) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Mock API call - replace with actual API
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await _apiService.updateAnak(anak.id, anak.toJson());
 
-      final updatedAnak = anak.copyWith(updatedAt: DateTime.now());
+      if (response.statusCode == 200) {
+        final data = response.data;
+        // Backend doesn't support update, so this will likely fail
+        if (data is Map<String, dynamic> && data['status'] == 'success') {
+          final updatedAnakData = data['data'] as Map<String, dynamic>;
+          final updatedAnak = AnakModel.fromJson(updatedAnakData);
 
-      final updatedList = state.anakList.map((item) {
-        return item.id == anak.id ? updatedAnak : item;
-      }).toList();
+          final updatedList = state.anakList.map((item) {
+            return item.id == anak.id ? updatedAnak : item;
+          }).toList();
 
-      state = state.copyWith(
-        anakList: updatedList,
-        selectedAnak: state.selectedAnak?.id == anak.id
-            ? updatedAnak
-            : state.selectedAnak,
-        isLoading: false,
-      );
+          state = state.copyWith(
+            anakList: updatedList,
+            selectedAnak: state.selectedAnak?.id == anak.id
+                ? updatedAnak
+                : state.selectedAnak,
+            isLoading: false,
+          );
 
-      return true;
+          return true;
+        }
+      }
+      
+      final message = response.data is Map<String, dynamic> 
+          ? response.data['message'] ?? 'Update tidak didukung oleh backend'
+          : 'Update tidak didukung oleh backend';
+      state = state.copyWith(error: message, isLoading: false);
+      return false;
     } catch (e) {
       state = state.copyWith(error: e.toString(), isLoading: false);
       return false;
     }
   }
 
-  /// Delete anak
+  /// Delete anak (not supported by backend - mock only)
   Future<bool> deleteAnak(String anakId) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Mock API call - replace with actual API
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await _apiService.deleteAnak(anakId);
 
-      final updatedList = state.anakList
-          .where((item) => item.id != anakId)
-          .toList();
+      if (response.statusCode == 200) {
+        final data = response.data;
+        // Backend doesn't support delete, so this will likely fail
+        if (data is Map<String, dynamic> && data['status'] == 'success') {
+          final updatedList = state.anakList
+              .where((item) => item.id != anakId)
+              .toList();
 
-      state = state.copyWith(
-        anakList: updatedList,
-        selectedAnak: state.selectedAnak?.id == anakId
-            ? null
-            : state.selectedAnak,
-        isLoading: false,
-      );
+          state = state.copyWith(
+            anakList: updatedList,
+            selectedAnak: state.selectedAnak?.id == anakId
+                ? null
+                : state.selectedAnak,
+            isLoading: false,
+          );
 
-      return true;
+          return true;
+        }
+      }
+
+      final message = response.data is Map<String, dynamic>
+          ? response.data['message'] ?? 'Delete tidak didukung oleh backend'
+          : 'Delete tidak didukung oleh backend';
+      state = state.copyWith(error: message, isLoading: false);
+      return false;
     } catch (e) {
       state = state.copyWith(error: e.toString(), isLoading: false);
       return false;

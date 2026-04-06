@@ -240,30 +240,9 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             icon: Icons.person_outline,
             iconColor: AppConstants.primaryBlue,
             children: [
-              _buildDataRow('Tanggal Lahir', _formatDate(anak.birthDate)),
+              _buildDataRow('Tanggal Lahir', _formatDate(anak.dateOfBirth)),
               _buildDataRow('Usia', '${anak.age} tahun (${anak.ageInMonths} bulan)'),
-              _buildDataRow('Jenis Kelamin', anak.gender == 'L' ? 'Laki-laki' : 'Perempuan'),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Informasi Medis Card
-          _buildInfoCard(
-            title: 'Informasi Medis',
-            icon: Icons.medical_services_outlined,
-            iconColor: AppConstants.warningOrange,
-            children: [
-              _buildDataRow(
-                'Kondisi Saat Ini',
-                anak.currentCondition ?? 'Belum ada catatan',
-                isHighlight: true,
-              ),
-              const SizedBox(height: 12),
-              _buildDataRow(
-                'Riwayat Medis',
-                anak.medicalHistory ?? 'Tidak ada riwayat medis',
-              ),
+              _buildDataRow('Jenis Kelamin', anak.gender == 'MALE' ? 'Laki-laki' : 'Perempuan'),
             ],
           ),
 
@@ -890,7 +869,8 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Tidak tersedia';
     const months = [
       'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'

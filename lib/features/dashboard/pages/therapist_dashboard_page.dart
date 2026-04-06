@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
-import '../../../shared/widgets/parent_bottom_nav.dart';
+import '../../../shared/widgets/therapist_bottom_nav.dart';
 
 class TherapistDashboardPage extends ConsumerWidget {
   const TherapistDashboardPage({super.key});
@@ -38,7 +38,7 @@ class TherapistDashboardPage extends ConsumerWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const TherapistBottomNav(currentIndex: 0),
+      bottomNavigationBar: TherapistBottomNav(currentIndex: 0),
     );
   }
 

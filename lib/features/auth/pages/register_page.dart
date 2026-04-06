@@ -49,7 +49,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
-      phone: '', // No phone field in this design
       role: _selectedRole,
     );
     

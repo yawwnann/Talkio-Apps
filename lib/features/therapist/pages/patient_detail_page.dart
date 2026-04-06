@@ -1,11 +1,9 @@
-import 'package:deteksi_telat_bicara/shared/widgets/parent_bottom_nav.dart';
+import '../../../shared/widgets/therapist_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../anak/providers/anak_provider.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../shared/widgets/therapist_bottom_nav.dart'; // Ensure bottom nav is correct
-
 /// Therapist Patient Detail Page
 /// Halaman detail pasien untuk terapis menggunakan view single-scroll
 class TherapistPatientDetailPage extends ConsumerStatefulWidget {
@@ -139,7 +137,7 @@ class _TherapistPatientDetailPageState
           ],
         ),
       ),
-      bottomNavigationBar: const TherapistBottomNav(currentIndex: 1),
+      bottomNavigationBar: TherapistBottomNav(currentIndex: 1),
     );
   }
 
@@ -257,7 +255,7 @@ class _TherapistPatientDetailPageState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _calculateAge(anak.birthDate),
+                    _calculateAge(anak.dateOfBirth),
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,

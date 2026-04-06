@@ -19,16 +19,12 @@ class AddAnakPage extends ConsumerStatefulWidget {
 class _AddAnakPageState extends ConsumerState<AddAnakPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _medicalHistoryController = TextEditingController();
-  final _currentConditionController = TextEditingController();
   DateTime? _selectedBirthDate;
-  String _selectedGender = 'L';
+  String _selectedGender = 'MALE';
   
   @override
   void dispose() {
     _nameController.dispose();
-    _medicalHistoryController.dispose();
-    _currentConditionController.dispose();
     super.dispose();
   }
   
@@ -59,12 +55,8 @@ class _AddAnakPageState extends ConsumerState<AddAnakPage> {
       id: '',
       parentId: user.id,
       name: _nameController.text.trim(),
-      birthDate: _selectedBirthDate!,
+      dateOfBirth: _selectedBirthDate!,
       gender: _selectedGender,
-      medicalHistory: _medicalHistoryController.text.trim().isEmpty ? null : _medicalHistoryController.text.trim(),
-      currentCondition: _currentConditionController.text.trim().isEmpty ? null : _currentConditionController.text.trim(),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
     );
     
     final success = await ref.read(anakProvider.notifier).addAnak(anak);
@@ -162,26 +154,10 @@ class _AddAnakPageState extends ConsumerState<AddAnakPage> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildGenderOption('L', 'Laki-laki', Icons.male)),
+                        Expanded(child: _buildGenderOption('MALE', 'Laki-laki', Icons.male)),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildGenderOption('P', 'Perempuan', Icons.female)),
+                        Expanded(child: _buildGenderOption('FEMALE', 'Perempuan', Icons.female)),
                       ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text('Riwayat Medis (Opsional)', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _medicalHistoryController,
-                      maxLines: 3,
-                      decoration: _buildInputDecoration('Masukkan riwayat medis', Icons.medical_services_outlined),
-                    ),
-                    const SizedBox(height: 20),
-                    Text('Kondisi Saat Ini (Opsional)', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _currentConditionController,
-                      maxLines: 3,
-                      decoration: _buildInputDecoration('Deskripsikan kondisi anak', Icons.description_outlined),
                     ),
                   ],
                 ),

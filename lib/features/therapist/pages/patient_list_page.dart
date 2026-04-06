@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../anak/providers/anak_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
-import '../../../shared/widgets/parent_bottom_nav.dart';
+import '../../../shared/widgets/therapist_bottom_nav.dart';
+import '../../anak/providers/anak_provider.dart';
 
 /// Therapist Patient Page
 /// Halaman daftar pasien untuk terapis
@@ -27,9 +27,9 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
   @override
   void initState() {
     super.initState();
-    // Load mock data for demonstration
+    // Load patients for therapist
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(anakProvider.notifier).getAnakList('demo_parent_id');
+      ref.read(anakProvider.notifier).fetchAllAnak();
     });
   }
 
@@ -90,7 +90,7 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
         child: const Icon(Icons.person_add, color: Colors.white, size: 24),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: const TherapistBottomNav(currentIndex: 1),
+      bottomNavigationBar: TherapistBottomNav(currentIndex: 1),
     );
   }
 

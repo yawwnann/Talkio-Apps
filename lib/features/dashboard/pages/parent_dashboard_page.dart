@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../anak/providers/anak_provider.dart';
+import '../../../core/models/anak_model.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/parent_bottom_nav.dart';
@@ -113,6 +114,9 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
   }
 
   Widget _buildChildDevelopment() {
+    final anakState = ref.watch(anakProvider);
+    final anakList = anakState.anakList;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -141,35 +145,147 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                   height: 1.3,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+              if (anakList.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppConstants.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${anakList.length} Anak',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppConstants.primaryBlue,
+                    ),
+                  ),
                 ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (anakList.isEmpty)
+            Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.people_outline,
+                    size: 48,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Belum ada data anak',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...anakList.map((anak) => _buildChildCard(anak)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChildCard(AnakModel anak) {
+    final age = _calculateAge(anak.dateOfBirth);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                anak.name,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppConstants.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: anak.gender == 'L' 
+                      ? const Color(0xFFE3F2FD) 
+                      : const Color(0xFFFCE4EC),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Bulan 24',
+                  anak.gender == 'L' ? 'Laki-laki' : 'Perempuan',
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppConstants.primaryBlue,
+                    color: anak.gender == 'L' 
+                        ? const Color(0xFF1976D2) 
+                        : const Color(0xFFC2185B),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          _buildProgressItem('Komunikasi', 0.75, const Color(0xFF8B7355)),
-          const SizedBox(height: 16),
-          _buildProgressItem('Motorik Halus', 0.80, const Color(0xFF6B9B6E)),
-          const SizedBox(height: 16),
-          _buildProgressItem('Sosialisasi', 0.88, const Color(0xFF5A8F5A)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+              const SizedBox(width: 6),
+              Text(
+                _formatDate(anak.dateOfBirth),
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Icon(Icons.cake, size: 14, color: Colors.grey[600]),
+              const SizedBox(width: 6),
+              Text(
+                '$age tahun',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          // medicalHistory field removed - backend doesn't support it
         ],
       ),
     );
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month || 
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
   Widget _buildProgressItem(String label, double progress, Color color) {

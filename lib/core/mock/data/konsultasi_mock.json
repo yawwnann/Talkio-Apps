@@ -1,0 +1,103 @@
+{
+  "success": true,
+  "message": "Mock data konsultasi loaded successfully",
+  "data": [
+    {
+      "id": "1",
+      "parent_id": "1",
+      "anak_id": "1",
+      "terapis_id": "2",
+      "category": "Konsultasi Awal",
+      "subject": "Evaluasi kemampuan bicara anak",
+      "message": "Anak saya berusia 3 tahun tapi belum bisa berbicara dengan jelas. Hanya mengeluarkan beberapa kata seperti 'mama', 'papa'. Apakah ini normal?",
+      "status": "completed",
+      "response": "Berdasarkan informasi yang Ibu berikan, anak mungkin mengalami keterlambatan bicara. Saya sarankan untuk melakukan evaluasi lebih lanjut. Gejala yang perlu diperhatikan: (1) Tidak merespon saat dipanggil, (2) Tidak meniru kata-kata sederhana, (3) Tidak menggunakan gestur untuk berkomunikasi.",
+      "created_at": "2024-01-18T09:00:00.000Z",
+      "updated_at": "2024-01-18T14:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "parent_id": "1",
+      "anak_id": "2",
+      "terapis_id": "2",
+      "category": "Follow-up",
+      "subject": "Progress terapi setelah 1 bulan",
+      "message": "Dok, setelah 1 bulan terapi, anak saya sudah mulai bisa menyebutkan 5-10 kata baru. Apakah ini progress yang baik?",
+      "status": "completed",
+      "response": "Ya, itu progress yang sangat baik! Penambahan 5-10 kata dalam 1 bulan menunjukkan anak responsif terhadap terapi. Lanjutkan latihan di rumah dengan konsisten. Fokus pada: (1) Mengulang kata-kata baru setiap hari, (2) Menggunakan gambar untuk stimulasi, (3) Memberikan reward saat anak berhasil mengucapkan kata.",
+      "created_at": "2024-02-20T10:00:00.000Z",
+      "updated_at": "2024-02-20T16:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "parent_id": "4",
+      "anak_id": "3",
+      "terapis_id": "5",
+      "category": "Konsultasi Umum",
+      "subject": "Anak sulit fokus saat diajak bicara",
+      "message": "Anak saya susah sekali fokus kalau diajak bicara. Selalu melihat ke arah lain. Apa ini tanda autisme Dok?",
+      "status": "pending",
+      "response": null,
+      "created_at": "2024-03-19T11:00:00.000Z",
+      "updated_at": "2024-03-19T11:00:00.000Z"
+    },
+    {
+      "id": "4",
+      "parent_id": "1",
+      "anak_id": "1",
+      "terapis_id": "2",
+      "category": "Hasil Diagnosa",
+      "subject": "Penjelasan hasil evaluasi",
+      "message": "Dok, bisa dijelaskan lebih detail tentang hasil diagnosa F80.0 yang diterima?",
+      "status": "completed",
+      "response": "F80.0 adalah kode ICD-10 untuk Gangguan Artikulasi. Ini berarti anak mengalami kesulitan dalam memproduksi suara/bunyi kata. Penyebabnya bisa karena: (1) Kelemahan otot oral, (2) Kesulitan koordinasi gerak mulut, (3) Faktor perkembangan. Prognosisnya baik dengan terapi rutin. Target terapi: memperbaiki kejelasan bicara dalam 3-6 bulan.",
+      "created_at": "2024-01-21T08:00:00.000Z",
+      "updated_at": "2024-01-21T10:00:00.000Z"
+    }
+  ],
+  "endpoints": {
+    "get_by_parent": {
+      "success": {
+        "success": true,
+        "message": "Riwayat konsultasi berhasil diambil",
+        "data": []
+      },
+      "empty": {
+        "success": true,
+        "message": "Belum ada riwayat konsultasi",
+        "data": []
+      }
+    },
+    "get_by_anak": {
+      "success": {
+        "success": true,
+        "message": "Konsultasi per anak berhasil diambil",
+        "data": []
+      }
+    },
+    "create": {
+      "success": {
+        "success": true,
+        "message": "Konsultasi berhasil dibuat",
+        "data": {}
+      },
+      "error": {
+        "success": false,
+        "message": "Gagal membuat konsultasi",
+        "data": null
+      }
+    },
+    "update_response": {
+      "success": {
+        "success": true,
+        "message": "Response terapis berhasil ditambahkan",
+        "data": {}
+      },
+      "error": {
+        "success": false,
+        "message": "Gagal update response",
+        "data": null
+      }
+    }
+  }
+}

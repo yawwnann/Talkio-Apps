@@ -35,8 +35,16 @@ class AuthState {
 
 /// Auth Provider
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(ApiService apiService) : super(const AuthState()) {
-    _checkAuthStatus();
+  final ApiService _apiService;
+
+  AuthNotifier(this._apiService) : super(const AuthState()) {
+    _init();
+  }
+
+  /// Initialize - check auth status
+  Future<void> _init() async {
+    await _apiService.initMockConfig();
+    await _checkAuthStatus();
   }
 
   /// Check if user is already authenticated
@@ -62,51 +70,51 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Login with email and password (No validation for testing)
+  /// Login with email and password
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Mock API call - replace with actual API
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await _apiService.login(email, password);
 
-      // Determine role based on email for testing
-      String role = AppConstants.roleOrangTua;
-      String name = 'User Demo';
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          // Backend format: { status: "success", message: "...", data: { token: "...", user: {...} } }
+          // Mock format: { status: "success", data: { token: "...", user: {...} } }
+          final responseData = data['data'] as Map<String, dynamic>?;
 
-      if (email.toLowerCase().contains('terapis')) {
-        role = AppConstants.roleTerapis;
-        name = 'Dr. Terapis Demo';
-      } else if (email.toLowerCase().contains('admin')) {
-        role = AppConstants.roleAdmin;
-        name = 'Admin Demo';
+          if (responseData != null) {
+            final token = responseData['token'] as String?;
+            final userData = responseData['user'] as Map<String, dynamic>?;
+
+            if (token != null && userData != null) {
+              final user = UserModel.fromJson(userData);
+
+              // Save to storage
+              await StorageService.setString(AppConstants.tokenKey, token);
+              await StorageService.setObject(AppConstants.userKey, user.toJson());
+
+              state = state.copyWith(
+                user: user,
+                isAuthenticated: true,
+                isLoading: false,
+              );
+
+              return true;
+            }
+          }
+        }
+
+        final message = data is Map<String, dynamic>
+            ? data['message'] ?? 'Login gagal'
+            : 'Login gagal';
+        state = state.copyWith(error: message, isLoading: false);
+        return false;
+      } else {
+        state = state.copyWith(error: 'Login gagal', isLoading: false);
+        return false;
       }
-
-      // Mock user data - accept any email/password
-      final userData = {
-        'id': '1',
-        'email': email.isEmpty ? 'demo@example.com' : email,
-        'name': name,
-        'phone': '081234567890',
-        'role': role,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-
-      final user = UserModel.fromJson(userData);
-      const token = 'mock_token_123';
-
-      // Save to storage
-      await StorageService.setString(AppConstants.tokenKey, token);
-      await StorageService.setObject(AppConstants.userKey, userData);
-
-      state = state.copyWith(
-        user: user,
-        isAuthenticated: true,
-        isLoading: false,
-      );
-
-      return true;
     } catch (e) {
       state = state.copyWith(error: e.toString(), isLoading: false);
       return false;
@@ -118,40 +126,52 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String name,
     required String email,
     required String password,
-    required String phone,
-    String role = AppConstants.roleOrangTua,
+    String role = 'PARENT',
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Mock API call - replace with actual API
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Mock user data
-      final userData = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'email': email,
-        'name': name,
-        'phone': phone,
-        'role': role,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-
-      final user = UserModel.fromJson(userData);
-      const token = 'mock_token_123';
-
-      // Save to storage
-      await StorageService.setString(AppConstants.tokenKey, token);
-      await StorageService.setObject(AppConstants.userKey, userData);
-
-      state = state.copyWith(
-        user: user,
-        isAuthenticated: true,
-        isLoading: false,
+      final response = await _apiService.register(
+        name: name,
+        email: email,
+        password: password,
+        role: role,
       );
 
-      return true;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          final responseData = data['data'] as Map<String, dynamic>?;
+          final token = data['token'] as String?;
+
+          if (responseData != null) {
+            final user = UserModel.fromJson(responseData);
+
+            // If token is in root level, save it
+            if (token != null) {
+              await StorageService.setString(AppConstants.tokenKey, token);
+            }
+            await StorageService.setObject(AppConstants.userKey, user.toJson());
+
+            state = state.copyWith(
+              user: user,
+              isAuthenticated: true,
+              isLoading: false,
+            );
+
+            return true;
+          }
+        }
+
+        final message = data is Map<String, dynamic>
+            ? data['message'] ?? 'Registrasi gagal'
+            : 'Registrasi gagal';
+        state = state.copyWith(error: message, isLoading: false);
+        return false;
+      } else {
+        state = state.copyWith(error: 'Registrasi gagal', isLoading: false);
+        return false;
+      }
     } catch (e) {
       state = state.copyWith(error: e.toString(), isLoading: false);
       return false;
@@ -163,13 +183,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
 
     try {
+      // Call API logout (optional, for cleanup)
+      await _apiService.logout();
+
       // Clear storage
       await StorageService.remove(AppConstants.tokenKey);
       await StorageService.remove(AppConstants.userKey);
 
       state = const AuthState();
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      // Even if API fails, clear local data
+      await StorageService.remove(AppConstants.tokenKey);
+      await StorageService.remove(AppConstants.userKey);
+      state = const AuthState();
     }
   }
 
@@ -178,10 +204,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Mock API call - replace with actual API
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Save to storage
+      // Note: Update profile API endpoint would go here
+      // For now, just update local storage
       await StorageService.setObject(
         AppConstants.userKey,
         updatedUser.toJson(),
@@ -195,6 +219,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return false;
     }
   }
+
+  /// Toggle mock mode
+  Future<void> toggleMockMode(bool enabled) async {
+    await _apiService.toggleMockMode(enabled);
+  }
+
+  /// Get current mock mode
+  bool get useMockData => _apiService.useMockData;
 
   /// Clear error
   void clearError() {
@@ -215,4 +247,9 @@ final currentUserProvider = Provider<UserModel?>((ref) {
 /// Is Authenticated Provider
 final isAuthenticatedProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).isAuthenticated;
+});
+
+/// Mock Mode Provider
+final mockModeProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider.notifier).useMockData;
 });

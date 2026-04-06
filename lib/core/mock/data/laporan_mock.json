@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1",
+    "terapis_id": "2",
+    "patient_id": "#44210",
+    "patient_name": "Budi Santoso",
+    "patient_avatar": "assets/images/boy_avatar.png",
+    "status": "DRAFT",
+    "summary": "Kemajuan yang signifikan terlihat pada artikulasi huruf vokal. Budi mulai mampu melafalkan A, I, U dengan jelas.",
+    "date": "17 Sep 2024"
+  },
+  {
+    "id": "2",
+    "terapis_id": "2",
+    "patient_id": "#44198",
+    "patient_name": "Ani Lestari",
+    "patient_avatar": "assets/images/girl_avatar.png",
+    "status": "SENT",
+    "summary": "Sesi terapi wicara mingguan berfokus pada pengenalan warna dan bentuk dasar. Pasien sangat kooperatif.",
+    "date": "15 Sep 2024"
+  },
+  {
+    "id": "3",
+    "terapis_id": "2",
+    "patient_id": "#44182",
+    "patient_name": "Rizky Kurniawan",
+    "patient_avatar": "assets/images/boy_avatar.png",
+    "status": "SENT",
+    "summary": "Analisis perilaku menunjukkan penurunan tingkat tantrum saat peralihan antar aktivitas terapeutik.",
+    "date": "14 Sep 2024"
+  }
+]

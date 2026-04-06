@@ -1,0 +1,131 @@
+{
+  "success": true,
+  "message": "Mock data pembayaran loaded successfully",
+  "data": [
+    {
+      "id": "1",
+      "user_id": "1",
+      "anak_id": "1",
+      "jadwal_id": "1",
+      "service_type": "Terapi Wicara",
+      "service_name": "Paket Terapi 4 Sesi",
+      "price": 660000,
+      "admin_fee": 0,
+      "total_amount": 660000,
+      "payment_method": "bank_transfer",
+      "payment_status": "success",
+      "payment_date": "2024-03-20T10:30:00.000Z",
+      "snap_token": null,
+      "notes": "Pembayaran untuk 4 sesi terapi wicara",
+      "created_at": "2024-03-20T10:00:00.000Z",
+      "updated_at": "2024-03-20T10:30:00.000Z"
+    },
+    {
+      "id": "2",
+      "user_id": "1",
+      "anak_id": "2",
+      "jadwal_id": "3",
+      "service_type": "Evaluasi",
+      "service_name": "Evaluasi Perkembangan Bulanan",
+      "price": 250000,
+      "admin_fee": 2500,
+      "total_amount": 252500,
+      "payment_method": "gopay",
+      "payment_status": "success",
+      "payment_date": "2024-03-19T15:00:00.000Z",
+      "snap_token": null,
+      "notes": "Evaluasi bulan Maret 2024",
+      "created_at": "2024-03-19T14:30:00.000Z",
+      "updated_at": "2024-03-19T15:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "user_id": "4",
+      "anak_id": "3",
+      "jadwal_id": "4",
+      "service_type": "Terapi Psikologi",
+      "service_name": "Sesi Terapi Psikologi Anak",
+      "price": 300000,
+      "admin_fee": 3000,
+      "total_amount": 303000,
+      "payment_method": "credit_card",
+      "payment_status": "pending",
+      "payment_date": null,
+      "snap_token": "abc123-token-sandbox",
+      "notes": "Menunggu pembayaran",
+      "created_at": "2024-03-18T16:00:00.000Z",
+      "updated_at": "2024-03-18T16:00:00.000Z"
+    },
+    {
+      "id": "4",
+      "user_id": "1",
+      "anak_id": "1",
+      "jadwal_id": null,
+      "service_type": "Konsultasi",
+      "service_name": "Konsultasi Online dengan Terapis",
+      "price": 165000,
+      "admin_fee": 1650,
+      "total_amount": 166650,
+      "payment_method": "bank_transfer",
+      "payment_status": "failed",
+      "payment_date": null,
+      "snap_token": "xyz789-token-failed",
+      "notes": "Pembayaran gagal - saldo tidak mencukupi",
+      "created_at": "2024-03-15T09:00:00.000Z",
+      "updated_at": "2024-03-15T09:05:00.000Z"
+    }
+  ],
+  "endpoints": {
+    "get_by_user": {
+      "success": {
+        "success": true,
+        "message": "Riwayat pembayaran berhasil diambil",
+        "data": []
+      },
+      "empty": {
+        "success": true,
+        "message": "Belum ada riwayat pembayaran",
+        "data": []
+      }
+    },
+    "get_by_id": {
+      "success": {
+        "success": true,
+        "message": "Detail pembayaran berhasil diambil",
+        "data": {}
+      },
+      "not_found": {
+        "success": false,
+        "message": "Data pembayaran tidak ditemukan",
+        "data": null
+      }
+    },
+    "create": {
+      "success": {
+        "success": true,
+        "message": "Pembayaran berhasil dibuat",
+        "data": {
+          "snap_token": "mock-snap-token-123",
+          "redirect_url": "https://app.sandbox.midtrans.com/snap/v2/..."
+        }
+      },
+      "error": {
+        "success": false,
+        "message": "Gagal membuat pembayaran",
+        "data": null
+      }
+    },
+    "update_status": {
+      "success": {
+        "success": true,
+        "message": "Status pembayaran berhasil diupdate",
+        "data": {}
+      },
+      "error": {
+        "success": false,
+        "message": "Gagal update status pembayaran",
+        "data": null
+      }
+    }
+  }
+}

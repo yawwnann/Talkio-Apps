@@ -22,8 +22,6 @@ class EditAnakPage extends ConsumerStatefulWidget {
 class _EditAnakPageState extends ConsumerState<EditAnakPage> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
-  late TextEditingController _medicalHistoryController;
-  late TextEditingController _currentConditionController;
   DateTime? _selectedBirthDate;
   late String _selectedGender;
 
@@ -52,8 +50,8 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
           id: '',
           parentId: '',
           name: '',
-          birthDate: DateTime.now(),
-          gender: 'L',
+          dateOfBirth: DateTime.now(),
+          gender: 'MALE',
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
@@ -68,13 +66,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
   void _initializeData(AnakModel anak) {
     setState(() {
       _nameController = TextEditingController(text: anak.name);
-      _medicalHistoryController = TextEditingController(
-        text: anak.medicalHistory ?? '',
-      );
-      _currentConditionController = TextEditingController(
-        text: anak.currentCondition ?? '',
-      );
-      _selectedBirthDate = anak.birthDate;
+      _selectedBirthDate = anak.dateOfBirth;
       _selectedGender = anak.gender;
       _isLoading = false;
     });
@@ -83,8 +75,6 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _medicalHistoryController.dispose();
-    _currentConditionController.dispose();
     super.dispose();
   }
 
@@ -142,15 +132,8 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
 
     final updatedAnak = _anak!.copyWith(
       name: _nameController.text.trim(),
-      birthDate: _selectedBirthDate!,
+      dateOfBirth: _selectedBirthDate!,
       gender: _selectedGender,
-      medicalHistory: _medicalHistoryController.text.trim().isEmpty
-          ? null
-          : _medicalHistoryController.text.trim(),
-      currentCondition: _currentConditionController.text.trim().isEmpty
-          ? null
-          : _currentConditionController.text.trim(),
-      updatedAt: DateTime.now(),
     );
 
     final success = await ref
@@ -339,7 +322,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
                       children: [
                         Expanded(
                           child: _buildGenderOption(
-                            'L',
+                            'MALE',
                             'Laki-laki',
                             Icons.male,
                           ),
@@ -347,52 +330,12 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildGenderOption(
-                            'P',
+                            'FEMALE',
                             'Perempuan',
                             Icons.female,
                           ),
                         ),
                       ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Riwayat Medis
-                    Text(
-                      'Riwayat Medis',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _medicalHistoryController,
-                      maxLines: 3,
-                      decoration: _buildInputDecoration(
-                        'Masukkan riwayat medis (opsional)',
-                        Icons.medical_services_outlined,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Kondisi Saat Ini
-                    Text(
-                      'Kondisi Saat Ini',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _currentConditionController,
-                      maxLines: 3,
-                      decoration: _buildInputDecoration(
-                        'Deskripsikan kondisi anak (opsional)',
-                        Icons.description_outlined,
-                      ),
                     ),
                   ],
                 ),

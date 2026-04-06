@@ -15,6 +15,11 @@ import '../../features/game/pages/game_menu_page.dart';
 import '../../features/game/pages/voice_practice_simple_page.dart';
 import '../../features/pembayaran/pages/pembayaran_list_page.dart';
 import '../../features/jadwal/pages/jadwal_terapi_page.dart';
+import '../../features/jadwal/pages/therapist_jadwal_page.dart';
+import '../../features/laporan/pages/therapist_report_list_page.dart';
+import '../../features/laporan/pages/therapist_report_detail_page.dart';
+import '../../features/edukasi/pages/education_page.dart';
+import '../../features/laporan/pages/therapist_add_report_page.dart';
 import '../../features/profile/pages/profile_page.dart';
 import '../../features/therapist/pages/patient_list_page.dart';
 import '../../features/therapist/pages/patient_detail_page.dart';
@@ -23,7 +28,7 @@ import '../../features/therapist/pages/patient_detail_page.dart';
 /// Konfigurasi routing aplikasi menggunakan GoRouter
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
-  
+
   static GoRouter router(WidgetRef ref) {
     return GoRouter(
       navigatorKey: _rootNavigatorKey,
@@ -36,8 +41,9 @@ class AppRouter {
         // Don't redirect while loading
         if (isLoading) return null;
 
-        final isOnAuthPage = state.matchedLocation == '/login' ||
-                            state.matchedLocation == '/register';
+        final isOnAuthPage =
+            state.matchedLocation == '/login' ||
+            state.matchedLocation == '/register';
         final isOnSplash = state.matchedLocation == '/splash';
 
         // Allow splash page
@@ -62,7 +68,7 @@ class AppRouter {
           name: 'splash',
           builder: (context, state) => const SplashPage(),
         ),
-        
+
         // Auth Routes
         GoRoute(
           path: '/login',
@@ -74,7 +80,7 @@ class AppRouter {
           name: 'register',
           builder: (context, state) => const RegisterPage(),
         ),
-        
+
         // Dashboard Route
         GoRoute(
           path: '/dashboard',
@@ -89,7 +95,7 @@ class AppRouter {
             return const ParentDashboardPage();
           },
         ),
-        
+
         // Anak Routes
         GoRoute(
           path: '/anak',
@@ -119,14 +125,14 @@ class AppRouter {
             ),
           ],
         ),
-        
+
         // Konsultasi Route
         GoRoute(
           path: '/konsultasi',
           name: 'konsultasi',
           builder: (context, state) => const KonsultasiPage(),
         ),
-        
+
         // Diagnosa Route
         GoRoute(
           path: '/diagnosa',
@@ -136,21 +142,21 @@ class AppRouter {
             'Halaman hasil diagnosa speech delay',
           ),
         ),
-        
+
         // Jadwal Route
         GoRoute(
           path: '/jadwal',
           name: 'jadwal',
           builder: (context, state) => const JadwalTerapiPage(),
         ),
-        
+
         // Pembayaran Route
         GoRoute(
           path: '/pembayaran',
           name: 'pembayaran',
           builder: (context, state) => const PembayaranListPage(),
         ),
-        
+
         // Game Route
         GoRoute(
           path: '/game',
@@ -188,37 +194,30 @@ class AppRouter {
             ),
           ],
         ),
-        
+
         // Edukasi Route
         GoRoute(
           path: '/edukasi',
           name: 'edukasi',
-          builder: (context, state) => _buildPlaceholderPage(
-            'Edukasi',
-            'Halaman materi edukasi',
-          ),
+          builder: (context, state) => const EducationPage(),
         ),
-        
+
         // Laporan Route
         GoRoute(
           path: '/laporan',
           name: 'laporan',
-          builder: (context, state) => _buildPlaceholderPage(
-            'Laporan',
-            'Halaman laporan perkembangan',
-          ),
+          builder: (context, state) =>
+              _buildPlaceholderPage('Laporan', 'Halaman laporan perkembangan'),
         ),
-        
+
         // Notifikasi Route
         GoRoute(
           path: '/notifikasi',
           name: 'notifikasi',
-          builder: (context, state) => _buildPlaceholderPage(
-            'Notifikasi',
-            'Halaman notifikasi',
-          ),
+          builder: (context, state) =>
+              _buildPlaceholderPage('Notifikasi', 'Halaman notifikasi'),
         ),
-        
+
         // Terapis Dashboard Route
         GoRoute(
           path: '/terapis-dashboard',
@@ -243,14 +242,43 @@ class AppRouter {
           ],
         ),
 
+        // Therapist Jadwal Route
+        GoRoute(
+          path: '/therapist/jadwal',
+          name: 'therapist-jadwal',
+          builder: (context, state) => const TherapistJadwalPage(),
+        ),
+
+        // Therapist Laporan Route
+        GoRoute(
+          path: '/therapist/laporan',
+          name: 'therapist-laporan',
+          builder: (context, state) => const TherapistReportListPage(),
+        ),
+
+        // Therapist Add Laporan Route
+        GoRoute(
+          path: '/therapist/laporan/add',
+          name: 'therapist-laporan-add',
+          builder: (context, state) => const TherapistAddReportPage(),
+        ),
+
+        // Therapist Laporan Detail Route
+        GoRoute(
+          path: '/therapist/laporan/:id',
+          name: 'therapist-laporan-detail',
+          builder: (context, state) {
+            final laporanId = state.pathParameters['id']!;
+            return TherapistReportDetailPage(laporanId: laporanId);
+          },
+        ),
+
         // Admin Dashboard Route
         GoRoute(
           path: '/admin-dashboard',
           name: 'admin-dashboard',
-          builder: (context, state) => _buildPlaceholderPage(
-            'Dashboard Admin',
-            'Dashboard untuk admin',
-          ),
+          builder: (context, state) =>
+              _buildPlaceholderPage('Dashboard Admin', 'Dashboard untuk admin'),
         ),
 
         // Profile Route
@@ -263,24 +291,18 @@ class AppRouter {
       errorBuilder: (context, state) => _buildErrorPage(state.error.toString()),
     );
   }
-  
+
   /// Build placeholder page for unimplemented features
   static Widget _buildPlaceholderPage(String title, String description) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-      ),
+      appBar: AppBar(title: Text(title)),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.construction,
-                size: 80,
-                color: Colors.grey[400],
-              ),
+              Icon(Icons.construction, size: 80, color: Colors.grey[400]),
               const SizedBox(height: 24),
               Text(
                 title,
@@ -293,10 +315,7 @@ class AppRouter {
               const SizedBox(height: 8),
               Text(
                 description,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -315,31 +334,22 @@ class AppRouter {
       ),
     );
   }
-  
+
   /// Build error page
   static Widget _buildErrorPage(String error) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Error'),
-      ),
+      appBar: AppBar(title: const Text('Error')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.error_outline,
-                size: 80,
-                color: Colors.red,
-              ),
+              const Icon(Icons.error_outline, size: 80, color: Colors.red),
               const SizedBox(height: 24),
               const Text(
                 'Terjadi Kesalahan',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),

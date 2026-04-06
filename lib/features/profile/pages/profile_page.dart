@@ -6,6 +6,8 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/parent_bottom_nav.dart';
+import '../../../shared/widgets/therapist_bottom_nav.dart';
+import '../../../shared/widgets/admin_bottom_nav.dart';
 
 /// Profile Page
 /// Halaman profil pengguna dengan desain modern dan clean
@@ -44,8 +46,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ],
         ),
       ),
-      bottomNavigationBar: const ParentBottomNav(currentIndex: 5),
+      bottomNavigationBar: _buildBottomNavBar(user),
     );
+  }
+
+  Widget _buildBottomNavBar(dynamic user) {
+    final role = user?.role ?? '';
+    
+    if (role == AppConstants.roleTerapis) {
+      return TherapistBottomNav(currentIndex: 4);
+    } else if (role == AppConstants.roleAdmin) {
+      return AdminBottomNav(currentIndex: 4);
+    } else {
+      return ParentBottomNav(currentIndex: 5);
+    }
   }
 
   Widget _buildProfileHeader(String name, String email) {
@@ -410,6 +424,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               _showAboutDialog();
             },
           ),
+          _buildMockDataToggle(ref),
           _buildMenuItem(
             Icons.description_outlined,
             'Syarat & Ketentuan',
@@ -501,6 +516,62 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMockDataToggle(WidgetRef ref) {
+    final useMockData = ref.watch(mockModeProvider);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: useMockData ? const Color(0xFFFFF9E6) : const Color(0xFFECEFF1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.storage_rounded,
+              size: 22,
+              color: useMockData ? const Color(0xFFB8860B) : const Color(0xFF607D8B),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Mode Demo',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  useMockData ? 'Menggunakan data mock' : 'Menggunakan API real',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: useMockData,
+            onChanged: (value) {
+              ref.read(authProvider.notifier).toggleMockMode(value);
+            },
+            activeColor: AppConstants.primaryBlue,
+          ),
+        ],
       ),
     );
   }

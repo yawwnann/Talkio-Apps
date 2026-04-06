@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_constants.dart';
+import '../../features/auth/providers/auth_provider.dart';
 
 /// Custom App Bar Widget
 /// Widget header yang konsisten untuk semua halaman
-class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
   final bool? showBackButton;
   final bool? showLogo;
@@ -41,7 +43,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final bgColor = backgroundColor ?? Colors.white;
     final fgColor = foregroundColor ?? AppConstants.primaryBlue;
     final isCenterTitle = centerTitle ?? true;
@@ -194,10 +196,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   void _handleMenuAction(BuildContext context, String action) {
     switch (action) {
       case 'profile':
+        context.push('/profile');
+        break;
       case 'settings':
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Fitur akan segera hadir'),
+            content: const Text('Fitur pengaturan akan segera hadir'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
@@ -216,7 +220,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.logout, color: AppConstants.primaryBlue),
+            const Icon(Icons.logout, color: Colors.red),
             const SizedBox(width: 12),
             Text('Keluar', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
           ],
@@ -243,10 +247,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      // TODO: Implement logout
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Logout - Coming soon')),
-      );
+      // Call logout through Riverpod
+      final ref = ProviderScope.containerOf(context, listen: false);
+      await ref.read(authProvider.notifier).logout();
+      
+      if (context.mounted) {
+        // Navigate to login page
+        context.go('/login');
+      }
     }
   }
 }

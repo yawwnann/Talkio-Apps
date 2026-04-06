@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 /// Berisi konstanta-konstanta aplikasi seperti URL API, konfigurasi, dll
 class AppConstants {
   // API Configuration
-  static const String baseUrl = 'https://api.speechtherapy.com/v1';
+  // Backend runs on local machine. Use 10.0.2.2 for Android emulator, or your LAN IP for physical device.
+  static const String baseUrl = 'http://192.168.1.7:3000/api';
   static const String midtransBaseUrl = 'https://app.sandbox.midtrans.com/snap/v1';
 
   // Midtrans Configuration
@@ -41,11 +42,15 @@ class AppConstants {
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
   static const String isFirstTimeKey = 'is_first_time';
+  static const String useMockDataKey = 'use_mock_data';
+
+  // Mock Mode Configuration
+  static const bool defaultMockMode = false; // Default false - use real API
   
-  // Role Types
-  static const String roleOrangTua = 'orang_tua';
-  static const String roleTerapis = 'terapis';
-  static const String roleAdmin = 'admin';
+  // Role Types - matching backend API values
+  static const String roleOrangTua = 'PARENT';
+  static const String roleTerapis = 'THERAPIST';
+  static const String roleAdmin = 'ADMIN';
   
   // Payment Status
   static const String paymentPending = 'pending';

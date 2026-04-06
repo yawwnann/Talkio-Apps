@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../anak/providers/anak_provider.dart';
+import '../../diagnosa/providers/diagnosis_provider.dart';
+import '../../../core/models/diagnosis_model.dart';
 
 /// Konsultasi Page
 /// Halaman konsultasi dengan terapis
@@ -88,19 +91,211 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
     }
   }
 
-  void _submitConsultation() {
-    // Process consultation data
-    final consultationData = {
-      'child_age': _childAgeController.text,
-      'concerns': _concernsController.text,
-      'symptoms': _symptomsController.text,
-      'additional_info': _additionalInfoController.text,
-      'assessment': _assessmentData,
-      'timestamp': DateTime.now().toIso8601String(),
-    };
+  Future<void> _submitConsultation() async {
+    // Get selected child
+    final selectedAnak = ref.read(anakProvider).selectedAnak;
+    
+    if (selectedAnak == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Pilih anak terlebih dahulu'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
 
-    // Show result
-    _showConsultationResult(consultationData);
+    // Convert assessment answers to symptoms list for API
+    final List<String> symptoms = _convertAssessmentToSymptoms();
+
+    // Show loading
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Submit to API
+    final success = await ref.read(diagnosisProvider.notifier).createDiagnosis(
+          childId: selectedAnak.id,
+          symptoms: symptoms,
+          useML: true,
+        );
+
+    if (!mounted) return;
+    Navigator.of(context).pop(); // Dismiss loading
+
+    if (success) {
+      // Get latest diagnosis
+      final diagnosis = ref.read(diagnosisProvider).latestDiagnosis;
+      if (diagnosis != null) {
+        _showDiagnosisResult(diagnosis);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Gagal memproses diagnosis'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+  }
+
+  /// Convert assessment answers to symptoms list for API
+  List<String> _convertAssessmentToSymptoms() {
+    final List<String> symptoms = [];
+    
+    // Map assessment answers to symptoms
+    if (_assessmentData['first_word'] == 'Tidak') {
+      symptoms.add('Belum bisa mengucapkan kata pertama');
+    }
+    if (_assessmentData['vocabulary_count'] == 'Kurang dari 10') {
+      symptoms.add('Kosakata sangat terbatas');
+    }
+    if (_assessmentData['simple_sentences'] == 'Tidak') {
+      symptoms.add('Tidak bisa membuat kalimat sederhana');
+    }
+    if (_assessmentData['speech_clarity'] == 'Jarang') {
+      symptoms.add('Ucapan sulit dipahami orang lain');
+    }
+    if (_assessmentData['name_response'] == 'Jarang') {
+      symptoms.add('Tidak merespons ketika dipanggil');
+    }
+    
+    // Add additional concerns as symptoms
+    if (_concernsController.text.isNotEmpty) {
+      symptoms.add(_concernsController.text);
+    }
+    if (_symptomsController.text.isNotEmpty) {
+      symptoms.add(_symptomsController.text);
+    }
+    if (_additionalInfoController.text.isNotEmpty) {
+      symptoms.add(_additionalInfoController.text);
+    }
+
+    // If no symptoms detected
+    if (symptoms.isEmpty) {
+      symptoms.add('Tidak ada gejala yang terdeteksi');
+    }
+
+    return symptoms;
+  }
+
+  void _showDiagnosisResult(DiagnosisModel diagnosis) {
+    // Parse risk level to determine colors and recommendations
+    final riskLevel = diagnosis.riskLevel.toUpperCase();
+    final scorePercent = (diagnosis.score * 100).toInt(); // Convert 0.0-1.0 to 0-100
+    
+    String level;
+    String recommendation;
+    Color levelColor;
+
+    if (riskLevel == 'RENDAH' || riskLevel == 'LOW' || riskLevel == 'RISIKO RENDAH') {
+      level = 'Risiko Rendah';
+      recommendation = diagnosis.recommendation ?? 'Perkembangan speech anak Anda terlihat normal. Tetap lakukan stimulasi rutin.';
+      levelColor = Colors.green;
+    } else if (riskLevel == 'SEDANG' || riskLevel == 'MEDIUM' || riskLevel == 'RISIKO SEDANG') {
+      level = 'Risiko Sedang';
+      recommendation = diagnosis.recommendation ?? 'Ada beberapa area yang perlu perhatian. Disarankan konsultasi dengan terapis.';
+      levelColor = Colors.orange;
+    } else {
+      level = 'Risiko Tinggi';
+      recommendation = diagnosis.recommendation ?? 'Anak Anda memerlukan evaluasi dan terapi speech delay segera.';
+      levelColor = Colors.red;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Hasil Diagnosis'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: levelColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: levelColor),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.assessment, color: levelColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Status: $level',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: levelColor,
+                            ),
+                          ),
+                          Text('Skor: $scorePercent%'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              const Text(
+                'Rekomendasi:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(recommendation),
+
+              const SizedBox(height: 16),
+
+              const Text(
+                'Langkah Selanjutnya:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              if (riskLevel != 'RENDAH' && riskLevel != 'LOW' && riskLevel != 'RISIKO RENDAH') ...[
+                const Text('• Jadwalkan sesi terapi dengan terapis'),
+                const Text('• Lakukan latihan rutin di rumah'),
+                const Text('• Pantau perkembangan secara berkala'),
+              ] else ...[
+                const Text('• Lanjutkan stimulasi di rumah'),
+                const Text('• Evaluasi berkala setiap 6 bulan'),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          if (riskLevel != 'RENDAH' && riskLevel != 'LOW' && riskLevel != 'RISIKO RENDAH')
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                context.push('/therapy-booking');
+              },
+              child: const Text('Booking Terapi'),
+            ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.pop();
+            },
+            child: const Text('Selesai'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showConsultationResult(Map<String, dynamic> data) {
