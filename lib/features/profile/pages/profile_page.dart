@@ -8,6 +8,7 @@ import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/parent_bottom_nav.dart';
 import '../../../shared/widgets/therapist_bottom_nav.dart';
 import '../../../shared/widgets/admin_bottom_nav.dart';
+import '../../../shared/widgets/profile_avatar.dart';
 
 /// Profile Page
 /// Halaman profil pengguna dengan desain modern dan clean
@@ -35,7 +36,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           children: [
-            _buildProfileHeader(user?.name ?? 'User', user?.email ?? ''),
+            _buildProfileHeader(user),
             const SizedBox(height: 16),
             _buildQuickStats(),
             const SizedBox(height: 16),
@@ -52,7 +53,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Widget _buildBottomNavBar(dynamic user) {
     final role = user?.role ?? '';
-    
+
     if (role == AppConstants.roleTerapis) {
       return TherapistBottomNav(currentIndex: 4);
     } else if (role == AppConstants.roleAdmin) {
@@ -62,10 +63,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  Widget _buildProfileHeader(String name, String email) {
+  /// Get display label for user role
+  String _getRoleLabel(String? role) {
+    switch (role) {
+      case 'THERAPIST':
+        return 'Terapis';
+      case 'ADMIN':
+        return 'Admin';
+      case 'PARENT':
+      default:
+        return 'Orang Tua';
+    }
+  }
+
+  Widget _buildProfileHeader(dynamic user) {
+    final name = user?.name ?? 'User';
+    final email = user?.email ?? '';
+    final roleLabel = _getRoleLabel(user?.role);
+    final isTherapist = user?.role == 'THERAPIST';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
@@ -75,12 +94,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: AppConstants.primaryBlue.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: AppConstants.primaryBlue.withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -88,22 +107,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         children: [
           Row(
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.person,
-                  size: 40,
-                  color: Colors.white,
-                ),
+              ProfileAvatar(
+                imageUrl: null,
+                name: name,
+                radius: 32,
+                borderWidth: 2,
+                borderColor: Colors.white.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -113,8 +122,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     Text(
                       name,
                       style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),
@@ -126,7 +135,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -138,7 +147,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Orang Tua',
+                            roleLabel,
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -148,7 +157,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       email,
                       style: GoogleFonts.poppins(
@@ -163,22 +172,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem('3', 'Anak'),
-                _buildDivider(),
-                _buildStatItem('12', 'Konsultasi'),
-                _buildDivider(),
-                _buildStatItem('24', 'Game'),
-              ],
+              children: isTherapist
+                  ? [
+                      _buildStatItem('24', 'Total Pasien'),
+                      _buildDivider(),
+                      _buildStatItem('48', 'Sesi Bulan Ini'),
+                      _buildDivider(),
+                      _buildStatItem('36', 'Laporan'),
+                    ]
+                  : [
+                      _buildStatItem('3', 'Anak'),
+                      _buildDivider(),
+                      _buildStatItem('12', 'Konsultasi'),
+                      _buildDivider(),
+                      _buildStatItem('24', 'Game'),
+                    ],
             ),
           ),
         ],
@@ -218,52 +235,86 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Widget _buildQuickStats() {
+    final user = ref.watch(currentUserProvider);
+    final isTherapist = user?.role == 'THERAPIST';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildQuickStatIcon(
-            Icons.calendar_today,
-            'Jadwal',
-            const Color(0xFFE3F2FD),
-            const Color(0xFF2196F3),
-            () => context.go('/jadwal'),
-          ),
-          _buildQuickStatIcon(
-            Icons.games,
-            'Game',
-            const Color(0xFFFFF9E6),
-            const Color(0xFFB8860B),
-            () => context.go('/game'),
-          ),
-          _buildQuickStatIcon(
-            Icons.chat_bubble,
-            'Konsultasi',
-            const Color(0xFFE8F5E9),
-            const Color(0xFF4CAF50),
-            () => context.go('/konsultasi'),
-          ),
-          _buildQuickStatIcon(
-            Icons.article,
-            'Edukasi',
-            const Color(0xFFF3E5F5),
-            const Color(0xFF9C27B0),
-            () => context.go('/edukasi'),
-          ),
-        ],
+        children: isTherapist
+            ? [
+                _buildQuickStatIcon(
+                  Icons.calendar_today,
+                  'Jadwal',
+                  const Color(0xFFE3F2FD),
+                  const Color(0xFF2196F3),
+                  () => context.go('/jadwal'),
+                ),
+                _buildQuickStatIcon(
+                  Icons.people,
+                  'Pasien',
+                  const Color(0xFFE8F5E9),
+                  const Color(0xFF4CAF50),
+                  () => context.go('/therapist/patients'),
+                ),
+                _buildQuickStatIcon(
+                  Icons.assignment,
+                  'Laporan',
+                  const Color(0xFFFFF9E6),
+                  const Color(0xFFB8860B),
+                  () => context.go('/therapist/reports'),
+                ),
+                _buildQuickStatIcon(
+                  Icons.dashboard,
+                  'Dashboard',
+                  const Color(0xFFF3E5F5),
+                  const Color(0xFF9C27B0),
+                  () => context.go('/dashboard'),
+                ),
+              ]
+            : [
+                _buildQuickStatIcon(
+                  Icons.calendar_today,
+                  'Jadwal',
+                  const Color(0xFFE3F2FD),
+                  const Color(0xFF2196F3),
+                  () => context.go('/jadwal'),
+                ),
+                _buildQuickStatIcon(
+                  Icons.games,
+                  'Game',
+                  const Color(0xFFFFF9E6),
+                  const Color(0xFFB8860B),
+                  () => context.go('/game'),
+                ),
+                _buildQuickStatIcon(
+                  Icons.chat_bubble,
+                  'Konsultasi',
+                  const Color(0xFFE8F5E9),
+                  const Color(0xFF4CAF50),
+                  () => context.go('/konsultasi'),
+                ),
+                _buildQuickStatIcon(
+                  Icons.article,
+                  'Edukasi',
+                  const Color(0xFFF3E5F5),
+                  const Color(0xFF9C27B0),
+                  () => context.go('/edukasi'),
+                ),
+              ],
       ),
     );
   }
@@ -277,23 +328,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(10),
       child: Column(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 24, color: iconColor),
+            child: Icon(icon, size: 20, color: iconColor),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             label,
             style: GoogleFonts.poppins(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w500,
               color: const Color(0xFF64748B),
             ),
@@ -304,16 +355,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Widget _buildMenuSection() {
+    final user = ref.watch(currentUserProvider);
+    final isTherapist = user?.role == 'THERAPIST';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -321,12 +375,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Text(
               'Pengaturan',
               style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
                 color: const Color(0xFF1E293B),
               ),
             ),
@@ -361,22 +415,34 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               // Navigate to notifications
             },
           ),
-          _buildMenuItem(
-            Icons.language_outlined,
-            'Bahasa',
-            'Indonesia',
-            const Color(0xFFE0F7FA),
-            const Color(0xFF00BCD4),
-            () {
-              // Navigate to language settings
-            },
-          ),
+          if (isTherapist)
+            _buildMenuItem(
+              Icons.assignment_outlined,
+              'Data & Laporan',
+              'Kelola laporan pasien',
+              const Color(0xFFF3E5F5),
+              const Color(0xFF9C27B0),
+              () {
+                // Navigate to data & reports
+              },
+            ),
+          if (isTherapist)
+            _buildMenuItem(
+              Icons.calendar_today_outlined,
+              'Jadwal Terapi',
+              'Kelola jadwal sesi',
+              const Color(0xFFE0F7FA),
+              const Color(0xFF00BCD4),
+              () {
+                context.go('/jadwal');
+              },
+            ),
           _buildMenuItem(
             Icons.help_outline_rounded,
             'Pusat Bantuan',
             'FAQ & dukungan',
-            const Color(0xFFF3E5F5),
-            const Color(0xFF9C27B0),
+            const Color(0xFFECEFF1),
+            const Color(0xFF607D8B),
             () {
               // Navigate to help center
             },
@@ -466,24 +532,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: bgColor,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 22, color: iconColor),
+              child: Icon(icon, size: 20, color: iconColor),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -491,7 +557,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   Text(
                     title,
                     style: GoogleFonts.poppins(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF1E293B),
                     ),
@@ -512,7 +578,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             Icon(
               Icons.chevron_right_rounded,
               color: const Color(0xFFCBD5E1),
-              size: 24,
+              size: 20,
             ),
           ],
         ),
@@ -524,23 +590,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final useMockData = ref.watch(mockModeProvider);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: useMockData ? const Color(0xFFFFF9E6) : const Color(0xFFECEFF1),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               Icons.storage_rounded,
-              size: 22,
+              size: 20,
               color: useMockData ? const Color(0xFFB8860B) : const Color(0xFF607D8B),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,7 +614,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 Text(
                   'Mode Demo',
                   style: GoogleFonts.poppins(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF1E293B),
                   ),
@@ -579,29 +645,29 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     return InkWell(
       onTap: () => _showLogoutDialog(ref),
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
                 Icons.logout_rounded,
-                size: 22,
+                size: 20,
                 color: Colors.red,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Text(
               'Keluar',
               style: GoogleFonts.poppins(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: Colors.red,
               ),

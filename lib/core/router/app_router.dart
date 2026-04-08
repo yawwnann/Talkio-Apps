@@ -37,6 +37,7 @@ class AppRouter {
         final authState = ref.watch(authProvider);
         final isAuthenticated = authState.isAuthenticated;
         final isLoading = authState.isLoading;
+        final userRole = authState.user?.role;
 
         // Don't redirect while loading
         if (isLoading) return null;
@@ -46,7 +47,7 @@ class AppRouter {
             state.matchedLocation == '/register';
         final isOnSplash = state.matchedLocation == '/splash';
 
-        // Allow splash page
+        // Always allow splash page to show
         if (isOnSplash) return null;
 
         // Redirect to login if not authenticated and not on auth page
@@ -54,9 +55,30 @@ class AppRouter {
           return '/login';
         }
 
-        // Redirect to dashboard if authenticated and on auth page
-        if (isAuthenticated && isOnAuthPage) {
-          return '/dashboard';
+        // Redirect to appropriate dashboard based on role if authenticated
+        if (isAuthenticated) {
+          // If on auth page (login/register), redirect to dashboard
+          if (isOnAuthPage) {
+            switch (userRole) {
+              case 'THERAPIST':
+                return '/terapis-dashboard';
+              case 'ADMIN':
+                return '/admin-dashboard';
+              case 'PARENT':
+              default:
+                return '/dashboard';
+            }
+          }
+          
+          // If therapist is on parent dashboard, redirect to therapist dashboard
+          if (userRole == 'THERAPIST' && state.matchedLocation == '/dashboard') {
+            return '/terapis-dashboard';
+          }
+          
+          // If parent is on therapist dashboard, redirect to parent dashboard
+          if (userRole == 'PARENT' && state.matchedLocation == '/terapis-dashboard') {
+            return '/dashboard';
+          }
         }
 
         return null;
@@ -87,11 +109,11 @@ class AppRouter {
           name: 'dashboard',
           builder: (context, state) {
             final user = ref.watch(currentUserProvider);
-            // Show therapist dashboard if user role is terapis
-            if (user?.role == 'terapis') {
+            // Show therapist dashboard if user role is THERAPIST
+            if (user?.isTherapist ?? false) {
               return const TherapistDashboardPage();
             }
-            // Show parent dashboard for orang_tua and others
+            // Show parent dashboard for PARENT and others
             return const ParentDashboardPage();
           },
         ),

@@ -34,7 +34,6 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
-    ref.watch(anakProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -90,7 +89,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Halo, Bunda $name !',
+            'Halo,  $name !',
             style: GoogleFonts.poppins(
               fontSize: 26,
               fontWeight: FontWeight.bold,
@@ -114,8 +113,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
   }
 
   Widget _buildChildDevelopment() {
-    final anakState = ref.watch(anakProvider);
-    final anakList = anakState.anakList;
+    final anakList = ref.watch(anakProvider.select((state) => state.anakList));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -171,11 +169,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             Center(
               child: Column(
                 children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 48,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.people_outline, size: 48, color: Colors.grey[400]),
                   const SizedBox(height: 12),
                   Text(
                     'Belum ada data anak',
@@ -196,7 +190,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
 
   Widget _buildChildCard(AnakModel anak) {
     final age = _calculateAge(anak.dateOfBirth);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -222,8 +216,8 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: anak.gender == 'L' 
-                      ? const Color(0xFFE3F2FD) 
+                  color: anak.gender == 'L'
+                      ? const Color(0xFFE3F2FD)
                       : const Color(0xFFFCE4EC),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -232,8 +226,8 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: anak.gender == 'L' 
-                        ? const Color(0xFF1976D2) 
+                    color: anak.gender == 'L'
+                        ? const Color(0xFF1976D2)
                         : const Color(0xFFC2185B),
                   ),
                 ),
@@ -273,7 +267,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
   int _calculateAge(DateTime birthDate) {
     final now = DateTime.now();
     int age = now.year - birthDate.year;
-    if (now.month < birthDate.month || 
+    if (now.month < birthDate.month ||
         (now.month == birthDate.month && now.day < birthDate.day)) {
       age--;
     }
@@ -282,8 +276,18 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
 
   String _formatDate(DateTime date) {
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }

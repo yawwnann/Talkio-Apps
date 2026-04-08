@@ -4,7 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
-import '../providers/laporan_provider.dart';
+import '../../../shared/widgets/profile_avatar.dart';
+import '../providers/laporan_provider_real.dart';
 import '../../../core/models/laporan_model.dart';
 
 class TherapistReportDetailPage extends ConsumerStatefulWidget {
@@ -20,6 +21,7 @@ class TherapistReportDetailPage extends ConsumerStatefulWidget {
 class _TherapistReportDetailPageState
     extends ConsumerState<TherapistReportDetailPage> {
   LaporanModel? _selectedLaporan;
+  bool _isPublishing = false;
 
   @override
   void initState() {
@@ -110,14 +112,12 @@ class _TherapistReportDetailPageState
         children: [
           Row(
             children: [
-              CircleAvatar(
+              ProfileAvatar(
+                imageUrl: laporan.patientAvatar.isNotEmpty
+                    ? laporan.patientAvatar
+                    : null,
+                name: laporan.patientName,
                 radius: 28,
-                backgroundImage: AssetImage(
-                  laporan.patientAvatar.isNotEmpty
-                      ? laporan.patientAvatar
-                      : 'assets/images/boy_avatar.png',
-                ),
-                backgroundColor: Colors.grey[200],
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -264,12 +264,7 @@ class _TherapistReportDetailPageState
           width: double.infinity,
           height: 52,
           child: ElevatedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Laporan berhasil dikirim!')),
-              );
-              context.pop();
-            },
+            onPressed: _isPublishing ? null : _handlePublishReport,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF10B981), // Emerald green
               elevation: 0,
@@ -277,21 +272,30 @@ class _TherapistReportDetailPageState
                 borderRadius: BorderRadius.circular(26),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.send, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Kirim Laporan',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+            child: _isPublishing
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.send, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Kirim Laporan',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -331,5 +335,112 @@ class _TherapistReportDetailPageState
         ),
       ],
     );
+  }
+
+  Future<void> _handlePublishReport() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Kirim Laporan'),
+          content: const Text(
+            'Apakah Anda yakin ingin mengirim laporan ini ke orang tua? '
+            'Tindakan ini tidak dapat dibatalkan.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+              ),
+              child: const Text('Kirim'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _isPublishing = true;
+    });
+
+    try {
+      print('📤 Attempting to publish report: ${widget.laporanId}');
+      
+      final success = await ref.read(laporanProvider.notifier).publishLaporan(
+        laporanId: widget.laporanId,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        print('✅ Report published successfully');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text('Laporan berhasil dikirim ke orang tua!'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        
+        // Navigate back after short delay
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          context.pop();
+        }
+      } else {
+        final error = ref.read(laporanProvider.notifier).state.error ?? 'Gagal mengirim laporan';
+        print('❌ Failed to publish report: $error');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Error: $error')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Exception publishing report: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Error: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPublishing = false;
+        });
+      }
+    }
   }
 }

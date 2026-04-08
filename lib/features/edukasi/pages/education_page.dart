@@ -486,6 +486,22 @@ class _EducationPageState extends ConsumerState<EducationPage> with SingleTicker
                         child: Image.network(
                           video.thumbnail!,
                           fit: BoxFit.cover,
+                          cacheWidth: 400,
+                          cacheHeight: 225,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child!;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppConstants.primaryBlue,
+                                ),
+                              ),
+                            );
+                          },
                           errorBuilder: (context, error, stackTrace) {
                             return const SizedBox.shrink();
                           },

@@ -72,50 +72,75 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Login with email and password
   Future<bool> login(String email, String password) async {
+    print('📡 [AUTH] login() called - setting isLoading=true');
     state = state.copyWith(isLoading: true, error: null);
 
     try {
+      print('📡 [AUTH] Calling ApiService.login()');
       final response = await _apiService.login(email, password);
+      print('📡 [AUTH] Response received - statusCode: ${response.statusCode}');
+      print('📡 [AUTH] Response data type: ${response.data.runtimeType}');
 
       if (response.statusCode == 200) {
         final data = response.data;
         if (data is Map<String, dynamic>) {
+          print('📡 [AUTH] Data is Map - keys: ${data.keys.toList()}');
           // Backend format: { status: "success", message: "...", data: { token: "...", user: {...} } }
           // Mock format: { status: "success", data: { token: "...", user: {...} } }
           final responseData = data['data'] as Map<String, dynamic>?;
+          print('📡 [AUTH] responseData: $responseData');
 
           if (responseData != null) {
             final token = responseData['token'] as String?;
             final userData = responseData['user'] as Map<String, dynamic>?;
 
+            print('📡 [AUTH] Token found: ${token != null}');
+            print('📡 [AUTH] UserData found: ${userData != null}');
+            print('📡 [AUTH] UserData content: $userData');
+
             if (token != null && userData != null) {
               final user = UserModel.fromJson(userData);
+              print('📡 [AUTH] UserModel created: id=${user.id}, role=${user.role}, name=${user.name}');
 
               // Save to storage
+              print('📡 [AUTH] Saving to storage...');
               await StorageService.setString(AppConstants.tokenKey, token);
               await StorageService.setObject(AppConstants.userKey, user.toJson());
+              print('📡 [AUTH] Storage saved');
 
+              print('📡 [AUTH] Updating state - isAuthenticated=true');
               state = state.copyWith(
                 user: user,
                 isAuthenticated: true,
                 isLoading: false,
               );
+              print('📡 [AUTH] State updated successfully');
 
               return true;
+            } else {
+              print('📡 [AUTH] ERROR: token or userData is null');
             }
+          } else {
+            print('📡 [AUTH] ERROR: responseData is null');
           }
+        } else {
+          print('📡 [AUTH] ERROR: data is not Map<String, dynamic>, type: ${data.runtimeType}');
         }
 
         final message = data is Map<String, dynamic>
             ? data['message'] ?? 'Login gagal'
             : 'Login gagal';
+        print('📡 [AUTH] Login failed: $message');
         state = state.copyWith(error: message, isLoading: false);
         return false;
       } else {
+        print('📡 [AUTH] Login failed - statusCode: ${response.statusCode}');
         state = state.copyWith(error: 'Login gagal', isLoading: false);
         return false;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('📡 [AUTH] EXCEPTION: $e');
+      print('📡 [AUTH] Stack trace: $stackTrace');
       state = state.copyWith(error: e.toString(), isLoading: false);
       return false;
     }
@@ -236,6 +261,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 /// Auth Provider Instance
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  // dioProvider and uploadDioProvider are not needed for auth (handled internally)
   return AuthNotifier(ApiService());
 });
 

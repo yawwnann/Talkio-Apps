@@ -5,7 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/therapist_bottom_nav.dart';
-import '../providers/laporan_provider.dart';
+import '../../../shared/widgets/profile_avatar.dart';
+import '../providers/laporan_provider_real.dart';
 
 class TherapistReportListPage extends ConsumerStatefulWidget {
   const TherapistReportListPage({super.key});
@@ -37,24 +38,35 @@ class _TherapistReportListPageState
         showLogo: true,
         centerTitle: false,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 100),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSearchBar(),
-            const SizedBox(height: 24),
-            _buildOverviewCards(laporanState),
-            const SizedBox(height: 32),
-            _buildReportListHeader(),
-            const SizedBox(height: 16),
-            _buildReportList(laporanState),
-          ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(laporanProvider.notifier).fetchLaporan();
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 100),
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSearchBar(),
+              const SizedBox(height: 24),
+              _buildOverviewCards(laporanState),
+              const SizedBox(height: 32),
+              _buildReportListHeader(),
+              const SizedBox(height: 16),
+              _buildReportList(laporanState),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.push('/therapist/laporan/add');
+        onPressed: () async {
+          // Navigate to add report page and wait for result
+          await context.push('/therapist/laporan/add');
+          // Refresh data after returning from add report page
+          if (mounted) {
+            ref.read(laporanProvider.notifier).fetchLaporan();
+          }
         },
         backgroundColor: AppConstants.primaryBlue,
         shape: const CircleBorder(),
@@ -255,7 +267,17 @@ class _TherapistReportListPageState
             padding: const EdgeInsets.only(bottom: 16.0),
             child: GestureDetector(
               onTap: () {
-                context.push('/therapist/laporan/${laporan.id}');
+                // Navigate with validation
+                if (laporan.id.isNotEmpty) {
+                  context.push('/therapist/laporan/${laporan.id}');
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('ID laporan tidak valid'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
               },
               child: _buildReportCard(
                 name: laporan.patientName,
@@ -301,10 +323,10 @@ class _TherapistReportListPageState
           // Header Row
           Row(
             children: [
-              CircleAvatar(
+              ProfileAvatar(
+                imageUrl: avatarAsset.isNotEmpty ? avatarAsset : null,
+                name: name,
                 radius: 20,
-                backgroundImage: AssetImage(avatarAsset),
-                backgroundColor: Colors.grey[200],
               ),
               const SizedBox(width: 12),
               Expanded(

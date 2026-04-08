@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_constants.dart';
 import '../../features/auth/providers/auth_provider.dart';
+import 'profile_avatar.dart';
 
 /// Custom App Bar Widget
 /// Widget header yang konsisten untuk semua halaman
@@ -59,7 +60,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       leading: leading ?? (shouldShowBackButton ? _buildLeading(context, fgColor) : null),
       title: _buildTitle(context, fgColor, shouldShowLogo, isCenterTitle: isCenterTitle),
-      actions: _buildActions(context, fgColor, shouldShowUserMenu),
+      actions: _buildActions(context, fgColor, shouldShowUserMenu, ref),
       bottom: bottom,
     );
   }
@@ -125,7 +126,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
     );
   }
 
-  List<Widget> _buildActions(BuildContext context, Color fgColor, bool showUserMenu) {
+  List<Widget> _buildActions(BuildContext context, Color fgColor, bool showUserMenu, WidgetRef ref) {
     final actionsList = <Widget>[];
 
     if (actions != null) {
@@ -133,29 +134,24 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
     }
 
     if (showUserMenu) {
-      actionsList.add(_buildUserMenu(context, fgColor));
+      actionsList.add(_buildUserMenu(context, fgColor, ref));
       actionsList.add(const SizedBox(width: 16));
     }
 
     return actionsList;
   }
 
-  Widget _buildUserMenu(BuildContext context, Color fgColor) {
+  Widget _buildUserMenu(BuildContext context, Color fgColor, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final userName = authState.user?.name ?? 'User';
+    
     return PopupMenuButton<String>(
       onSelected: (value) => _handleMenuAction(context, value),
       offset: const Offset(0, 50),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: CircleAvatar(
+      child: ProfileAvatar(
+        name: userName,
         radius: 18,
-        backgroundColor: fgColor.withValues(alpha: 0.1),
-        child: Text(
-          'U',
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: fgColor,
-          ),
-        ),
       ),
       itemBuilder: (context) => [
         PopupMenuItem(

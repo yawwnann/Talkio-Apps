@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/anak_model.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/providers/dio_provider.dart';
 
 /// Anak State
 class AnakState {
@@ -235,7 +236,9 @@ class AnakNotifier extends StateNotifier<AnakState> {
 
 /// Anak Provider Instance
 final anakProvider = StateNotifierProvider<AnakNotifier, AnakState>((ref) {
-  return AnakNotifier(ApiService());
+  final dio = ref.watch(dioProvider);
+  final uploadDio = ref.watch(uploadDioProvider);
+  return AnakNotifier(ApiService.withDio(dio: dio, uploadDio: uploadDio));
 });
 
 /// Selected Anak Provider

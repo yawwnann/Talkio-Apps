@@ -98,7 +98,7 @@ class MockConfig {
   }
 
   /// Simulate network delay
-  Future<T> withDelay<T>(Future<T> Function() operation, {int ms = 800}) async {
+  Future<T> withDelay<T>(Future<T> Function() operation, {int ms = 200}) async {
     await Future.delayed(Duration(milliseconds: ms));
     return await operation();
   }

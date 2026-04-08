@@ -1,4 +1,3 @@
-import 'dart:convert';
 import '../mock_config.dart';
 
 /// Anak Mock Handler
@@ -27,8 +26,8 @@ class AnakMockHandler {
 
       return MockResponse.success({
         'success': true,
-        'message': filtered.isEmpty 
-            ? 'Belum ada data anak' 
+        'message': filtered.isEmpty
+            ? 'Belum ada data anak'
             : 'Data anak berhasil diambil',
         'data': filtered,
       });
@@ -46,10 +45,7 @@ class AnakMockHandler {
       );
 
       if (anak.isEmpty) {
-        return MockResponse.error(
-          'Data anak tidak ditemukan',
-          statusCode: 404,
-        );
+        return MockResponse.error('Data anak tidak ditemukan', statusCode: 404);
       }
 
       return MockResponse.success({
@@ -66,25 +62,19 @@ class AnakMockHandler {
 
     return _mockConfig.withDelay(() async {
       // Validation
-      if (!anakData.containsKey('name') || anakData['name'].toString().isEmpty) {
-        return MockResponse.error(
-          'Nama anak harus diisi',
-          statusCode: 400,
-        );
+      if (!anakData.containsKey('name') ||
+          anakData['name'].toString().isEmpty) {
+        return MockResponse.error('Nama anak harus diisi', statusCode: 400);
       }
 
-      if (!anakData.containsKey('birth_date') || anakData['birth_date'] == null) {
-        return MockResponse.error(
-          'Tanggal lahir harus diisi',
-          statusCode: 400,
-        );
+      if (!anakData.containsKey('birth_date') ||
+          anakData['birth_date'] == null) {
+        return MockResponse.error('Tanggal lahir harus diisi', statusCode: 400);
       }
 
-      if (!anakData.containsKey('gender') || anakData['gender'].toString().isEmpty) {
-        return MockResponse.error(
-          'Jenis kelamin harus diisi',
-          statusCode: 400,
-        );
+      if (!anakData.containsKey('gender') ||
+          anakData['gender'].toString().isEmpty) {
+        return MockResponse.error('Jenis kelamin harus diisi', statusCode: 400);
       }
 
       // Create new anak
@@ -94,8 +84,8 @@ class AnakMockHandler {
         'name': anakData['name'],
         'birth_date': anakData['birth_date'],
         'gender': anakData['gender'],
-        'medical_history': anakData['medical_history'] ?? null,
-        'current_condition': anakData['current_condition'] ?? null,
+        'medical_history': anakData['medical_history'],
+        'current_condition': anakData['current_condition'],
         'created_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       };
@@ -111,17 +101,17 @@ class AnakMockHandler {
   }
 
   /// Update anak
-  static Future<MockResponse> update(String anakId, Map<String, dynamic> anakData) async {
+  static Future<MockResponse> update(
+    String anakId,
+    Map<String, dynamic> anakData,
+  ) async {
     await _initData();
 
     return _mockConfig.withDelay(() async {
       final index = _anakList.indexWhere((a) => a['id'] == anakId);
 
       if (index == -1) {
-        return MockResponse.error(
-          'Data anak tidak ditemukan',
-          statusCode: 404,
-        );
+        return MockResponse.error('Data anak tidak ditemukan', statusCode: 404);
       }
 
       // Update data
@@ -147,10 +137,7 @@ class AnakMockHandler {
       final index = _anakList.indexWhere((a) => a['id'] == anakId);
 
       if (index == -1) {
-        return MockResponse.error(
-          'Data anak tidak ditemukan',
-          statusCode: 404,
-        );
+        return MockResponse.error('Data anak tidak ditemukan', statusCode: 404);
       }
 
       _anakList.removeAt(index);

@@ -41,8 +41,10 @@ class _SplashPageState extends ConsumerState<SplashPage>
     // Start animation
     _animationController.forward();
 
-    // Navigate after delay
-    _navigateToNextPage();
+    // Navigate after delay - use post-frame callback to avoid build-time errors
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigateToNextPage();
+    });
   }
 
   @override
@@ -52,34 +54,38 @@ class _SplashPageState extends ConsumerState<SplashPage>
   }
 
   Future<void> _navigateToNextPage() async {
-    await Future.delayed(
-      const Duration(seconds: 2),
-    ); // Reduced from 3 to 2 seconds
+    // Wait for animation and give router time to process auth state
+    await Future.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
 
-    // For testing - skip onboarding and go directly to login/dashboard
     // Check authentication status
     final authState = ref.read(authProvider);
-
+    
     if (authState.isAuthenticated) {
-      // Navigate to dashboard based on user role
+      // User is authenticated - navigate to appropriate dashboard
       final userRole = authState.user?.role ?? AppConstants.roleOrangTua;
+      print('🚀 Splash: Authenticated user, role=$userRole');
 
+      // Navigate based on role
+      String targetRoute;
       switch (userRole) {
-        case AppConstants.roleOrangTua:
-          context.go('/dashboard');
-          break;
         case AppConstants.roleTerapis:
-          context.go('/terapis-dashboard');
+          targetRoute = '/terapis-dashboard';
           break;
         case AppConstants.roleAdmin:
-          context.go('/admin-dashboard');
+          targetRoute = '/admin-dashboard';
           break;
+        case AppConstants.roleOrangTua:
         default:
-          context.go('/login');
+          targetRoute = '/dashboard';
       }
+      
+      // Use go instead of replace to avoid router conflicts
+      context.go(targetRoute);
     } else {
+      // User is NOT authenticated - go to login
+      print('🚀 Splash: Not authenticated, going to login');
       context.go('/login');
     }
   }

@@ -1,9 +1,12 @@
 import '../../../shared/widgets/therapist_bottom_nav.dart';
+import '../../../shared/widgets/profile_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../anak/providers/anak_provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/api_service.dart';
+
 /// Therapist Patient Detail Page
 /// Halaman detail pasien untuk terapis menggunakan view single-scroll
 class TherapistPatientDetailPage extends ConsumerStatefulWidget {
@@ -19,6 +22,119 @@ class TherapistPatientDetailPage extends ConsumerStatefulWidget {
 class _TherapistPatientDetailPageState
     extends ConsumerState<TherapistPatientDetailPage> {
   final TextEditingController _noteController = TextEditingController();
+  final ApiService _apiService = ApiService();
+  
+  Map<String, dynamic>? _patientDetail;
+  List<dynamic> _progressNotes = [];
+  List<dynamic> _exercises = [];
+  bool _isLoading = true;
+  bool _isSubmittingNote = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPatientData();
+  }
+
+  Future<void> _fetchPatientData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Fetch patient detail, progress, and exercises in parallel
+      final detailFuture = _apiService.getPatientDetail(widget.patientId);
+      final progressFuture = _apiService.getPatientProgress(widget.patientId);
+      final exercisesFuture = _apiService.getPatientExercises(widget.patientId);
+
+      final results = await Future.wait([
+        detailFuture,
+        progressFuture,
+        exercisesFuture,
+      ]);
+
+      if (results[0].statusCode == 200) {
+        final detailData = results[0].data;
+        if (detailData is Map<String, dynamic> && detailData['status'] == 'success') {
+          _patientDetail = detailData['data'];
+        }
+      }
+
+      if (results[1].statusCode == 200) {
+        final progressData = results[1].data;
+        if (progressData is Map<String, dynamic> && progressData['status'] == 'success') {
+          _progressNotes = progressData['data']['progressNotes'] ?? [];
+        }
+      }
+
+      if (results[2].statusCode == 200) {
+        final exercisesData = results[2].data;
+        if (exercisesData is Map<String, dynamic> && exercisesData['status'] == 'success') {
+          _exercises = exercisesData['data'] ?? [];
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _submitNote() async {
+    if (_noteController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Catatan tidak boleh kosong')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmittingNote = true;
+    });
+
+    try {
+      final response = await _apiService.createNote(
+        childId: widget.patientId,
+        title: 'Catatan Sesi',
+        content: _noteController.text.trim(),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Catatan berhasil disimpan'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _noteController.clear();
+        _fetchPatientData(); // Refresh data
+      } else {
+        throw Exception(response.data['message'] ?? 'Gagal menyimpan catatan');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSubmittingNote = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -160,22 +276,9 @@ class _TherapistPatientDetailPageState
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppConstants.primaryBlue.withValues(alpha: 0.1),
-                  image: const DecorationImage(
-                    image: AssetImage(
-                      'assets/images/boy_avatar.png',
-                    ), // Add proper asset or use icon
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                child: anak.name.isNotEmpty
-                    ? null
-                    : const Icon(Icons.person, size: 40, color: Colors.grey),
+              ProfileAvatar(
+                name: anak.name,
+                radius: 40,
               ),
               Positioned(
                 bottom: -8,
@@ -280,7 +383,7 @@ class _TherapistPatientDetailPageState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Delayed Speech -\nModerate',
+                    'Keterlambatan Bicara -\nSedang',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
@@ -336,7 +439,7 @@ class _TherapistPatientDetailPageState
           icon: Icons.record_voice_over,
           color: AppConstants.primaryBlue,
           bgColor: const Color(0xFFF0F5FF),
-          title: 'Kejelasan (Clarity)',
+          title: 'Kejelasan',
           increase: '+12% Bulan ini',
           value: 0.65,
         ),
@@ -345,7 +448,7 @@ class _TherapistPatientDetailPageState
           icon: Icons.menu_book,
           color: const Color(0xFF16A34A), // Green
           bgColor: const Color(0xFFF0FDF4),
-          title: 'Kosakata (Vocabulary)',
+          title: 'Kosakata',
           increase: '+5% Bulan ini',
           value: 0.40,
         ),
@@ -354,7 +457,7 @@ class _TherapistPatientDetailPageState
           icon: Icons.forum,
           color: const Color(0xFFD97706), // Gold/Brown
           bgColor: const Color(0xFFFFFBEB),
-          title: 'Interaksi (Interaction)',
+          title: 'Interaksi',
           increase: '+18% Bulan ini',
           value: 0.82,
         ),
@@ -537,9 +640,9 @@ class _TherapistPatientDetailPageState
   Widget _buildReports() {
     return Column(
       children: [
-        _buildReportItem('Laporan Bulanan - Sept', 'PDF • 1.2 MB'),
+        _buildReportItem('Laporan Bulanan - September', 'PDF • 1,2 MB'),
         const SizedBox(height: 12),
-        _buildReportItem('Hasil Observasi Awal', 'PDF • 2.6 MB'),
+        _buildReportItem('Hasil Observasi Awal', 'PDF • 2,6 MB'),
       ],
     );
   }

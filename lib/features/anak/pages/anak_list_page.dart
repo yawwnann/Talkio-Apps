@@ -7,6 +7,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/parent_bottom_nav.dart';
+import '../../../shared/widgets/profile_avatar.dart';
 import '../../../core/constants/app_constants.dart';
 
 class AnakListPage extends ConsumerStatefulWidget {
@@ -163,30 +164,9 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
           Row(
             children: [
               // Avatar
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppConstants.primaryBlue.withValues(alpha: 0.2),
-                      AppConstants.lightBlue.withValues(alpha: 0.1),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Text(
-                    anak.name[0].toUpperCase(),
-                    style: GoogleFonts.poppins(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppConstants.primaryBlue,
-                    ),
-                  ),
-                ),
+              ProfileAvatar(
+                name: anak.name,
+                radius: 32,
               ),
               const SizedBox(width: 16),
               Expanded(

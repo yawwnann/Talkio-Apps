@@ -33,20 +33,23 @@ class JadwalNotifier extends StateNotifier<JadwalState> {
 
   JadwalNotifier(this._apiService) : super(const JadwalState());
 
-  /// Fetch jadwal for therapist (GET /api/therapist/patients)
-  Future<void> fetchJadwal() async {
+  /// Fetch jadwal for therapist (GET /api/therapist/schedule)
+  Future<void> fetchJadwal({String? startDate, String? endDate}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final response = await _apiService.getTherapistPatients();
-      
+      final response = await _apiService.getSchedule(
+        startDate: startDate,
+        endDate: endDate,
+      );
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
         if (data is Map<String, dynamic> && data['status'] == 'success') {
-          final jadwalData = data['data'];
+          final scheduleData = data['data'];
           List<JadwalModel> jadwalList = [];
 
-          if (jadwalData is List) {
-            jadwalList = jadwalData
+          if (scheduleData is List) {
+            jadwalList = scheduleData
                 .whereType<Map<String, dynamic>>()
                 .map((item) => JadwalModel.fromJson(item))
                 .toList();

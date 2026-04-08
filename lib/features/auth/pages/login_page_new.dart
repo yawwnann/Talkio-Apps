@@ -35,12 +35,21 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
     final loginEmail = email.isEmpty ? 'demo@example.com' : email;
     final loginPassword = password.isEmpty ? '123456' : password;
 
+    print('🔐 [LOGIN] Starting login for: $loginEmail');
+    print('🔐 [LOGIN] Calling authProvider.notifier.login()');
+
     final success = await ref
         .read(authProvider.notifier)
         .login(loginEmail, loginPassword);
 
+    print('🔐 [LOGIN] Login success: $success');
+
+    // Use replace instead of go to prevent splash screen from appearing
     if (success && mounted) {
-      context.go('/dashboard');
+      print('🔐 [LOGIN] Navigating to /dashboard');
+      context.replace('/dashboard');
+    } else if (!success) {
+      print('🔐 [LOGIN] Login failed, staying on login page');
     }
   }
 

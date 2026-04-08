@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/therapist_bottom_nav.dart';
+import '../../../shared/widgets/profile_avatar.dart';
 import '../../anak/providers/anak_provider.dart';
 
 /// Therapist Patient Page
@@ -249,14 +250,6 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
     // Choose progress label
     final progressLabels = ['Kejelasan Bicara', 'Kosakata', 'Interaksi Sosial', 'Kejelasan Artikulasi'];
     final progressLabel = progressLabels[anak.hashCode % progressLabels.length];
-    
-    // Avatar colors
-    final avatarColor = [
-      const Color(0xFF26A69A), // teal
-      const Color(0xFF5C6BC0), // indigo
-      const Color(0xFFEC407A), // pink
-      const Color(0xFFFFCA28), // amber
-    ][anak.name.length % 4];
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -278,23 +271,9 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Avatar
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: avatarColor.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    anak.name[0].toUpperCase(),
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: avatarColor,
-                    ),
-                  ),
-                ),
+              ProfileAvatar(
+                name: anak.name,
+                radius: 25,
               ),
               const SizedBox(width: 12),
               Expanded(

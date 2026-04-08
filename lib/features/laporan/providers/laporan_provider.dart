@@ -33,14 +33,12 @@ class LaporanNotifier extends StateNotifier<LaporanState> {
 
   LaporanNotifier(this._apiService) : super(const LaporanState());
 
-  /// Fetch laporan for therapist (GET /api/therapist/patients or custom endpoint)
+  /// Fetch laporan for therapist (GET /api/therapist/reports)
   Future<void> fetchLaporan() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      // Note: Backend doesn't have a direct laporan endpoint
-      // We'll use therapist patients as placeholder or mock data
-      final response = await _apiService.getTherapistPatients();
-      
+      final response = await _apiService.getReportHistory();
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
         if (data is Map<String, dynamic> && data['status'] == 'success') {

@@ -16,12 +16,36 @@ import '../mock/handlers/konsultasi_mock_handler.dart';
 /// Base URL: http://<IP>:3000/api
 /// Dengan dukungan mock data toggle untuk development
 class ApiService {
-  late final Dio _dio;
-  late final Dio _uploadDio; // For multipart uploads
+  final Dio? _dio;
+  final Dio? _uploadDio; // For multipart uploads
   final MockConfig _mockConfig = MockConfig();
 
-  ApiService() {
-    _dio = Dio(BaseOptions(
+  /// Create ApiService with shared Dio instances (recommended)
+  ApiService.withDio({Dio? dio, Dio? uploadDio})
+      : _dio = dio,
+        _uploadDio = uploadDio;
+
+  /// Create ApiService with own Dio instances (legacy, not recommended)
+  ApiService()
+      : _dio = null,
+        _uploadDio = null;
+
+  /// Get Dio instance (from provider or create new)
+  Dio get dio {
+    if (_dio != null) return _dio!;
+    // Fallback: create new instance (not recommended)
+    return _createDefaultDio();
+  }
+
+  /// Get upload Dio instance (from provider or create new)
+  Dio get uploadDio {
+    if (_uploadDio != null) return _uploadDio!;
+    // Fallback: create new instance (not recommended)
+    return _createDefaultUploadDio();
+  }
+
+  Dio _createDefaultDio() {
+    final dio = Dio(BaseOptions(
       baseUrl: AppConstants.baseUrl,
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
@@ -31,8 +55,36 @@ class ApiService {
       },
     ));
 
-    // Separate Dio for file uploads (multipart)
-    _uploadDio = Dio(BaseOptions(
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final token = await _getAuthToken();
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
+      },
+      onError: (error, handler) {
+        if (error.response?.statusCode == 401) {
+          _handleUnauthorized();
+        }
+        handler.next(error);
+      },
+    ));
+
+    dio.interceptors.add(LogInterceptor(
+      requestBody: false,
+      responseBody: false,
+      requestHeader: false,
+      responseHeader: false,
+      error: true,
+      logPrint: (obj) => print('🌐 API Error: $obj'),
+    ));
+
+    return dio;
+  }
+
+  Dio _createDefaultUploadDio() {
+    final dio = Dio(BaseOptions(
       baseUrl: AppConstants.baseUrl,
       connectTimeout: const Duration(seconds: 60),
       receiveTimeout: const Duration(seconds: 60),
@@ -41,8 +93,7 @@ class ApiService {
       },
     ));
 
-    // Add interceptors for logging and auth token
-    _dio.interceptors.add(InterceptorsWrapper(
+    dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final token = await _getAuthToken();
         if (token != null) {
@@ -58,26 +109,7 @@ class ApiService {
       },
     ));
 
-    _uploadDio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await _getAuthToken();
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        handler.next(options);
-      },
-      onError: (error, handler) {
-        if (error.response?.statusCode == 401) {
-          _handleUnauthorized();
-        }
-        handler.next(error);
-      },
-    ));
-
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-    ));
+    return dio;
   }
 
   // ========== AUTH ENDPOINTS ==========
@@ -91,16 +123,23 @@ class ApiService {
     }
 
     print('🌐 [API] POST /auth/login: $email');
+    print('🌐 [API] Using baseUrl: ${dio.options.baseUrl}');
     try {
-      final response = await _dio.post('/auth/login', data: {
+      print('🌐 [API] Sending request...');
+      final response = await dio.post('/auth/login', data: {
         'email': email,
         'password': password,
       });
+      print('🌐 [API] Response status: ${response.statusCode}');
+      print('🌐 [API] Response data type: ${response.data.runtimeType}');
+      print('🌐 [API] Response data: ${response.data}');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('🌐 [API] ERROR: $e');
+      print('🌐 [API] Stack trace: $stackTrace');
       throw _handleError(e);
     }
   }
@@ -125,7 +164,7 @@ class ApiService {
 
     print('🌐 [API] POST /auth/register: $email');
     try {
-      final response = await _dio.post('/auth/register', data: {
+      final response = await dio.post('/auth/register', data: {
         'name': name,
         'email': email,
         'password': password,
@@ -149,7 +188,7 @@ class ApiService {
 
     print('🌐 [API] POST /auth/logout');
     try {
-      final response = await _dio.post('/auth/logout');
+      final response = await dio.post('/auth/logout');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -171,7 +210,7 @@ class ApiService {
 
     print('🌐 [API] GET /users/profile');
     try {
-      final response = await _dio.get('/users/profile');
+      final response = await dio.get('/users/profile');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -193,7 +232,7 @@ class ApiService {
 
     print('🌐 [API] GET /children');
     try {
-      final response = await _dio.get('/children');
+      final response = await dio.get('/children');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -213,7 +252,7 @@ class ApiService {
 
     print('🌐 [API] GET /children/$childId');
     try {
-      final response = await _dio.get('/children/$childId');
+      final response = await dio.get('/children/$childId');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -241,7 +280,7 @@ class ApiService {
 
     print('🌐 [API] POST /children: $name');
     try {
-      final response = await _dio.post('/children', data: {
+      final response = await dio.post('/children', data: {
         'name': name,
         'dateOfBirth': dateOfBirth,
         'gender': gender,
@@ -275,7 +314,7 @@ class ApiService {
 
     print('🌐 [API] POST /diagnosis/check: $childId');
     try {
-      final response = await _dio.post('/diagnosis/check', data: {
+      final response = await dio.post('/diagnosis/check', data: {
         'childId': childId,
         'symptoms': symptoms,
         'useML': useML,
@@ -299,7 +338,7 @@ class ApiService {
 
     print('🌐 [API] GET /diagnosis/history/$childId');
     try {
-      final response = await _dio.get('/diagnosis/history/$childId');
+      final response = await dio.get('/diagnosis/history/$childId');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -339,7 +378,7 @@ class ApiService {
       if (therapistId != null) {
         data['therapistId'] = therapistId;
       }
-      final response = await _dio.post('/therapy/booking', data: data);
+      final response = await dio.post('/therapy/booking', data: data);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -359,7 +398,7 @@ class ApiService {
 
     print('🌐 [API] GET /therapy/history');
     try {
-      final response = await _dio.get('/therapy/history');
+      final response = await dio.get('/therapy/history');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -396,7 +435,7 @@ class ApiService {
 
     print('🌐 [API] POST /game/log: $gameType');
     try {
-      final response = await _dio.post('/game/log', data: {
+      final response = await dio.post('/game/log', data: {
         'childId': childId,
         'gameScore': gameScore,
         'duration': duration,
@@ -424,7 +463,7 @@ class ApiService {
 
     print('🌐 [API] GET /game/history/$childId');
     try {
-      final response = await _dio.get('/game/history/$childId');
+      final response = await dio.get('/game/history/$childId');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -465,7 +504,7 @@ class ApiService {
         if (notes != null) 'notes': notes,
       });
 
-      final response = await _uploadDio.post(
+      final response = await uploadDio.post(
         '/progress/upload',
         data: formData,
       );
@@ -504,7 +543,7 @@ class ApiService {
 
     print('🌐 [API] POST /v1/predict/speech-delay: $childId');
     try {
-      final response = await _dio.post('/v1/predict/speech-delay', data: {
+      final response = await dio.post('/v1/predict/speech-delay', data: {
         'child_id': childId,
         'features': features,
       });
@@ -543,7 +582,7 @@ class ApiService {
         'child_id': childId,
       });
 
-      final response = await _uploadDio.post(
+      final response = await uploadDio.post(
         '/v1/predict/voice-analysis',
         data: formData,
       );
@@ -573,7 +612,7 @@ class ApiService {
 
     print('🌐 [API] GET /v1/predict/health');
     try {
-      final response = await _dio.get('/v1/predict/health');
+      final response = await dio.get('/v1/predict/health');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -612,7 +651,7 @@ class ApiService {
         'child_id': childId,
       });
 
-      final response = await _uploadDio.post('/v1/audio/upload', data: formData);
+      final response = await uploadDio.post('/v1/audio/upload', data: formData);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -653,7 +692,7 @@ class ApiService {
         if (notes != null) 'notes': notes,
       });
 
-      final response = await _uploadDio.post('/v1/audio/store', data: formData);
+      final response = await uploadDio.post('/v1/audio/store', data: formData);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -678,7 +717,7 @@ class ApiService {
 
     print('🌐 [API] GET /therapist/patients');
     try {
-      final response = await _dio.get('/therapist/patients');
+      final response = await dio.get('/therapist/patients');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -701,7 +740,7 @@ class ApiService {
 
     print('🌐 [API] GET /therapist/patient/$patientId');
     try {
-      final response = await _dio.get('/therapist/patient/$patientId');
+      final response = await dio.get('/therapist/patient/$patientId');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -730,7 +769,7 @@ class ApiService {
 
     print('🌐 [API] PATCH /therapist/evaluate: $progressId');
     try {
-      final response = await _dio.patch('/therapist/evaluate', data: {
+      final response = await dio.patch('/therapist/evaluate', data: {
         'progressId': progressId,
         'evaluation': evaluation,
       });
@@ -756,10 +795,385 @@ class ApiService {
 
     print('🌐 [API] GET /therapist/report/$patientId');
     try {
-      final response = await _dio.get(
+      final response = await dio.get(
         '/therapist/report/$patientId',
         options: Options(responseType: ResponseType.bytes),
       );
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Therapist Schedule
+  /// GET /api/therapist/schedule
+  Future<MockResponse> getSchedule({String? startDate, String? endDate}) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get schedule');
+      return MockResponse.success({
+        'message': 'Schedule fetched successfully',
+        'data': [],
+      });
+    }
+
+    print('🌐 [API] GET /therapist/schedule');
+    try {
+      final queryParams = <String, dynamic>{};
+      if (startDate != null) queryParams['startDate'] = startDate;
+      if (endDate != null) queryParams['endDate'] = endDate;
+      
+      final response = await dio.get('/therapist/schedule', queryParameters: queryParams);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Create Schedule
+  /// POST /api/therapist/schedule
+  Future<MockResponse> createSchedule({
+    required String childId,
+    required String schedule,
+    required String therapyType,
+    bool? isActive,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Create schedule');
+      return MockResponse.success({
+        'message': 'Schedule created successfully',
+        'data': {'id': 'mock-schedule-id'},
+      });
+    }
+
+    print('🌐 [API] POST /therapist/schedule');
+    try {
+      final response = await dio.post('/therapist/schedule', data: {
+        'childId': childId,
+        'schedule': schedule,
+        'therapyType': therapyType,
+        'isActive': isActive ?? false,
+      });
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Update Schedule
+  /// PATCH /api/therapist/schedule/:id
+  Future<MockResponse> updateSchedule(
+    String scheduleId, {
+    String? schedule,
+    String? therapyType,
+    bool? isActive,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Update schedule: $scheduleId');
+      return MockResponse.success({
+        'message': 'Schedule updated successfully',
+        'data': {'id': scheduleId},
+      });
+    }
+
+    print('🌐 [API] PATCH /therapist/schedule/$scheduleId');
+    try {
+      final data = <String, dynamic>{};
+      if (schedule != null) data['schedule'] = schedule;
+      if (therapyType != null) data['therapyType'] = therapyType;
+      if (isActive != null) data['isActive'] = isActive;
+      
+      final response = await dio.patch('/therapist/schedule/$scheduleId', data: data);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Delete Schedule
+  /// DELETE /api/therapist/schedule/:id
+  Future<MockResponse> deleteSchedule(String scheduleId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Delete schedule: $scheduleId');
+      return MockResponse.success({
+        'message': 'Schedule deleted successfully',
+      });
+    }
+
+    print('🌐 [API] DELETE /therapist/schedule/$scheduleId');
+    try {
+      final response = await dio.delete('/therapist/schedule/$scheduleId');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Dashboard Stats
+  /// GET /api/therapist/dashboard/stats
+  Future<MockResponse> getDashboardStats() async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get dashboard stats');
+      return MockResponse.success({
+        'message': 'Dashboard stats fetched successfully',
+        'data': {
+          'todaySchedule': {'count': 0, 'sessions': []},
+          'recentUpdates': [],
+          'activePatients': {'count': 0, 'patients': []},
+          'trends': {
+            'averageImprovement': '0%',
+            'vocabularyScore': '0%',
+            'dailyEngagement': '0%',
+          },
+          'summary': {'newRecordings': 0, 'pendingReports': 0},
+        },
+      });
+    }
+
+    print('🌐 [API] GET /therapist/dashboard/stats');
+    try {
+      final response = await dio.get('/therapist/dashboard/stats');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Report History
+  /// GET /api/therapist/reports
+  Future<MockResponse> getReportHistory() async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get report history');
+      return MockResponse.success({
+        'message': 'Report history fetched',
+        'data': [],
+      });
+    }
+
+    print('🌐 [API] GET /therapist/reports');
+    try {
+      final response = await dio.get('/therapist/reports');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Create Report
+  /// POST /api/therapist/report
+  Future<MockResponse> createReport({
+    required String childId,
+    required String title,
+    required String progressNotes,
+    String? sessionDate,
+    double? speechClarity,
+    double? vocabulary,
+    double? socialInteraction,
+    String? barriers,
+    List<String>? parentExercises,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Create report');
+      return MockResponse.success({
+        'message': 'Report created successfully',
+        'data': {'id': 'mock-report-id'},
+      });
+    }
+
+    print('🌐 [API] POST /therapist/report');
+    try {
+      final data = <String, dynamic>{
+        'childId': childId,
+        'title': title,
+        'progressNotes': progressNotes,
+      };
+      if (sessionDate != null) data['sessionDate'] = sessionDate;
+      if (speechClarity != null) data['speechClarity'] = speechClarity;
+      if (vocabulary != null) data['vocabulary'] = vocabulary;
+      if (socialInteraction != null) data['socialInteraction'] = socialInteraction;
+      if (barriers != null) data['barriers'] = barriers;
+      if (parentExercises != null) data['parentExercises'] = parentExercises;
+      
+      final response = await dio.post('/therapist/report', data: data);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Patient Progress
+  /// GET /api/therapist/patients/:id/progress
+  Future<MockResponse> getPatientProgress(String patientId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get patient progress: $patientId');
+      return MockResponse.success({
+        'message': 'Patient progress fetched',
+        'data': {'progressNotes': [], 'progressUploads': []},
+      });
+    }
+
+    print('🌐 [API] GET /therapist/patients/$patientId/progress');
+    try {
+      final response = await dio.get('/therapist/patients/$patientId/progress');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Patient Exercises
+  /// GET /api/therapist/patients/:id/exercises
+  Future<MockResponse> getPatientExercises(String patientId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get patient exercises: $patientId');
+      return MockResponse.success({
+        'message': 'Patient exercises fetched',
+        'data': [],
+      });
+    }
+
+    print('🌐 [API] GET /therapist/patients/$patientId/exercises');
+    try {
+      final response = await dio.get('/therapist/patients/$patientId/exercises');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Create Therapist Note
+  /// POST /api/therapist/notes
+  Future<MockResponse> createNote({
+    required String childId,
+    required String title,
+    required String content,
+    String? date,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Create note');
+      return MockResponse.success({
+        'message': 'Note created successfully',
+        'data': {'id': 'mock-note-id'},
+      });
+    }
+
+    print('🌐 [API] POST /therapist/notes');
+    try {
+      final data = <String, dynamic>{
+        'childId': childId,
+        'title': title,
+        'content': content,
+      };
+      if (date != null) data['date'] = date;
+      
+      final response = await dio.post('/therapist/notes', data: data);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Notes by Child
+  /// GET /api/therapist/notes/:childId
+  Future<MockResponse> getNotesByChild(String childId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get notes by child: $childId');
+      return MockResponse.success({
+        'message': 'Notes fetched successfully',
+        'data': [],
+      });
+    }
+
+    print('🌐 [API] GET /therapist/notes/$childId');
+    try {
+      final response = await dio.get('/therapist/notes/$childId');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Update Note
+  /// PATCH /api/therapist/notes/:id
+  Future<MockResponse> updateNote(
+    String noteId, {
+    String? title,
+    String? content,
+    String? date,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Update note: $noteId');
+      return MockResponse.success({
+        'message': 'Note updated successfully',
+        'data': {'id': noteId},
+      });
+    }
+
+    print('🌐 [API] PATCH /therapist/notes/$noteId');
+    try {
+      final data = <String, dynamic>{};
+      if (title != null) data['title'] = title;
+      if (content != null) data['content'] = content;
+      if (date != null) data['date'] = date;
+      
+      final response = await dio.patch('/therapist/notes/$noteId', data: data);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Delete Note
+  /// DELETE /api/therapist/notes/:id
+  Future<MockResponse> deleteNote(String noteId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Delete note: $noteId');
+      return MockResponse.success({
+        'message': 'Note deleted successfully',
+      });
+    }
+
+    print('🌐 [API] DELETE /therapist/notes/$noteId');
+    try {
+      final response = await dio.delete('/therapist/notes/$noteId');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -802,7 +1216,7 @@ class ApiService {
       if (startDate != null) queryParameters['startDate'] = startDate;
       if (endDate != null) queryParameters['endDate'] = endDate;
 
-      final response = await _dio.get(
+      final response = await dio.get(
         '/admin/dashboard',
         queryParameters: queryParameters.isNotEmpty ? queryParameters : null,
       );
@@ -843,7 +1257,7 @@ class ApiService {
       if (role != null) queryParameters['role'] = role;
       if (search != null) queryParameters['search'] = search;
 
-      final response = await _dio.get('/admin/users', queryParameters: queryParameters);
+      final response = await dio.get('/admin/users', queryParameters: queryParameters);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -873,7 +1287,7 @@ class ApiService {
       final data = {'action': action};
       if (reason != null) data['reason'] = reason;
 
-      final response = await _dio.put('/admin/users/$userId', data: data);
+      final response = await dio.put('/admin/users/$userId', data: data);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -906,7 +1320,7 @@ class ApiService {
 
     print('🌐 [API] POST /admin/education');
     try {
-      final response = await _dio.post('/admin/education', data: {
+      final response = await dio.post('/admin/education', data: {
         'title': title,
         'content': content,
         'type': type,
@@ -981,7 +1395,7 @@ class ApiService {
       if (isActive != null) queryParameters['isActive'] = isActive;
       if (search != null) queryParameters['search'] = search;
 
-      final response = await _dio.get(
+      final response = await dio.get(
         '/education',
         queryParameters: queryParameters.isNotEmpty ? queryParameters : null,
       );
@@ -1014,7 +1428,7 @@ class ApiService {
 
     print('🌐 [API] GET /education/$contentId');
     try {
-      final response = await _dio.get('/education/$contentId');
+      final response = await dio.get('/education/$contentId');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -1201,7 +1615,7 @@ class ApiService {
 
     print('🌐 [API] GET $path');
     try {
-      final response = await _dio.get(path, queryParameters: queryParameters);
+      final response = await dio.get(path, queryParameters: queryParameters);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -1220,7 +1634,7 @@ class ApiService {
 
     print('🌐 [API] POST $path');
     try {
-      final response = await _dio.post(path, data: data);
+      final response = await dio.post(path, data: data);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -1239,7 +1653,7 @@ class ApiService {
 
     print('🌐 [API] PUT $path');
     try {
-      final response = await _dio.put(path, data: data);
+      final response = await dio.put(path, data: data);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -1258,7 +1672,7 @@ class ApiService {
 
     print('🌐 [API] DELETE $path');
     try {
-      final response = await _dio.delete(path);
+      final response = await dio.delete(path);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,

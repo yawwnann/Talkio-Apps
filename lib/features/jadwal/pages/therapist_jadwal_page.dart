@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/models/jadwal_model.dart';
 import '../../../shared/widgets/therapist_bottom_nav.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../providers/jadwal_provider.dart';
@@ -15,24 +16,44 @@ class TherapistJadwalPage extends ConsumerStatefulWidget {
 }
 
 class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
-  int _selectedDateIndex = 1; // Default to the second item (e.g., 17)
-
-  // Dummy dates for the slider corresponding to mockup
-  final List<Map<String, String>> _dates = [
-    {'day': 'SEN', 'date': '16'},
-    {'day': 'SEL', 'date': '17'},
-    {'day': 'RAB', 'date': '18'},
-    {'day': 'KAM', 'date': '19'},
-    {'day': 'JUM', 'date': '20'},
-  ];
+  int _selectedDateIndex = 1;
+  DateTime _selectedDate = DateTime.now();
+  List<Map<String, String>> _dates = [];
 
   @override
   void initState() {
     super.initState();
-    // Fetch jadwal on init
+    _generateDates();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(jadwalProvider.notifier).fetchJadwal();
     });
+  }
+
+  void _generateDates() {
+    _dates = [];
+    final today = DateTime.now();
+
+    // Generate 7 days starting from 3 days ago
+    for (int i = -3; i <= 3; i++) {
+      final date = today.add(Duration(days: i));
+      final dayName = [
+        'SEN',
+        'SEL',
+        'RAB',
+        'KAM',
+        'JUM',
+        'SAB',
+        'MIN',
+      ][date.weekday - 1];
+      _dates.add({
+        'day': dayName,
+        'date': date.day.toString(),
+        'fullDate': date.toIso8601String(),
+      });
+    }
+
+    // Set selected index to today (index 3)
+    _selectedDateIndex = 3;
   }
 
   @override
@@ -62,11 +83,6 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: AppConstants.primaryBlue,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
       bottomNavigationBar: TherapistBottomNav(
         currentIndex: 2,
       ), // Index 2 is Jadwal
@@ -74,9 +90,26 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
   }
 
   Widget _buildMonthAndSlider() {
+    final now = DateTime.now();
+    final monthNames = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    final monthName = monthNames[now.month - 1];
+    final year = now.year;
+
     return Container(
-      color: Colors
-          .white, // In the mock, this section might have a slightly different hue, but we keep it clean.
+      color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
         children: [
@@ -84,89 +117,140 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'September 2024',
+                '$monthName $year',
                 style: GoogleFonts.poppins(
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF1F2937),
                 ),
               ),
-              TextButton.icon(
-                onPressed: () {},
-                icon: const Icon(
-                  Icons.calendar_today,
-                  size: 16,
-                  color: AppConstants.primaryBlue,
-                ),
-                label: Text(
-                  'Pilih Tanggal',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppConstants.primaryBlue,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(_dates.length, (index) {
-              final isSelected = _selectedDateIndex == index;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedDateIndex = index;
-                  });
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime.now().subtract(
+                      const Duration(days: 365),
+                    ),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _selectedDate = picked;
+                      // Refresh schedule for selected date
+                      ref
+                          .read(jadwalProvider.notifier)
+                          .fetchJadwal(
+                            startDate: picked.toIso8601String(),
+                            endDate: picked
+                                .add(const Duration(days: 1))
+                                .toIso8601String(),
+                          );
+                    });
+                  }
                 },
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  width: 56,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppConstants.primaryBlue : Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: AppConstants.primaryBlue.withValues(
-                                alpha: 0.3,
-                              ),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : null,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  decoration: BoxDecoration(
+                    color: AppConstants.primaryBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
                     children: [
-                      Text(
-                        _dates[index]['day']!,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: isSelected
-                              ? Colors.white
-                              : const Color(0xFF6B7280),
-                        ),
+                      const Icon(
+                        Icons.calendar_month_rounded,
+                        size: 18,
+                        color: AppConstants.primaryBlue,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(width: 6),
                       Text(
-                        _dates[index]['date']!,
+                        'Pilih Tanggal',
                         style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: isSelected
-                              ? Colors.white
-                              : const Color(0xFF1F2937),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppConstants.primaryBlue,
                         ),
                       ),
                     ],
                   ),
                 ),
-              );
-            }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(_dates.length, (index) {
+                final isSelected = _selectedDateIndex == index;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedDateIndex = index;
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(right: 12),
+                    width: 60,
+                    height: 85,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppConstants.primaryBlue
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppConstants.primaryBlue
+                            : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: AppConstants.primaryBlue.withOpacity(
+                                  0.3,
+                                ),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _dates[index]['day']!,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: isSelected
+                                ? Colors.white.withOpacity(0.9)
+                                : const Color(0xFF6B7280),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _dates[index]['date']!,
+                          style: GoogleFonts.poppins(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF1F2937),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
           ),
         ],
       ),
@@ -206,66 +290,96 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
       return Padding(
         padding: const EdgeInsets.all(20),
         child: Center(
-          child: Text(
-            'Tidak ada jadwal hari ini',
-            style: GoogleFonts.poppins(color: Colors.grey),
+          child: Column(
+            children: [
+              const Icon(Icons.event_busy, size: 64, color: Color(0xFFCBD5E1)),
+              const SizedBox(height: 16),
+              Text(
+                'Tidak ada jadwal untuk tanggal ini',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
           ),
         ),
       );
     }
 
-    // Since mock may not perfectly match mockup visually without specific tweaking,
-    // we mix dynamic data styling with the structure specified in the mockup.
+    // Build timeline from real data
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
-        children: [
-          // Build first one (Completed)
-          _buildTimelineItem(
-            statusType: 'completed',
-            isFirst: true,
-            isLast: false,
-            child: _buildCompletedCard(
-              "08:00 - 09:00",
-              "Budi Santoso",
-              "Speech Therapy • Offline",
-            ),
-          ),
+        children: state.jadwalList.asMap().entries.map((entry) {
+          final index = entry.key;
+          final schedule = entry.value;
+          final isFirst = index == 0;
+          final isLast = index == state.jadwalList.length - 1;
+          final status = schedule.status.toUpperCase();
 
-          // Build second one (Ongoing)
-          _buildTimelineItem(
-            statusType: 'ongoing',
-            isFirst: false,
-            isLast: false,
-            child: _buildOngoingCard(
-              "09:15",
-              "Siti Aminah",
-              "Developmental Therapy • Online",
-            ),
-          ),
+          String statusType;
+          switch (status) {
+            case 'COMPLETED':
+              statusType = 'completed';
+              break;
+            case 'ONGOING':
+              statusType = 'ongoing';
+              break;
+            case 'CANCELLED':
+              statusType = 'cancelled';
+              break;
+            default:
+              statusType = 'scheduled';
+          }
 
-          // Build third one (Empty slot)
-          _buildTimelineItem(
-            statusType: 'empty',
-            isFirst: false,
-            isLast: false,
-            child: _buildEmptySlotCard("10:30 - 11:30"),
-          ),
-
-          // Build fourth one (Confirmed/Scheduled)
-          _buildTimelineItem(
-            statusType: 'scheduled',
-            isFirst: false,
-            isLast: true,
-            child: _buildConfirmedCard(
-              "13:00 - 14:00",
-              "Arkan Syah",
-              "Speech Therapy • Offline",
+          return _buildTimelineItem(
+            statusType: statusType,
+            isFirst: isFirst,
+            isLast: isLast,
+            child: _buildScheduleCardFromModel(
+              schedule: schedule,
+              statusType: statusType,
             ),
-          ),
-        ],
+          );
+        }).toList(),
       ),
     );
+  }
+
+  Widget _buildScheduleCardFromModel({
+    required JadwalModel schedule,
+    required String statusType,
+  }) {
+    final therapyType = schedule.sessionType ?? 'Terapi Bicara';
+    final time = schedule.timeSlot;
+    final isOnline =
+        therapyType.toLowerCase().contains('online') ||
+        schedule.meetingLink != null;
+
+    // Get child name from parent (we need to fetch this separately)
+    final childName = 'Pasien'; // TODO: Fetch child name from anakId
+
+    if (statusType == 'completed') {
+      return _buildCompletedCard(
+        time,
+        childName,
+        '$therapyType • ${isOnline ? "Online" : "Offline"}',
+      );
+    } else if (statusType == 'ongoing') {
+      return _buildOngoingCard(
+        time,
+        childName,
+        '$therapyType • ${isOnline ? "Online" : "Offline"}',
+      );
+    } else {
+      return _buildConfirmedCard(
+        time,
+        childName,
+        '$therapyType • ${isOnline ? "Online" : "Offline"}',
+      );
+    }
   }
 
   Widget _buildTimelineItem({
@@ -851,6 +965,55 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showCreateScheduleDialog() async {
+    // TODO: Implement create schedule dialog
+    // This should open a dialog/form to create new schedule
+    // and call createSchedule() API from api_service.dart
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Buat Jadwal Baru',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // TODO: Add form fields for:
+              // - Select patient
+              // - Date & time picker
+              // - Therapy type dropdown
+              // - Session type (Online/Offline)
+              const Text('Form create schedule akan ditambahkan di sini'),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // TODO: Call createSchedule API
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppConstants.primaryBlue,
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+                child: const Text('Simpan Jadwal'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

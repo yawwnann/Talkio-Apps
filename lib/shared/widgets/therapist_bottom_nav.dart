@@ -94,7 +94,13 @@ class TherapistBottomNav extends StatelessWidget {
       child: InkWell(
         onTap: () {
           if (currentIndex != index) {
-            context.go(route);
+            // Navigate to route, ignoring if already on this route
+            try {
+              context.go(route);
+            } catch (e) {
+              // Silently handle navigation errors
+              debugPrint('Navigation error: $e');
+            }
           }
         },
         borderRadius: BorderRadius.circular(12),

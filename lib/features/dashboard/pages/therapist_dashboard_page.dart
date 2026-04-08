@@ -2,16 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../providers/dashboard_stats_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/therapist_bottom_nav.dart';
+import '../../../shared/widgets/profile_avatar.dart';
 
-class TherapistDashboardPage extends ConsumerWidget {
+class TherapistDashboardPage extends ConsumerStatefulWidget {
   const TherapistDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TherapistDashboardPage> createState() =>
+      _TherapistDashboardPageState();
+}
+
+class _TherapistDashboardPageState extends ConsumerState<TherapistDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(dashboardStatsProvider.notifier).fetchDashboardStats();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    final dashboardState = ref.watch(dashboardStatsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -21,28 +38,59 @@ class TherapistDashboardPage extends ConsumerWidget {
         showLogo: true,
         centerTitle: false,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildWelcomeCard(user?.name ?? 'Terapis'),
-            const SizedBox(height: 20),
-            _buildNewUpdatesCard(),
-            const SizedBox(height: 20),
-            _buildTodayScheduleSection(context),
-            const SizedBox(height: 20),
-            _buildImprovementTrends(),
-            const SizedBox(height: 20),
-            _buildActivePatientsSection(context),
-          ],
-        ),
-      ),
+      body: dashboardState.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : dashboardState.stats == null
+              ? _buildErrorState(dashboardState.error)
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildWelcomeCard(user?.name ?? 'Terapis', dashboardState.stats),
+                      const SizedBox(height: 20),
+                      _buildNewUpdatesCard(dashboardState.stats),
+                      const SizedBox(height: 20),
+                      _buildTodayScheduleSection(context, dashboardState.stats),
+                      const SizedBox(height: 20),
+                      _buildImprovementTrends(dashboardState.stats),
+                      const SizedBox(height: 20),
+                      _buildActivePatientsSection(context, dashboardState.stats),
+                    ],
+                  ),
+                ),
       bottomNavigationBar: TherapistBottomNav(currentIndex: 0),
     );
   }
 
-  Widget _buildWelcomeCard(String name) {
+  Widget _buildErrorState(String? error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(
+            error ?? 'Terjadi kesalahan',
+            style: GoogleFonts.poppins(color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(dashboardStatsProvider.notifier).fetchDashboardStats();
+            },
+            child: const Text('Coba Lagi'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCard(String name, Map<String, dynamic>? stats) {
+    final summary = stats?['summary'] ?? {};
+    final newRecordings = summary['newRecordings'] ?? 0;
+    final pendingReports = summary['pendingReports'] ?? 0;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -78,7 +126,7 @@ class TherapistDashboardPage extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Anda memiliki 4 rekaman suara baru dan 2\nlaporan perkembangan pasien yang menunggu\nuntuk ditinjau hari ini.',
+            'Anda memiliki $newRecordings rekaman suara baru dan $pendingReports\nlaporan perkembangan pasien yang menunggu\nuntuk ditinjau hari ini.',
             style: GoogleFonts.poppins(
               fontSize: 12,
               color: Colors.white70,
@@ -90,7 +138,9 @@ class TherapistDashboardPage extends ConsumerWidget {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    // TODO: Navigate to reports page
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: AppConstants.primaryBlue,
@@ -113,7 +163,9 @@ class TherapistDashboardPage extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    // TODO: Navigate to schedule page
+                  },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: Colors.white),
@@ -139,7 +191,10 @@ class TherapistDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildNewUpdatesCard() {
+  Widget _buildNewUpdatesCard(Map<String, dynamic>? stats) {
+    final recentUpdates = stats?['recentUpdates'] as List<dynamic>? ?? [];
+    final updateCount = recentUpdates.isNotEmpty ? recentUpdates.length : 0;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -167,43 +222,101 @@ class TherapistDashboardPage extends ConsumerWidget {
                   color: const Color(0xFF1E293B),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B7A),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '6 BARU',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+              if (updateCount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B7A),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '$updateCount BARU',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 16),
-          _buildUpdateItemNew(
-            Icons.mic,
-            'Rekaman Suara: Leo M.',
-            '2 menit lalu • Latihan Pengucapan',
-            const Color(0xFF4A90E2),
-          ),
-          const SizedBox(height: 12),
-          _buildUpdateItemNew(
-            Icons.description,
-            'Laporan: Mia Chen',
-            '1 jam lalu • Pencapaian Mingguan',
-            const Color(0xFF4CAF50),
-          ),
+          if (recentUpdates.isEmpty)
+            Center(
+              child: Text(
+                'Belum ada pembaruan terbaru',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            )
+          else
+            ...recentUpdates.take(6).map((update) {
+              final type = update['type'] ?? 'SESSION';
+              final isReport = type == 'REPORT';
+              final isSession = type == 'SESSION';
+              
+              IconData icon;
+              String title;
+              Color iconColor;
+              
+              if (isReport) {
+                icon = Icons.description;
+                title = 'Laporan: ${update['childName'] ?? 'Pasien'}';
+                iconColor = const Color(0xFF4CAF50); // Green
+              } else if (isSession) {
+                final therapyType = update['therapyType'] ?? '';
+                if (therapyType.toUpperCase() == 'RECORDING') {
+                  icon = Icons.mic;
+                  title = 'Rekaman Suara: ${update['childName'] ?? 'Pasien'}';
+                  iconColor = const Color(0xFF4A90E2); // Blue
+                } else {
+                  icon = Icons.calendar_today;
+                  title = 'Sesi: ${update['childName'] ?? 'Pasien'}';
+                  iconColor = const Color(0xFFFF9800); // Orange
+                }
+              } else {
+                icon = Icons.info;
+                title = update['title'] ?? update['childName'] ?? 'Update';
+                iconColor = const Color(0xFF9E9E9E); // Grey
+              }
+              
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildUpdateItemNew(
+                  icon,
+                  title,
+                  _formatTimeAgo(update['createdAt']),
+                  iconColor,
+                ),
+              );
+            }).toList(),
         ],
       ),
     );
+  }
+
+  String _formatTimeAgo(String? createdAt) {
+    if (createdAt == null) return 'Baru saja';
+    try {
+      final date = DateTime.parse(createdAt);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inMinutes < 60) {
+        return '${difference.inMinutes} menit lalu';
+      } else if (difference.inHours < 24) {
+        return '${difference.inHours} jam lalu';
+      } else {
+        return '${difference.inDays} hari lalu';
+      }
+    } catch (e) {
+      return 'Baru saja';
+    }
   }
 
   Widget _buildUpdateItemNew(
@@ -258,7 +371,11 @@ class TherapistDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildTodayScheduleSection(BuildContext context) {
+  Widget _buildTodayScheduleSection(BuildContext context, Map<String, dynamic>? stats) {
+    final todaySchedule = stats?['todaySchedule'] ?? {};
+    final sessions = todaySchedule['sessions'] as List<dynamic>? ?? [];
+    final sessionCount = todaySchedule['count'] ?? 0;
+
     return Column(
       children: [
         Row(
@@ -274,7 +391,9 @@ class TherapistDashboardPage extends ConsumerWidget {
               ),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                // TODO: Navigate to calendar view
+              },
               child: Text(
                 'Lihat Kalender >',
                 style: GoogleFonts.poppins(
@@ -286,30 +405,48 @@ class TherapistDashboardPage extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 12),
-        _buildScheduleItem(
-          '09:00\nPAGI',
-          'Arla Thompson',
-          'Terapi Bicara • Sesi Virtual',
-          Colors.blue,
-        ),
-        const SizedBox(height: 12),
-        _buildScheduleItem(
-          '11:00\nPAGI',
-          'Bianca Williams',
-          'Terapi Bicara • Sesi Virtual',
-          Colors.green,
-        ),
-        const SizedBox(height: 12),
-        _buildScheduleItem(
-          '02:00\nSIANG',
-          'Liam Nakamura',
-          'Terapi Bicara • Tatap Muka',
-          Colors.orange,
-        ),
+        if (sessions.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Text(
+                'Tidak ada jadwal hari ini',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ),
+          )
+        else
+          ...sessions.map((session) {
+            final time = _formatSessionTime(session['time']);
+            final color = _getStatusColor(session['status']);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GestureDetector(
+                onTap: () {
+                  // TODO: Navigate to session detail
+                },
+                child: _buildScheduleItem(
+                  time,
+                  session['childName'] ?? 'Pasien',
+                  session['therapyType'] ?? 'Terapi Bicara',
+                  color,
+                ),
+              ),
+            );
+          }).toList(),
         const SizedBox(height: 12),
         Center(
           child: TextButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              // TODO: Open create schedule dialog
+            },
             icon: const Icon(Icons.add_circle_outline, size: 20),
             label: Text(
               'Buat Sesi Baru',
@@ -322,6 +459,31 @@ class TherapistDashboardPage extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  String _formatSessionTime(String? timeStr) {
+    if (timeStr == null) return '00:00';
+    try {
+      final dateTime = DateTime.parse(timeStr);
+      final hour = dateTime.hour.toString().padLeft(2, '0');
+      final minute = dateTime.minute.toString().padLeft(2, '0');
+      return '$hour:$minute';
+    } catch (e) {
+      return timeStr;
+    }
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status?.toUpperCase()) {
+      case 'COMPLETED':
+        return Colors.green;
+      case 'ONGOING':
+        return AppConstants.primaryBlue;
+      case 'CANCELLED':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
   }
 
   Widget _buildScheduleItem(
@@ -390,7 +552,12 @@ class TherapistDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildImprovementTrends() {
+  Widget _buildImprovementTrends(Map<String, dynamic>? stats) {
+    final trends = stats?['trends'] ?? {};
+    final averageImprovement = trends['averageImprovement'] ?? '0%';
+    final vocabularyScore = trends['vocabularyScore'] ?? '0%';
+    final dailyEngagement = trends['dailyEngagement'] ?? '0%';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -417,17 +584,17 @@ class TherapistDashboardPage extends ConsumerWidget {
           const SizedBox(height: 20),
           _buildTrendItem(
             'Rata-rata Grafik Keberhasilan',
-            '+18%',
+            averageImprovement,
             Colors.green,
           ),
           const SizedBox(height: 16),
           _buildTrendItem(
             'Kartu Skor Kosakata',
-            '+24%',
+            vocabularyScore,
             AppConstants.primaryBlue,
           ),
           const SizedBox(height: 16),
-          _buildTrendItem('Keterlibatan Harian', '+12%', Colors.orange),
+          _buildTrendItem('Keterlibatan Harian', dailyEngagement, Colors.orange),
         ],
       ),
     );
@@ -471,7 +638,11 @@ class TherapistDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildActivePatientsSection(BuildContext context) {
+  Widget _buildActivePatientsSection(BuildContext context, Map<String, dynamic>? stats) {
+    final activePatients = stats?['activePatients'] ?? {};
+    final patients = activePatients['patients'] as List<dynamic>? ?? [];
+    final patientCount = activePatients['count'] ?? 0;
+
     return Column(
       children: [
         Row(
@@ -486,30 +657,62 @@ class TherapistDashboardPage extends ConsumerWidget {
                 ),
               ),
             ),
-            TextButton(
-              onPressed: () {},
-              child: Text(
-                'Semua',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: AppConstants.primaryBlue,
+            if (patientCount > 0)
+              TextButton(
+                onPressed: () {
+                  // TODO: Navigate to all patients page
+                },
+                child: Text(
+                  'Semua ($patientCount)',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppConstants.primaryBlue,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 12),
-        _buildPatientItem('Leo Maxwell', 'Sesi terakhir 4 hari yang lalu'),
-        _buildPatientItem('Mia Chen', 'Sesi terakhir 6 hari yang lalu'),
-        _buildPatientItem(
-          'Bianca Williams',
-          'Sesi terakhir 1 minggu yang lalu',
-        ),
-        _buildPatientItem('Arla Thompson', 'Sesi terakhir 2 minggu yang lalu'),
+        if (patients.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Text(
+                'Belum ada pasien aktif',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ),
+          )
+        else
+          ...patients.take(5).map((patient) {
+            final lastSessionText = _formatLastSessionTime(patient['lastSession']);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GestureDetector(
+                onTap: () {
+                  // TODO: Navigate to patient detail
+                  // context.push('/therapist/patients/${patient['id']}');
+                },
+                child: _buildPatientItem(
+                  patient['name'] ?? 'Pasien',
+                  lastSessionText,
+                ),
+              ),
+            );
+          }).toList(),
         const SizedBox(height: 12),
         Center(
           child: TextButton(
-            onPressed: () {},
+            onPressed: () {
+              // TODO: Navigate to manage all patients
+            },
             child: Text(
               'Kelola Semua Pasien',
               style: GoogleFonts.poppins(
@@ -522,6 +725,31 @@ class TherapistDashboardPage extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  String _formatLastSessionTime(String? lastSessionStr) {
+    if (lastSessionStr == null) return 'Belum ada sesi';
+    try {
+      final date = DateTime.parse(lastSessionStr);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays == 0) {
+        return 'Sesi terakhir hari ini';
+      } else if (difference.inDays == 1) {
+        return 'Sesi terakhir kemarin';
+      } else if (difference.inDays < 7) {
+        return 'Sesi terakhir ${difference.inDays} hari yang lalu';
+      } else if (difference.inDays < 30) {
+        final weeks = (difference.inDays / 7).floor();
+        return 'Sesi terakhir $weeks minggu yang lalu';
+      } else {
+        final months = (difference.inDays / 30).floor();
+        return 'Sesi terakhir $months bulan yang lalu';
+      }
+    } catch (e) {
+      return 'Sesi terakhir tidak diketahui';
+    }
   }
 
   Widget _buildPatientItem(String name, String lastSession) {
@@ -541,17 +769,9 @@ class TherapistDashboardPage extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
+          ProfileAvatar(
+            name: name,
             radius: 24,
-            backgroundColor: AppConstants.primaryBlue.withValues(alpha: 0.1),
-            child: Text(
-              name[0],
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppConstants.primaryBlue,
-              ),
-            ),
           ),
           const SizedBox(width: 12),
           Expanded(
