@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/app_constants.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/pages/splash_page.dart';
 import '../../features/auth/pages/login_page_new.dart';
@@ -14,8 +15,11 @@ import '../../features/konsultasi/pages/konsultasi_page.dart';
 import '../../features/game/pages/game_menu_page.dart';
 import '../../features/game/pages/voice_practice_simple_page.dart';
 import '../../features/pembayaran/pages/pembayaran_list_page.dart';
+import '../../features/pembayaran/pages/parent_pembayaran_page.dart';
+import '../../features/pembayaran/pages/payment_webview_page.dart';
 import '../../features/jadwal/pages/jadwal_terapi_page.dart';
 import '../../features/jadwal/pages/therapist_jadwal_page.dart';
+import '../../features/jadwal/pages/parent_jadwal_page.dart';
 import '../../features/laporan/pages/therapist_report_list_page.dart';
 import '../../features/laporan/pages/therapist_report_detail_page.dart';
 import '../../features/edukasi/pages/education_page.dart';
@@ -23,6 +27,16 @@ import '../../features/laporan/pages/therapist_add_report_page.dart';
 import '../../features/profile/pages/profile_page.dart';
 import '../../features/therapist/pages/patient_list_page.dart';
 import '../../features/therapist/pages/patient_detail_page.dart';
+import '../../features/admin/pages/admin_dashboard_page.dart';
+import '../../features/admin/pages/admin_user_management_page.dart';
+import '../../features/admin/pages/admin_payment_page.dart';
+import '../../features/admin/pages/admin_report_page.dart';
+import '../../features/admin/pages/admin_profile_page.dart';
+import '../../features/laporan/pages/parent_report_list_page.dart';
+import '../../features/laporan/pages/parent_report_detail_page.dart';
+import '../../features/booking/pages/select_therapist_page.dart';
+import '../../features/booking/pages/select_schedule_page.dart';
+import '../../features/booking/pages/booking_confirmation_page.dart';
 
 /// App Router Configuration
 /// Konfigurasi routing aplikasi menggunakan GoRouter
@@ -165,18 +179,41 @@ class AppRouter {
           ),
         ),
 
-        // Jadwal Route
+        // Jadwal Route (role-based)
         GoRoute(
           path: '/jadwal',
           name: 'jadwal',
-          builder: (context, state) => const JadwalTerapiPage(),
+          builder: (context, state) {
+            final user = ref.read(currentUserProvider);
+            final role = user?.role ?? '';
+            
+            if (role == AppConstants.roleTerapis) {
+              return const JadwalTerapiPage();
+            } else if (role == AppConstants.roleAdmin) {
+              // Admin doesn't have schedule page, redirect to dashboard
+              return const AdminDashboardPage();
+            } else {
+              // Parent
+              return const ParentJadwalPage();
+            }
+          },
         ),
 
-        // Pembayaran Route
+        // Pembayaran Route (role-based)
         GoRoute(
           path: '/pembayaran',
           name: 'pembayaran',
-          builder: (context, state) => const PembayaranListPage(),
+          builder: (context, state) {
+            final user = ref.read(currentUserProvider);
+            final role = user?.role ?? '';
+            
+            if (role == AppConstants.roleTerapis || role == AppConstants.roleAdmin) {
+              return const PembayaranListPage();
+            } else {
+              // Parent
+              return const ParentPembayaranPage();
+            }
+          },
         ),
 
         // Game Route
@@ -224,12 +261,62 @@ class AppRouter {
           builder: (context, state) => const EducationPage(),
         ),
 
-        // Laporan Route
+        // Booking Routes (Parent)
+        GoRoute(
+          path: '/booking/therapist',
+          name: 'booking-therapist',
+          builder: (context, state) => const SelectTherapistPage(),
+        ),
+        GoRoute(
+          path: '/booking/schedule',
+          name: 'booking-schedule',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            return SelectSchedulePage(
+              therapistId: extra?['therapistId'] ?? '',
+              therapistName: extra?['therapistName'] ?? '',
+            );
+          },
+        ),
+        GoRoute(
+          path: '/booking/confirmation',
+          name: 'booking-confirmation',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            return BookingConfirmationPage(
+              bookingData: extra ?? {},
+            );
+          },
+        ),
+
+        // Payment WebView Route
+        GoRoute(
+          path: '/payment/webview',
+          name: 'payment-webview',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            return PaymentWebViewPage(
+              paymentUrl: extra?['paymentUrl'] ?? '',
+              sessionId: extra?['sessionId'] ?? '',
+            );
+          },
+        ),
+
+        // Laporan Route (Parent)
         GoRoute(
           path: '/laporan',
-          name: 'laporan',
-          builder: (context, state) =>
-              _buildPlaceholderPage('Laporan', 'Halaman laporan perkembangan'),
+          name: 'parent-reports',
+          builder: (context, state) => const ParentReportListPage(),
+        ),
+
+        // Parent Report Detail Route
+        GoRoute(
+          path: '/laporan/:id',
+          name: 'parent-report-detail',
+          builder: (context, state) {
+            final reportId = state.pathParameters['id']!;
+            return ParentReportDetailPage(reportId: reportId);
+          },
         ),
 
         // Notifikasi Route
@@ -299,15 +386,48 @@ class AppRouter {
         GoRoute(
           path: '/admin-dashboard',
           name: 'admin-dashboard',
-          builder: (context, state) =>
-              _buildPlaceholderPage('Dashboard Admin', 'Dashboard untuk admin'),
+          builder: (context, state) => const AdminDashboardPage(),
         ),
 
-        // Profile Route
+        // Admin User Management Route
+        GoRoute(
+          path: '/admin/users',
+          name: 'admin-users',
+          builder: (context, state) => const AdminUserManagementPage(),
+        ),
+
+        // Admin Payment Management Route
+        GoRoute(
+          path: '/admin/pembayaran',
+          name: 'admin-payments',
+          builder: (context, state) => const AdminPaymentPage(),
+        ),
+
+        // Admin Report Management Route
+        GoRoute(
+          path: '/admin/laporan',
+          name: 'admin-reports',
+          builder: (context, state) => const AdminReportPage(),
+        ),
+
+        // Profile Route (role-based)
         GoRoute(
           path: '/profile',
           name: 'profile',
-          builder: (context, state) => const ProfilePage(),
+          builder: (context, state) {
+            final user = ref.read(currentUserProvider);
+            final role = user?.role ?? '';
+            
+            if (role == AppConstants.roleAdmin) {
+              return const AdminProfilePage();
+            } else if (role == AppConstants.roleTerapis) {
+              // For now, use generic profile for therapist
+              // Can create TherapistProfilePage later
+              return const ProfilePage();
+            } else {
+              return const ProfilePage();
+            }
+          },
         ),
       ],
       errorBuilder: (context, state) => _buildErrorPage(state.error.toString()),

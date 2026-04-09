@@ -483,6 +483,15 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
           ),
           const SizedBox(height: 16),
           _buildQuickAccessItem(
+            Icons.calendar_today_outlined,
+            'Booking Terapi',
+            'Pilih therapist & jadwal',
+            const Color(0xFFE3F2FD),
+            const Color(0xFF2196F3),
+            () => context.push('/booking/therapist'),
+          ),
+          const SizedBox(height: 12),
+          _buildQuickAccessItem(
             Icons.games_outlined,
             'Mulai Game Terapi',
             'Aktivitas interaktif hari ini',

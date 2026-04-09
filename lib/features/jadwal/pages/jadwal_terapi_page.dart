@@ -140,91 +140,93 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
     return Container(
       height: 68,
       color: Colors.white,
-      child: SingleChildScrollView(
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: List.generate(7, (index) {
-            final date = weekDates[index];
-            final isToday = date.day == today.day && date.month == today.month;
-            final isSelected = index == _selectedWeekDay;
-            final dayName = dayNames[index];
+        itemCount: 7,
+        itemBuilder: (context, index) {
+          final date = weekDates[index];
+          final isToday = date.day == today.day && date.month == today.month;
+          final isSelected = index == _selectedWeekDay;
+          final dayName = dayNames[index];
 
-            return GestureDetector(
-              onTap: () => setState(() => _selectedWeekDay = index),
-              child: Container(
-                width: 42,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppConstants.primaryBlue : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppConstants.primaryBlue.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      dayName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: isSelected ? Colors.white : const Color(0xFF6B7280),
-                      ),
+          return GestureDetector(
+            onTap: () => setState(() => _selectedWeekDay = index),
+            child: Container(
+              width: 40,
+              margin: const EdgeInsets.only(right: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? AppConstants.primaryBlue : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppConstants.primaryBlue.withValues(alpha: 0.25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    dayName,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected ? Colors.white : const Color(0xFF6B7280),
                     ),
-                    const SizedBox(height: 4),
-                    Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        color: isToday && !isSelected
-                            ? AppConstants.primaryBlue.withValues(alpha: 0.1)
-                            : Colors.transparent,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${date.day}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: isSelected
-                                ? Colors.white
-                                : isToday
-                                    ? AppConstants.primaryBlue
-                                    : const Color(0xFF111827),
-                          ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isToday && !isSelected
+                          ? AppConstants.primaryBlue.withValues(alpha: 0.1)
+                          : Colors.transparent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${date.day}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                              ? Colors.white
+                              : isToday
+                                  ? AppConstants.primaryBlue
+                                  : const Color(0xFF111827),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            );
-          }),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildStatsRow(int completed, int ongoing, int upcoming) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-      child: Row(
-        children: [
-          _buildStatChip('Selesai', completed, const Color(0xFF10B981)),
-          const SizedBox(width: 8),
-          _buildStatChip('Berlangsung', ongoing, const Color(0xFF3B82F6)),
-          const SizedBox(width: 8),
-          _buildStatChip('Menunggu', upcoming, const Color(0xFFF59E0B)),
-        ],
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildStatChip('Selesai', completed, const Color(0xFF10B981)),
+            const SizedBox(width: 8),
+            _buildStatChip('Berlangsung', ongoing, const Color(0xFF3B82F6)),
+            const SizedBox(width: 8),
+            _buildStatChip('Menunggu', upcoming, const Color(0xFFF59E0B)),
+          ],
+        ),
       ),
     );
   }
