@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/router/app_router.dart';
 import 'core/mock/mock_config.dart';
+import 'core/providers/websocket_provider.dart';
 import 'shared/themes/app_theme.dart';
 
 /// Main App Widget
@@ -30,6 +31,9 @@ class _AppState extends ConsumerState<App> {
   
   @override
   Widget build(BuildContext context) {
+    // Initialize WebSocket listener
+    ref.read(webSocketProvider);
+    
     final router = AppRouter.router(ref);
     
     return MaterialApp.router(

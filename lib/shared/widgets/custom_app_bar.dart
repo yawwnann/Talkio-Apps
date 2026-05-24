@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_constants.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import 'profile_avatar.dart';
+import 'notification_badge.dart';
 
 /// Custom App Bar Widget
 /// Widget header yang konsisten untuk semua halaman
@@ -134,6 +135,8 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
     }
 
     if (showUserMenu) {
+      actionsList.add(const NotificationBadge());
+      actionsList.add(const SizedBox(width: 8));
       actionsList.add(_buildUserMenu(context, fgColor, ref));
       actionsList.add(const SizedBox(width: 16));
     }

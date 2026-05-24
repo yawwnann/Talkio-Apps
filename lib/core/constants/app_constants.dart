@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 class AppConstants {
   // API Configuration
   static const String baseUrl = 'https://talkio-backend.vercel.app/api';
+  static const String wsUrl = 'https://talkio-backend.vercel.app';
   static const String midtransBaseUrl = 'https://app.sandbox.midtrans.com/snap/v1';
 
   // Midtrans Configuration

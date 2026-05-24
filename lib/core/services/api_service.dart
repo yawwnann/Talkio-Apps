@@ -802,18 +802,49 @@ class ApiService {
 
     print('🌐 [API] PATCH /therapist/schedule/$scheduleId');
     try {
-      final data = <String, dynamic>{};
-      if (schedule != null) data['schedule'] = schedule;
-      if (therapyType != null) data['therapyType'] = therapyType;
-      if (isActive != null) data['isActive'] = isActive;
-      
-      final response = await dio.patch('/therapist/schedule/$scheduleId', data: data);
+      final response = await dio.patch('/therapist/schedule/$scheduleId', data: {
+        if (schedule != null) 'schedule': schedule,
+        if (therapyType != null) 'therapyType': therapyType,
+        if (isActive != null) 'isActive': isActive,
+      });
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
       );
     } catch (e) {
       throw _handleError(e);
+    }
+  }
+
+  // ========== NOTIFICATION ENDPOINTS ==========
+
+  /// Get Notifications
+  /// GET /api/notifications
+  Future<MockResponse> getNotifications() async {
+    if (_mockConfig.useMockData) {
+      return MockResponse.success({'data': []});
+    }
+    try {
+      final response = await dio.get('/notifications');
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Mark Notification as Read
+  /// PUT /api/notifications/:id/read
+  Future<MockResponse> markNotificationAsRead(String id) async {
+    if (_mockConfig.useMockData) {
+      return MockResponse.success({'data': {}});
+    }
+    try {
+      final response = await dio.put('/notifications/$id/read');
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
     }
   }
 
