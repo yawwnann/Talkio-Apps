@@ -8,6 +8,9 @@ import '../../../core/models/anak_model.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/parent_bottom_nav.dart';
+import '../../../shared/widgets/loading_widget.dart';
+import 'package:intl/intl.dart';
+import '../../jadwal/providers/parent_schedule_provider.dart';
 
 /// Parent Dashboard Page
 /// Halaman dashboard modern untuk orang tua dengan desain mirip therapist dashboard
@@ -27,6 +30,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
       final user = ref.read(currentUserProvider);
       if (user != null) {
         ref.read(anakProvider.notifier).getAnakList(user.id);
+        ref.read(parentScheduleProvider.notifier).fetchSchedule();
       }
     });
   }
@@ -46,7 +50,10 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
       body: RefreshIndicator(
         onRefresh: () async {
           if (user != null) {
-            await ref.read(anakProvider.notifier).getAnakList(user.id);
+            await Future.wait([
+              ref.read(anakProvider.notifier).getAnakList(user.id),
+              ref.read(parentScheduleProvider.notifier).fetchSchedule(),
+            ]);
           }
         },
         child: SingleChildScrollView(
@@ -165,7 +172,9 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             ],
           ),
           const SizedBox(height: 20),
-          if (anakList.isEmpty)
+          if (ref.watch(anakProvider).isLoading && anakList.isEmpty)
+            ...List.generate(2, (index) => _buildChildSkeleton())
+          else if (anakList.isEmpty)
             Center(
               child: Column(
                 children: [
@@ -264,6 +273,52 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
     );
   }
 
+  Widget _buildChildSkeleton() {
+    return ShimmerLoading(
+      isLoading: true,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F9FE),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(width: 120, height: 20, color: Colors.white),
+                Container(
+                  width: 80,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(width: 14, height: 14, color: Colors.white),
+                const SizedBox(width: 6),
+                Container(width: 80, height: 16, color: Colors.white),
+                const SizedBox(width: 16),
+                Container(width: 14, height: 14, color: Colors.white),
+                const SizedBox(width: 6),
+                Container(width: 60, height: 16, color: Colors.white),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   int _calculateAge(DateTime birthDate) {
     final now = DateTime.now();
     int age = now.year - birthDate.year;
@@ -332,6 +387,26 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
   }
 
   Widget _buildNearestTherapy() {
+    final scheduleState = ref.watch(parentScheduleProvider);
+    
+    // Find nearest active schedule
+    final now = DateTime.now();
+    final activeSchedules = scheduleState.scheduleList.where((s) {
+      if (s['isActive'] != true) return false;
+      try {
+        final date = DateTime.parse(s['schedule']);
+        return date.isAfter(now);
+      } catch (e) {
+        return false;
+      }
+    }).toList();
+    
+    // Sort ascending
+    activeSchedules.sort((a, b) => 
+        DateTime.parse(a['schedule']).compareTo(DateTime.parse(b['schedule'])));
+        
+    final nearestSchedule = activeSchedules.isNotEmpty ? activeSchedules.first : null;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -357,10 +432,166 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             ),
           ),
           const SizedBox(height: 16),
+          if (scheduleState.isLoading && activeSchedules.isEmpty)
+            _buildScheduleSkeleton()
+          else if (nearestSchedule == null)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FE),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.event_busy_outlined, size: 40, color: Colors.grey[400]),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Belum ada jadwal terdekat',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF9E6),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB8860B),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.calendar_today, color: Colors.white, size: 20),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${DateTime.parse(nearestSchedule['schedule']).day}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          nearestSchedule['therapyType'] ?? 'Terapi Bicara',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Pukul ${DateFormat('HH.mm').format(DateTime.parse(nearestSchedule['schedule']))} WIB',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.person_outline, size: 16, color: Color(0xFF64748B)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Terapis: ${nearestSchedule['therapistName'] ?? 'Belum ditugaskan'}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: const Color(0xFF64748B),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.child_care, size: 16, color: Color(0xFF64748B)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Anak: ${nearestSchedule['childName'] ?? '-'}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: const Color(0xFF64748B),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  context.push('/jadwal');
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Lihat Jadwal',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleSkeleton() {
+    return ShimmerLoading(
+      isLoading: true,
+      child: Column(
+        children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF9E6),
+              color: const Color(0xFFF8F9FE),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -369,23 +600,8 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFB8860B),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.calendar_today, color: Colors.white, size: 20),
-                      const SizedBox(height: 2),
-                      Text(
-                        '12',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -393,22 +609,9 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Terapi Wicara',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Pukul 14.00 WIB',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
+                      Container(width: 120, height: 18, color: Colors.white),
+                      const SizedBox(height: 8),
+                      Container(width: 80, height: 14, color: Colors.white),
                     ],
                   ),
                 ),
@@ -418,37 +621,27 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.access_time, size: 16, color: const Color(0xFF64748B)),
+              Container(width: 16, height: 16, color: Colors.white),
               const SizedBox(width: 6),
-              Text(
-                'Klinik Permata Hati',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
+              Container(width: 140, height: 14, color: Colors.white),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Container(width: 16, height: 16, color: Colors.white),
+              const SizedBox(width: 6),
+              Container(width: 100, height: 14, color: Colors.white),
             ],
           ),
           const SizedBox(height: 16),
-          SizedBox(
+          Container(
             width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: const Color(0xFFE2E8F0)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Lihat Detail',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
           ),
         ],
@@ -516,6 +709,15 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             const Color(0xFFE8F5E9),
             const Color(0xFF4CAF50),
             () => context.push('/diagnosa'),
+          ),
+          const SizedBox(height: 12),
+          _buildQuickAccessItem(
+            Icons.upload_file_outlined,
+            'Unggah Progress',
+            'Bagikan media dengan terapis',
+            const Color(0xFFF3E5F5), // Light purple
+            const Color(0xFF9C27B0), // Purple
+            () => context.push('/progress/upload'),
           ),
         ],
       ),

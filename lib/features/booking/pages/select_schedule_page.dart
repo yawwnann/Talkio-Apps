@@ -29,6 +29,7 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
   DateTime _selectedDate = DateTime.now();
   String? _selectedTimeSlot;
   AnakModel? _selectedChild;
+  String? _lastBookedTime; // Track recently booked time for optimistic UI update
 
   @override
   void initState() {
@@ -37,6 +38,19 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
       _loadChildren();
       _fetchAvailability();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Update lastBookedTime from provider when it changes
+    final bookingState = ref.read(bookingProvider);
+    if (bookingState.lastBookedTime != null && 
+        bookingState.lastBookedTime != _lastBookedTime) {
+      setState(() {
+        _lastBookedTime = bookingState.lastBookedTime;
+      });
+    }
   }
 
   void _loadChildren() {
@@ -53,9 +67,8 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
 
   List<DateTime> _getWeekDates() {
     final today = DateTime.now();
-    final weekday = today.weekday;
-    final monday = today.subtract(Duration(days: weekday - 1));
-    return List.generate(7, (index) => monday.add(Duration(days: index)));
+    // Return 7 days starting from today
+    return List.generate(7, (index) => today.add(Duration(days: index)));
   }
 
   @override
@@ -63,7 +76,15 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
     final bookingState = ref.watch(bookingProvider);
     final anakState = ref.watch(anakProvider);
     final children = anakState.anakList;
-    final slots = bookingState.availability?['slots'] as List<dynamic>? ?? [];
+    final rawSlots = bookingState.availability?['slots'] as List<dynamic>? ?? [];
+    // Defensive: enforce working hours 14:00-21:00 WIB on UI too
+    final slots = rawSlots.where((slot) {
+      if (slot is! Map) return false;
+      final time = slot['time']?.toString();
+      if (time == null) return false;
+      final hour = int.tryParse(time.split(':').first) ?? -1;
+      return hour >= 14 && hour < 21;
+    }).toList();
 
     if (_selectedChild == null && children.isNotEmpty) {
       _selectedChild = children.first;
@@ -338,6 +359,8 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
                 _buildLegend('Tersedia', const Color(0xFF10B981)),
                 const SizedBox(width: 8),
                 _buildLegend('Terisi', const Color(0xFFEF4444)),
+                const SizedBox(width: 8),
+                _buildLegend('Terlewat', const Color(0xFF9CA3AF)),
               ],
             ),
           ],
@@ -376,22 +399,53 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
               spacing: 8,
               runSpacing: 8,
               children: slots.map((slot) {
-                final time = slot['time'];
-                final isAvailable = slot['isAvailable'];
-                final isSelected = _selectedTimeSlot == time;
+                final time = slot['time'] as String;
+                final isAvailable = slot['isAvailable'] as bool;
+                
+bool isPassed = false;
+                 final now = DateTime.now();
+                 if (_selectedDate.year == now.year && 
+                     _selectedDate.month == now.month && 
+                     _selectedDate.day == now.day) {
+                   final timeParts = time.split(':');
+                   final hour = int.parse(timeParts[0]);
+                   final slotTime = DateTime(now.year, now.month, now.day, hour, 0);
+                   if (slotTime.isBefore(now)) {
+                     isPassed = true;
+                   }
+                 }
+                 
+                 // Check if this time slot was recently booked (optimistic update)
+                 final isRecentlyBooked = _lastBookedTime == time;
+                 
+                 final canSelect = isAvailable && !isPassed && !isRecentlyBooked;
+                 final isSelected = _selectedTimeSlot == time;
+                
+                Color bgColor;
+                Color textColor;
+                
+                if (isPassed) {
+                  bgColor = const Color(0xFFF3F4F6);
+                  textColor = const Color(0xFF9CA3AF);
+                } else if (!isAvailable) {
+                  bgColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
+                  textColor = const Color(0xFFEF4444);
+                } else if (isSelected) {
+                  bgColor = AppConstants.primaryBlue;
+                  textColor = Colors.white;
+                } else {
+                  bgColor = const Color(0xFF10B981).withValues(alpha: 0.1);
+                  textColor = const Color(0xFF10B981);
+                }
 
                 return GestureDetector(
-                  onTap: isAvailable
+                  onTap: canSelect
                       ? () => setState(() => _selectedTimeSlot = time)
                       : null,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      color: !isAvailable
-                          ? const Color(0xFFEF4444).withValues(alpha: 0.1)
-                          : isSelected
-                              ? AppConstants.primaryBlue
-                              : const Color(0xFF10B981).withValues(alpha: 0.1),
+                      color: bgColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -399,11 +453,7 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: !isAvailable
-                            ? const Color(0xFFEF4444)
-                            : isSelected
-                                ? Colors.white
-                                : const Color(0xFF10B981),
+                        color: textColor,
                       ),
                     ),
                   ),
@@ -448,6 +498,7 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
       child: ElevatedButton(
         onPressed: canBook
             ? () {
+                // Create schedule DateTime in local timezone (WIB)
                 final scheduleDate = DateTime(
                   _selectedDate.year,
                   _selectedDate.month,
@@ -455,12 +506,16 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
                   int.parse(_selectedTimeSlot!.split(':')[0]),
                 );
 
+                // Format with +07:00 timezone offset to preserve local time in WIB
+                // This ensures the backend receives the correct local time
+                final scheduleISOString = _formatLocalDateTimeToISO(scheduleDate);
+
                 context.push('/booking/confirmation', extra: {
                   'childId': _selectedChild?.id ?? '',
                   'childName': _selectedChild?.name ?? '',
                   'therapistId': widget.therapistId,
                   'therapistName': widget.therapistName,
-                  'schedule': scheduleDate.toIso8601String(),
+                  'schedule': scheduleISOString,
                   'time': _selectedTimeSlot,
                   'date': DateFormat('dd MMM yyyy').format(_selectedDate),
                   'therapyType': 'Terapi Bicara',
@@ -482,5 +537,17 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
         ),
       ),
     );
+  }
+
+  /// Format DateTime to ISO 8601 string with WIB (+07:00) timezone offset
+  String _formatLocalDateTimeToISO(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    final second = date.second.toString().padLeft(2, '0');
+    // WIB is UTC+7
+    return '$year-$month-${day}T$hour:$minute:$second+07:00';
   }
 }

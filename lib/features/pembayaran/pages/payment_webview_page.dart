@@ -43,6 +43,26 @@ class _PaymentWebViewPageState extends State<PaymentWebViewPage> {
           },
           onNavigationRequest: (NavigationRequest request) {
             debugPrint('Navigation request: ${request.url}');
+            
+            // Intercept Midtrans finish URL
+            if (request.url.contains('/payment/finish')) {
+              // Return success to previous screen
+              if (mounted) {
+                // Return true to indicate payment was processed
+                // The backend webhook will handle the actual verification
+                context.pop(true);
+              }
+              return NavigationDecision.prevent;
+            }
+            
+            // Also intercept unfinish or error URLs if needed
+            if (request.url.contains('/payment/unfinish') || request.url.contains('/payment/error')) {
+              if (mounted) {
+                context.pop(false);
+              }
+              return NavigationDecision.prevent;
+            }
+            
             return NavigationDecision.navigate;
           },
         ),

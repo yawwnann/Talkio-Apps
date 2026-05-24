@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 /// Berisi konstanta-konstanta aplikasi seperti URL API, konfigurasi, dll
 class AppConstants {
   // API Configuration
-  // Backend runs on local machine. Use 10.0.2.2 for Android emulator, or your LAN IP for physical device.
-  static const String baseUrl = 'http://192.168.1.7:3000/api';
+  static const String baseUrl = 'https://talkio-backend.vercel.app/api';
   static const String midtransBaseUrl = 'https://app.sandbox.midtrans.com/snap/v1';
 
   // Midtrans Configuration

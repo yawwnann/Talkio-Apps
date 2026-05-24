@@ -57,7 +57,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     if (role == AppConstants.roleTerapis) {
       return TherapistBottomNav(currentIndex: 4);
     } else if (role == AppConstants.roleAdmin) {
-      return AdminBottomNav(currentIndex: 4);
+      return AdminBottomNav(currentIndex: 5);
     } else {
       return ParentBottomNav(currentIndex: 5);
     }

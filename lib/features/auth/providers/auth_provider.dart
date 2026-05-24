@@ -1,3 +1,4 @@
+import 'dart:async'; // Completer
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/api_service.dart';
@@ -36,15 +37,27 @@ class AuthState {
 /// Auth Provider
 class AuthNotifier extends StateNotifier<AuthState> {
   final ApiService _apiService;
+  final Completer<void> _initCompleter = Completer<void>();
 
   AuthNotifier(this._apiService) : super(const AuthState()) {
     _init();
   }
 
-  /// Initialize - check auth status
+  /// Await this future to know when [_init()] has fully completed.
+  /// SplashPage uses this to avoid navigating before auth check is done.
+  Future<void> waitForInitComplete() {
+    if (_initCompleter.isCompleted) return Future.value();
+    return _initCompleter.future;
+  }
+
+  /// Initialize - check auth status on app start
   Future<void> _init() async {
     await _apiService.initMockConfig();
     await _checkAuthStatus();
+    // Signal that init is complete (even if _checkAuthStatus failed)
+    if (!_initCompleter.isCompleted) {
+      _initCompleter.complete();
+    }
   }
 
   /// Check if user is already authenticated

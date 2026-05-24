@@ -29,9 +29,8 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
 
   List<DateTime> _getWeekDates() {
     final today = DateTime.now();
-    final weekday = today.weekday;
-    final monday = today.subtract(Duration(days: weekday - 1));
-    return List.generate(7, (index) => monday.add(Duration(days: index)));
+    // Return 7 days starting from today
+    return List.generate(7, (index) => today.add(Duration(days: index)));
   }
 
   /// Get sessions for the selected day
@@ -83,6 +82,20 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push('/booking/therapist'),
+        backgroundColor: AppConstants.primaryBlue,
+        icon: const Icon(Icons.add_circle, color: Colors.white, size: 20),
+        label: Text(
+          'Booking Terapi',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       bottomNavigationBar: const ParentBottomNav(currentIndex: 2),
     );
   }
@@ -267,14 +280,19 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
   }
 
   Widget _buildScheduleList(List<Map<String, dynamic>> sessions) {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-      itemCount: sessions.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final session = sessions[index];
-        return _buildSessionCard(session);
-      },
+    return RefreshIndicator(
+      onRefresh: () => ref.read(parentScheduleProvider.notifier).fetchSchedule(),
+      color: AppConstants.primaryBlue,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        itemCount: sessions.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final session = sessions[index];
+          return _buildSessionCard(session);
+        },
+      ),
     );
   }
 
@@ -296,7 +314,7 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
       statusLabel = 'Selesai';
     }
 
-    final scheduleDate = DateTime.parse(session['schedule']);
+    final scheduleDate = DateTime.parse(session['schedule']).toLocal();
     final timeStr = DateFormat('HH:mm').format(scheduleDate);
     final dateStr = DateFormat('dd MMM yyyy').format(scheduleDate);
 

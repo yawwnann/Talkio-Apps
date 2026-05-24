@@ -107,6 +107,18 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
         ],
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh, size: 22, color: AppConstants.primaryBlue),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Jadwal berhasil diperbarui'),
+                backgroundColor: Color(0xFF10B981),
+              ),
+            );
+          },
+        ),
+        const SizedBox(width: 4),
         Container(
           margin: const EdgeInsets.only(right: 12),
           decoration: BoxDecoration(

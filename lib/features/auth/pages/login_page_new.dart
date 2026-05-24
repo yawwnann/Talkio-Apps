@@ -105,12 +105,14 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                       const SizedBox(height: 16),
                       // App Name
                       Text(
-                        'Talkio',
+                        'Pondok Terapi Bicara',
                         style: GoogleFonts.poppins(
-                          fontSize: 28,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: AppConstants.primaryBlue,
+                          height: 1.2,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),

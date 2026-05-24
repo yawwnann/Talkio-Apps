@@ -32,11 +32,14 @@ import '../../features/admin/pages/admin_user_management_page.dart';
 import '../../features/admin/pages/admin_payment_page.dart';
 import '../../features/admin/pages/admin_report_page.dart';
 import '../../features/admin/pages/admin_profile_page.dart';
+import '../../features/admin/pages/admin_asset_management_page.dart';
 import '../../features/laporan/pages/parent_report_list_page.dart';
 import '../../features/laporan/pages/parent_report_detail_page.dart';
 import '../../features/booking/pages/select_therapist_page.dart';
 import '../../features/booking/pages/select_schedule_page.dart';
 import '../../features/booking/pages/booking_confirmation_page.dart';
+import '../../features/booking/pages/therapist_detail_page.dart';
+import '../../features/progress/pages/progress_upload_page.dart';
 
 /// App Router Configuration
 /// Konfigurasi routing aplikasi menggunakan GoRouter
@@ -53,25 +56,29 @@ class AppRouter {
         final isLoading = authState.isLoading;
         final userRole = authState.user?.role;
 
-        // Don't redirect while loading
+        // ── Splash page ───────────────────────────────────────────────────────
+        // Tahan di splash sampai auth init selesai, tapi KECUALIKAN jika sudah
+        // ada di halaman lain (mencegah loop setelah login).
+        final isOnSplash = state.matchedLocation == '/splash';
+        if (isOnSplash) return null;             // allow splash always
+
+        // ── Block redirect while auth init is still loading ──────────────────
+        // Ini mencegah redirect ke login saat aplikasi pertama kali dibuka
+        // sebelum [_checkAuthStatus] selesai.
         if (isLoading) return null;
 
         final isOnAuthPage =
             state.matchedLocation == '/login' ||
             state.matchedLocation == '/register';
-        final isOnSplash = state.matchedLocation == '/splash';
 
-        // Always allow splash page to show
-        if (isOnSplash) return null;
-
-        // Redirect to login if not authenticated and not on auth page
+        // ── Not authenticated → ke login ───────────────────────────────────
         if (!isAuthenticated && !isOnAuthPage) {
           return '/login';
         }
 
-        // Redirect to appropriate dashboard based on role if authenticated
+        // ── Authenticated ───────────────────────────────────────────────────
         if (isAuthenticated) {
-          // If on auth page (login/register), redirect to dashboard
+          // Dari halaman auth → ke dashboard sesuai role
           if (isOnAuthPage) {
             switch (userRole) {
               case 'THERAPIST':
@@ -83,13 +90,16 @@ class AppRouter {
                 return '/dashboard';
             }
           }
-          
-          // If therapist is on parent dashboard, redirect to therapist dashboard
+
+          // Role mismatch redirect
           if (userRole == 'THERAPIST' && state.matchedLocation == '/dashboard') {
             return '/terapis-dashboard';
           }
-          
-          // If parent is on therapist dashboard, redirect to parent dashboard
+
+          if (userRole == 'ADMIN' && state.matchedLocation == '/dashboard') {
+            return '/admin-dashboard';
+          }
+
           if (userRole == 'PARENT' && state.matchedLocation == '/terapis-dashboard') {
             return '/dashboard';
           }
@@ -268,6 +278,17 @@ class AppRouter {
           builder: (context, state) => const SelectTherapistPage(),
         ),
         GoRoute(
+          path: '/booking/therapist-detail',
+          name: 'booking-therapist-detail',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            return TherapistDetailPage(
+              therapistId: extra?['therapistId'] ?? '',
+              therapistName: extra?['therapistName'] ?? '',
+            );
+          },
+        ),
+        GoRoute(
           path: '/booking/schedule',
           name: 'booking-schedule',
           builder: (context, state) {
@@ -317,6 +338,13 @@ class AppRouter {
             final reportId = state.pathParameters['id']!;
             return ParentReportDetailPage(reportId: reportId);
           },
+        ),
+
+        // Progress Upload Route
+        GoRoute(
+          path: '/progress/upload',
+          name: 'progress-upload',
+          builder: (context, state) => const ProgressUploadPage(),
         ),
 
         // Notifikasi Route
@@ -408,6 +436,13 @@ class AppRouter {
           path: '/admin/laporan',
           name: 'admin-reports',
           builder: (context, state) => const AdminReportPage(),
+        ),
+
+        // Admin Asset Management Route
+        GoRoute(
+          path: '/admin/assets',
+          name: 'admin-assets',
+          builder: (context, state) => const AdminAssetManagementPage(),
         ),
 
         // Profile Route (role-based)

@@ -123,7 +123,6 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
     final success = await ref.read(diagnosisProvider.notifier).createDiagnosis(
           childId: selectedAnak.id,
           symptoms: symptoms,
-          useML: true,
         );
 
     if (!mounted) return;

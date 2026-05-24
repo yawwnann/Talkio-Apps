@@ -92,7 +92,7 @@ class _SelectTherapistPageState extends ConsumerState<SelectTherapistPage> {
   Widget _buildTherapistCard(Map<String, dynamic> therapist) {
     return GestureDetector(
       onTap: () {
-        context.push('/booking/schedule', extra: {
+        context.push('/booking/therapist-detail', extra: {
           'therapistId': therapist['id'],
           'therapistName': therapist['name'],
         });

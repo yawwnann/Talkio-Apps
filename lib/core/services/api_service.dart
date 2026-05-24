@@ -301,14 +301,12 @@ class ApiService {
   Future<MockResponse> createDiagnosis({
     required String childId,
     required List<String> symptoms,
-    bool useML = true,
   }) async {
     if (_mockConfig.useMockData) {
       print('📦 [MOCK] Create diagnosis for child: $childId');
       return DiagnosaMockHandler.create({
         'childId': childId,
         'symptoms': symptoms,
-        'useML': useML,
       });
     }
 
@@ -317,7 +315,6 @@ class ApiService {
       final response = await dio.post('/diagnosis/check', data: {
         'childId': childId,
         'symptoms': symptoms,
-        'useML': useML,
       });
       return MockResponse(
         statusCode: response.statusCode ?? 200,
@@ -517,110 +514,6 @@ class ApiService {
     }
   }
 
-  // ========== ML PREDICTION ENDPOINTS ==========
-
-  /// Predict Speech Delay
-  /// POST /api/v1/predict/speech-delay
-  Future<MockResponse> predictSpeechDelay({
-    required String childId,
-    required List<num> features,
-  }) async {
-    if (_mockConfig.useMockData) {
-      print('📦 [MOCK] Predict speech delay: $childId');
-      return MockResponse.success({
-        'message': 'Prediction completed',
-        'data': {
-          'child_id': childId,
-          'risk_level': 'MEDIUM',
-          'score': 0.65,
-          'confidence': 0.88,
-          'recommendation': 'Observasi lanjutan direkomendasikan.',
-          'model_version': 'v1.0.0',
-          'next_step': '/api/therapy/booking',
-        },
-      });
-    }
-
-    print('🌐 [API] POST /v1/predict/speech-delay: $childId');
-    try {
-      final response = await dio.post('/v1/predict/speech-delay', data: {
-        'child_id': childId,
-        'features': features,
-      });
-      return MockResponse(
-        statusCode: response.statusCode ?? 200,
-        data: response.data,
-      );
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  /// Voice Analysis
-  /// POST /api/v1/predict/voice-analysis (multipart)
-  Future<MockResponse> voiceAnalysis({
-    required String childId,
-    required File audioFile,
-  }) async {
-    if (_mockConfig.useMockData) {
-      print('📦 [MOCK] Voice analysis: $childId');
-      return MockResponse.success({
-        'message': 'Voice analysis completed',
-        'data': {
-          'child_id': childId,
-          'analysis': {},
-          'recommendations': ['Lanjutkan latihan'],
-          'model_version': 'v1.0.0',
-        },
-      });
-    }
-
-    print('🌐 [API] POST /v1/predict/voice-analysis: $childId');
-    try {
-      final formData = FormData.fromMap({
-        'audio': await MultipartFile.fromFile(audioFile.path),
-        'child_id': childId,
-      });
-
-      final response = await uploadDio.post(
-        '/v1/predict/voice-analysis',
-        data: formData,
-      );
-      return MockResponse(
-        statusCode: response.statusCode ?? 200,
-        data: response.data,
-      );
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  /// Check ML Service Health
-  /// GET /api/v1/predict/health
-  Future<MockResponse> checkMlHealth() async {
-    if (_mockConfig.useMockData) {
-      print('📦 [MOCK] Check ML health');
-      return MockResponse.success({
-        'message': 'ML service health check',
-        'data': {
-          'status': 'healthy',
-          'service': 'http://localhost:5000',
-          'model_version': 'v1.0.0',
-        },
-      });
-    }
-
-    print('🌐 [API] GET /v1/predict/health');
-    try {
-      final response = await dio.get('/v1/predict/health');
-      return MockResponse(
-        statusCode: response.statusCode ?? 200,
-        data: response.data,
-      );
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
 
   // ========== AUDIO UPLOAD ENDPOINTS ==========
 
@@ -826,6 +719,29 @@ class ApiService {
       if (endDate != null) queryParams['endDate'] = endDate;
       
       final response = await dio.get('/therapist/schedule', queryParameters: queryParams);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Complete Schedule
+  /// PUT /api/therapist/schedule/:id/complete
+  Future<MockResponse> completeSchedule(String id) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Complete schedule');
+      return MockResponse.success({
+        'message': 'Schedule completed successfully',
+        'data': {'id': id, 'sessionStatus': 'COMPLETED'},
+      });
+    }
+
+    print('🌐 [API] PUT /therapist/schedule/$id/complete');
+    try {
+      final response = await dio.put('/therapist/schedule/$id/complete');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -1450,8 +1366,7 @@ class ApiService {
   Future<MockResponse> createDiagnosa(Map<String, dynamic> diagnosaData) async {
     return createDiagnosis(
       childId: diagnosaData['childId'] ?? diagnosaData['child_id'] ?? '',
-      symptoms: List<String>.from(diagnosaData['symptoms'] ?? []),
-      useML: diagnosaData['useML'] ?? true,
+      symptoms: (diagnosaData['symptoms'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 
@@ -1604,6 +1519,87 @@ class ApiService {
     return MockResponse.success({'message': 'Laporan not available', 'data': []});
   }
 
+  // ========== INVENTARIS ASSET ENDPOINTS ==========
+
+  /// Get All Assets (Inventaris)
+  /// GET /api/assets
+  Future<MockResponse> getAssets({String? search, String? kategori}) async {
+    if (_mockConfig.useMockData) {
+      return MockResponse.success({'message': 'Assets fetched', 'data': []});
+    }
+    print('🌐 [API] GET /assets');
+    try {
+      final params = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      if (kategori != null && kategori.isNotEmpty) params['kategori'] = kategori;
+      final response = await dio.get('/assets', queryParameters: params);
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Create Asset (Inventaris)
+  /// POST /api/assets
+  Future<MockResponse> createAsset({
+    required String kode,
+    required String nama,
+    String? kategori,
+    int jumlah = 0,
+    String? satuan,
+    String? keterangan,
+    String kondisi = 'BAIK',
+  }) async {
+    if (_mockConfig.useMockData) {
+      return MockResponse.success({'message': 'Asset created', 'data': {}});
+    }
+    print('🌐 [API] POST /assets: $nama');
+    try {
+      final response = await dio.post('/assets', data: {
+        'kode': kode,
+        'nama': nama,
+        if (kategori != null) 'kategori': kategori,
+        'jumlah': jumlah,
+        if (satuan != null) 'satuan': satuan,
+        if (keterangan != null) 'keterangan': keterangan,
+        'kondisi': kondisi,
+      });
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Update Asset (Inventaris)
+  /// PUT /api/assets/:id
+  Future<MockResponse> updateAsset(String id, Map<String, dynamic> data) async {
+    if (_mockConfig.useMockData) {
+      return MockResponse.success({'message': 'Asset updated', 'data': {}});
+    }
+    print('🌐 [API] PUT /assets/$id');
+    try {
+      final response = await dio.put('/assets/$id', data: data);
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Delete Asset (Inventaris)
+  /// DELETE /api/assets/:id
+  Future<MockResponse> deleteAsset(String id) async {
+    if (_mockConfig.useMockData) {
+      return MockResponse.success({'message': 'Asset deleted'});
+    }
+    print('🌐 [API] DELETE /assets/$id');
+    try {
+      final response = await dio.delete('/assets/$id');
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // ========== GENERIC HTTP METHODS ==========
 
   // Generic GET request
@@ -1675,6 +1671,91 @@ class ApiService {
       final response = await dio.delete(path);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ========== THERAPIST DETAIL & TESTIMONIAL ENDPOINTS ==========
+
+  /// Get Therapist Detail
+  /// GET /api/therapist/detail/:id
+  Future<MockResponse> getTherapistDetail(String therapistId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get therapist detail: $therapistId');
+      return MockResponse.success({
+        'message': 'Therapist detail fetched successfully',
+        'data': {
+          'id': therapistId,
+          'name': 'Dr. Sarah Wijaya',
+          'email': 'therapist1@example.com',
+          'totalSessions': 15,
+          'rating': 4.8,
+          'specialization': 'Terapi Bicara & Wicara',
+          'experience': '5+ Tahun',
+          'bio': 'Dr. Sarah Wijaya adalah terapis bicara profesional yang berdedikasi untuk membantu anak-anak mengatasi keterlambatan bicara. Dengan pengalaman di berbagai klinik tumbuh kembang anak, beliau merancang sesi terapi yang interaktif dan menyenangkan agar anak berkembang secara optimal.',
+          'reviews': [
+            {
+              'id': '1',
+              'parentId': 'parent-id-1',
+              'parentName': 'Ibu Anna',
+              'rating': 5,
+              'developmentTime': '3 Bulan',
+              'comment': 'Anak saya sekarang sudah pintar berbicara 2-3 kata setelah terapi rutin.',
+              'createdAt': '2026-05-20T10:00:00.000Z'
+            }
+          ]
+        }
+      });
+    }
+
+    print('🌐 [API] GET /therapist/detail/$therapistId');
+    try {
+      final response = await dio.get('/therapist/detail/$therapistId');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Submit Therapist Review
+  /// POST /api/therapist/review
+  Future<MockResponse> submitTherapistReview({
+    required String therapistId,
+    required int rating,
+    required String developmentTime,
+    required String comment,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Submit review for: $therapistId');
+      return MockResponse.success({
+        'message': 'Ulasan berhasil disimpan',
+        'data': {
+          'id': 'mock-review-uuid',
+          'therapistId': therapistId,
+          'rating': rating,
+          'developmentTime': developmentTime,
+          'comment': comment,
+          'createdAt': DateTime.now().toIso8601String(),
+        }
+      });
+    }
+
+    print('🌐 [API] POST /therapist/review');
+    try {
+      final response = await dio.post('/therapist/review', data: {
+        'therapistId': therapistId,
+        'rating': rating,
+        'developmentTime': developmentTime,
+        'comment': comment,
+      });
+      return MockResponse(
+        statusCode: response.statusCode ?? 201,
         data: response.data,
       );
     } catch (e) {

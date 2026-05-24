@@ -37,7 +37,7 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
           ],
         ),
       ),
-      bottomNavigationBar: const AdminBottomNav(currentIndex: 4),
+      bottomNavigationBar: const AdminBottomNav(currentIndex: 5),
     );
   }
 

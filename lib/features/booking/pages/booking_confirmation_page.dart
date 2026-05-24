@@ -319,10 +319,14 @@ class _BookingConfirmationPageState extends ConsumerState<BookingConfirmationPag
       if (paymentUrl != null && paymentUrl.toString().isNotEmpty) {
         // Navigate to WebView payment page
         if (mounted) {
-          context.push('/payment/webview', extra: {
+          final paymentResult = await context.push<bool>('/payment/webview', extra: {
             'paymentUrl': paymentUrl,
             'sessionId': result['id'],
           });
+          
+          if (paymentResult == true && mounted) {
+            _showPaymentSuccessDialog();
+          }
         }
       } else {
         // No payment URL, show error
@@ -393,9 +397,17 @@ class _BookingConfirmationPageState extends ConsumerState<BookingConfirmationPag
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              // Navigate back to schedule page
-              context.pop();
-              context.pop();
+              // Notify the select schedule page about the booked time
+              if (mounted) {
+                // We'll use a simple approach: update the booking provider state
+                // The select schedule page is listening to booking provider
+                ref.read(bookingProvider.notifier).setLastBookedTime(widget.bookingData['time'] as String?);
+              }
+              // Go back to select schedule page
+              if (mounted) {
+                context.pop(); // Go back to select schedule page
+                context.pop(); // Go back to therapist detail or whatever came before
+              }
             },
             child: Text(
               'OK',
@@ -456,8 +468,7 @@ class _BookingConfirmationPageState extends ConsumerState<BookingConfirmationPag
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              context.pop();
-              context.pop();
+              context.go('/jadwal');
             },
             child: Text(
               'OK',
@@ -519,8 +530,7 @@ class _BookingConfirmationPageState extends ConsumerState<BookingConfirmationPag
             onPressed: () {
               Navigator.pop(context);
               // Navigate back to schedule page
-              context.pop();
-              context.pop();
+              context.go('/jadwal');
             },
             child: Text(
               'OK',

@@ -263,6 +263,14 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               const Color(0xFF8B5CF6).withValues(alpha: 0.1),
               () {},
             ),
+            _buildStatCard(
+              'Asset Server',
+              'Manajemen',
+              Icons.folder_shared,
+              const Color(0xFFEC4899), // Pink
+              const Color(0xFFEC4899).withValues(alpha: 0.1),
+              () => context.push('/admin/assets'),
+            ),
           ],
         ),
         const SizedBox(height: 12),

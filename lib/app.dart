@@ -33,7 +33,7 @@ class _AppState extends ConsumerState<App> {
     final router = AppRouter.router(ref);
     
     return MaterialApp.router(
-      title: 'Speech Therapy',
+      title: 'Pondok Terapi Bicara',
       debugShowCheckedModeBanner: false,
       
       // Theme Configuration

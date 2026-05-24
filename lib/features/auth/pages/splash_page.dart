@@ -5,8 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
 
-/// Splash Page
-/// Halaman splash screen untuk loading awal aplikasi
+/// Splash Page — logo statis tanpa animasi.
+/// HANYA muncul saat aplikasi pertama kali dibuka.
+/// Setelah login berhasil, splash TIDAK PERNAH muncul lagi.
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
@@ -14,78 +15,45 @@ class SplashPage extends ConsumerStatefulWidget {
   ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends ConsumerState<SplashPage>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
+class _SplashPageState extends ConsumerState<SplashPage> {
+  bool _hasNavigated = false;
 
   @override
   void initState() {
     super.initState();
-
-    // Initialize animations
-    _animationController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
-    );
-
-    // Start animation
-    _animationController.forward();
-
-    // Navigate after delay - use post-frame callback to avoid build-time errors
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _navigateToNextPage();
+      _navigateAfterAuthCheck();
     });
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
     super.dispose();
   }
 
-  Future<void> _navigateToNextPage() async {
-    // Wait for animation and give router time to process auth state
-    await Future.delayed(const Duration(seconds: 1));
-
+  Future<void> _navigateAfterAuthCheck() async {
+    if (_hasNavigated) return;
     if (!mounted) return;
 
-    // Check authentication status
-    final authState = ref.read(authProvider);
-    
-    if (authState.isAuthenticated) {
-      // User is authenticated - navigate to appropriate dashboard
-      final userRole = authState.user?.role ?? AppConstants.roleOrangTua;
-      print('🚀 Splash: Authenticated user, role=$userRole');
+    await ref
+        .read(authProvider.notifier)
+        .waitForInitComplete()
+        .timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => null,
+    );
 
-      // Navigate based on role
-      String targetRoute;
-      switch (userRole) {
-        case AppConstants.roleTerapis:
-          targetRoute = '/terapis-dashboard';
-          break;
-        case AppConstants.roleAdmin:
-          targetRoute = '/admin-dashboard';
-          break;
-        case AppConstants.roleOrangTua:
-        default:
-          targetRoute = '/dashboard';
-      }
-      
-      // Use go instead of replace to avoid router conflicts
-      context.go(targetRoute);
+    if (!mounted || _hasNavigated) return;
+    _hasNavigated = true;
+
+    final authState = ref.read(authProvider);
+
+    if (authState.isAuthenticated) {
+      final userRole = authState.user?.role ?? AppConstants.roleOrangTua;
+      print('🚀 Splash: Auth done, role=$userRole → /dashboard');
+      context.go('/dashboard');
     } else {
-      // User is NOT authenticated - go to login
-      print('🚀 Splash: Not authenticated, going to login');
+      print('🚀 Splash: Auth done → /login');
       context.go('/login');
     }
   }
@@ -95,91 +63,39 @@ class _SplashPageState extends ConsumerState<SplashPage>
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: AnimatedBuilder(
-          animation: _animationController,
-          builder: (context, child) {
-            return FadeTransition(
-              opacity: _fadeAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // App Logo
-                      Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(40),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(40),
-                          child: Image.asset(
-                            'assets/icons/logo.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // App Name
-                      Text(
-                        'Talkio',
-                        style: GoogleFonts.poppins(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: AppConstants.primaryBlue,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-
-                      const SizedBox(height: 48),
-
-                      // Welcome Text
-                      Text(
-                        'Selamat Datang',
-                        style: GoogleFonts.poppins(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Subtitle
-                      Text(
-                        'Silakan masuk untuk melanjutkan\nperjalanan terapi bicara Si Kecil.',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: const Color(0xFF64748B),
-                          height: 1.6,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      const SizedBox(height: 48),
-
-                      // Loading Indicator
-                      SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppConstants.primaryBlue,
-                          ),
-                          strokeWidth: 4,
-                        ),
-                      ),
-                    ],
-                  ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo (statis, tidak ada animasi)
+            Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: Image.asset(
+                  'assets/icons/logo.png',
+                  fit: BoxFit.contain,
                 ),
               ),
-            );
-          },
+            ),
+
+            const SizedBox(height: 24),
+
+            // App Name
+            Text(
+              'Pondok Terapi Bicara',
+              style: GoogleFonts.poppins(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: AppConstants.primaryBlue,
+                height: 1.2,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

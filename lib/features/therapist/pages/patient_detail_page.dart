@@ -26,6 +26,7 @@ class _TherapistPatientDetailPageState
   
   Map<String, dynamic>? _patientDetail;
   List<dynamic> _progressNotes = [];
+  List<dynamic> _progressUploads = [];
   List<dynamic> _exercises = [];
   bool _isLoading = true;
   bool _isSubmittingNote = false;
@@ -64,6 +65,7 @@ class _TherapistPatientDetailPageState
         final progressData = results[1].data;
         if (progressData is Map<String, dynamic> && progressData['status'] == 'success') {
           _progressNotes = progressData['data']['progressNotes'] ?? [];
+          _progressUploads = progressData['data']['progressUploads'] ?? [];
         }
       }
 
@@ -144,13 +146,22 @@ class _TherapistPatientDetailPageState
 
   @override
   Widget build(BuildContext context) {
-    final anakState = ref.watch(anakProvider);
-    final anak = anakState.anakList.firstWhere(
-      (a) => a.id == widget.patientId,
-      orElse: () => anakState.anakList.isNotEmpty
-          ? anakState.anakList.first
-          : throw Exception('Patient not found'),
-    );
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F7FA),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_patientDetail == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F7FA),
+        appBar: AppBar(title: const Text('Detail Pasien')),
+        body: const Center(child: Text('Pasien tidak ditemukan')),
+      );
+    }
+
+    final patientName = _patientDetail!['name'] ?? 'Pasien';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Light grey background
@@ -163,7 +174,7 @@ class _TherapistPatientDetailPageState
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          anak.name,
+          patientName,
           style: GoogleFonts.poppins(
             color: AppConstants.primaryBlue,
             fontWeight: FontWeight.w600,
@@ -198,11 +209,20 @@ class _TherapistPatientDetailPageState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildProfileHeader(anak),
+                    _buildProfileHeader(),
                     const SizedBox(height: 32),
                     _buildSectionTitle('Ringkasan Kemajuan'),
                     const SizedBox(height: 16),
                     _buildProgressCards(),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildSectionTitle('Progress dari Orang Tua'),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildProgressUploads(),
                     const SizedBox(height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -268,7 +288,11 @@ class _TherapistPatientDetailPageState
     );
   }
 
-  Widget _buildProfileHeader(dynamic anak) {
+  Widget _buildProfileHeader() {
+    final patientName = _patientDetail!['name'] ?? 'Pasien';
+    final dateOfBirthStr = _patientDetail!['dateOfBirth'];
+    final dateOfBirth = dateOfBirthStr != null ? DateTime.parse(dateOfBirthStr) : DateTime.now();
+
     return Column(
       children: [
         // Avatar with Badge
@@ -277,7 +301,7 @@ class _TherapistPatientDetailPageState
             clipBehavior: Clip.none,
             children: [
               ProfileAvatar(
-                name: anak.name,
+                name: patientName,
                 radius: 40,
               ),
               Positioned(
@@ -313,7 +337,7 @@ class _TherapistPatientDetailPageState
         // Name
         Center(
           child: Text(
-            anak.name,
+            patientName,
             style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -358,7 +382,7 @@ class _TherapistPatientDetailPageState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _calculateAge(anak.dateOfBirth),
+                    _calculateAge(dateOfBirth),
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -532,7 +556,7 @@ class _TherapistPatientDetailPageState
               SizedBox(
                 width: 36,
                 child: Text(
-                  '\${(value * 100).toInt()}%',
+                  '${(value * 100).toInt()}%',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -545,6 +569,73 @@ class _TherapistPatientDetailPageState
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProgressUploads() {
+    if (_progressUploads.isEmpty) {
+      return Text(
+        'Belum ada progress yang diunggah oleh orang tua.',
+        style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+      );
+    }
+    
+    return Column(
+      children: _progressUploads.map((upload) {
+        // final String fileUrl = upload['fileUrl'] ?? ''; // will be used to show media
+        final String notes = upload['parentNotes'] ?? 'Tidak ada catatan';
+        final String date = upload['createdAt'] != null 
+            ? upload['createdAt'].toString().split('T')[0] 
+            : '';
+            
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.perm_media, color: Colors.grey),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      date,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: const Color(0xFF64748B),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      notes,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -699,28 +790,29 @@ class _TherapistPatientDetailPageState
   Widget _buildSessionNotes() {
     return Column(
       children: [
-        _buildTimelineItem(
-          date: '12 OKT 2023',
-          content:
-              '"Budi mulai menunjukkan inisiatif untuk mengucapkan kata \'Minum\' tanpa dipicu. Kontak mata membaik secara signifikan."',
-          author: 'Terapis: Dr. Sarah W.',
-          isPrimary: true,
-        ),
-        _buildTimelineItem(
-          date: '05 OKT 2023',
-          content:
-              '"Fokus pada artikulasi huruf \'S\' dan \'R\'. Budi masih kesulitan dengan posisi lidah, perlu alat bantu visual di sesi berikutnya."',
-          author: 'Terapis: Dr. Sarah W.',
-          isPrimary: false,
-        ),
-        _buildTimelineItem(
-          date: '28 SEPT 2023',
-          content:
-              '"Sesi evaluasi bulanan. Ada progres pada pemahaman instruksi sederhana (2 tahap)."',
-          author: 'Terapis: Dr. Sarah W.',
-          isPrimary: false,
-          isLast: true,
-        ),
+        if (_progressNotes.isEmpty)
+          Text(
+            'Belum ada catatan sesi.',
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+          )
+        else
+          ..._progressNotes.asMap().entries.map((entry) {
+            final int index = entry.key;
+            final dynamic note = entry.value;
+            final bool isPrimary = index == 0;
+            final bool isLast = index == _progressNotes.length - 1;
+            final String date = note['date'] != null 
+                ? note['date'].toString().split('T')[0] 
+                : '';
+            
+            return _buildTimelineItem(
+              date: date,
+              content: note['content'] ?? '',
+              author: 'Terapis',
+              isPrimary: isPrimary,
+              isLast: isLast,
+            );
+          }),
         const SizedBox(height: 24),
         // Text Input for New Note
         Container(
@@ -873,9 +965,9 @@ class _TherapistPatientDetailPageState
     }
 
     if (years > 0) {
-      return '\$years Tahun \$months Bulan';
+      return '$years Tahun $months Bulan';
     } else {
-      return '\$months Bulan';
+      return '$months Bulan';
     }
   }
 }

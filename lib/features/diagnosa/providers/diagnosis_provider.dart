@@ -81,7 +81,6 @@ class DiagnosisNotifier extends StateNotifier<DiagnosisState> {
   Future<bool> createDiagnosis({
     required String childId,
     required List<String> symptoms,
-    bool useML = true,
   }) async {
     state = state.copyWith(isSubmitting: true, error: null);
 
@@ -89,7 +88,6 @@ class DiagnosisNotifier extends StateNotifier<DiagnosisState> {
       final response = await _apiService.createDiagnosis(
         childId: childId,
         symptoms: symptoms,
-        useML: useML,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {

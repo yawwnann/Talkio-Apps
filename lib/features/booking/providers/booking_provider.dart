@@ -8,6 +8,7 @@ class BookingState {
   final List<Map<String, dynamic>> therapists;
   final Map<String, dynamic>? availability;
   final Map<String, dynamic>? bookingResult;
+  final String? lastBookedTime; // Track recently booked time for UI sync
 
   const BookingState({
     this.isLoading = false,
@@ -15,6 +16,7 @@ class BookingState {
     this.therapists = const [],
     this.availability,
     this.bookingResult,
+    this.lastBookedTime,
   });
 
   BookingState copyWith({
@@ -23,13 +25,15 @@ class BookingState {
     List<Map<String, dynamic>>? therapists,
     Map<String, dynamic>? availability,
     Map<String, dynamic>? bookingResult,
+    String? lastBookedTime,
   }) {
     return BookingState(
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      error: error ?? this.error,
       therapists: therapists ?? this.therapists,
       availability: availability ?? this.availability,
       bookingResult: bookingResult ?? this.bookingResult,
+      lastBookedTime: lastBookedTime ?? this.lastBookedTime,
     );
   }
 }
@@ -78,6 +82,7 @@ class BookingNotifier extends StateNotifier<BookingState> {
       final response = await _apiService.dio.get(
         '/therapist/availability',
         queryParameters: {
+          'therapistId': therapistId,
           'date': date,
         },
       );
@@ -115,7 +120,7 @@ class BookingNotifier extends StateNotifier<BookingState> {
 
     try {
       final response = await _apiService.dio.post(
-        '/parent/book',
+        '/therapy/booking',
         data: {
           'childId': childId,
           'therapistId': therapistId,
@@ -156,6 +161,11 @@ class BookingNotifier extends StateNotifier<BookingState> {
   /// Clear booking result
   void clearBookingResult() {
     state = state.copyWith(bookingResult: null);
+  }
+
+  /// Set last booked time for UI synchronization
+  void setLastBookedTime(String? time) {
+    state = state.copyWith(lastBookedTime: time);
   }
 
   /// Clear state

@@ -1,5 +1,5 @@
 /// Diagnosis Model
-/// Model untuk hasil diagnosis dan prediksi ML speech delay
+/// Model untuk hasil diagnosis dan prediksi speech delay
 /// Matches backend API response format
 class DiagnosisModel {
   final String id;
@@ -10,7 +10,6 @@ class DiagnosisModel {
   final String? recommendation;
   final String? nextStep;
   final DateTime createdAt;
-  final MlPrediction? mlPrediction;
 
   DiagnosisModel({
     required this.id,
@@ -21,7 +20,6 @@ class DiagnosisModel {
     this.recommendation,
     this.nextStep,
     required this.createdAt,
-    this.mlPrediction,
   });
 
   // Get risk level color
@@ -79,9 +77,6 @@ class DiagnosisModel {
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
-      mlPrediction: json['mlPrediction'] != null || json['ml_prediction'] != null
-          ? MlPrediction.fromJson(json['mlPrediction'] ?? json['ml_prediction'])
-          : null,
     );
   }
 
@@ -96,49 +91,11 @@ class DiagnosisModel {
       'recommendation': recommendation,
       'nextStep': nextStep,
       'createdAt': createdAt.toIso8601String(),
-      'mlPrediction': mlPrediction?.toJson(),
     };
   }
 
   @override
   String toString() {
     return 'DiagnosisModel(id: $id, riskLevel: $riskLevel, score: $score)';
-  }
-}
-
-/// ML Prediction Model
-class MlPrediction {
-  final String id;
-  final String? modelVersion;
-  final double? predictionResult;
-  final double? confidence;
-
-  MlPrediction({
-    required this.id,
-    this.modelVersion,
-    this.predictionResult,
-    this.confidence,
-  });
-
-  factory MlPrediction.fromJson(Map<String, dynamic> json) {
-    return MlPrediction(
-      id: json['id'] ?? '',
-      modelVersion: json['modelVersion'] ?? json['model_version'],
-      predictionResult: json['predictionResult'] != null
-          ? (json['predictionResult'] as num).toDouble()
-          : null,
-      confidence: json['confidence'] != null
-          ? (json['confidence'] as num).toDouble()
-          : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'modelVersion': modelVersion,
-      'predictionResult': predictionResult,
-      'confidence': confidence,
-    };
   }
 }
