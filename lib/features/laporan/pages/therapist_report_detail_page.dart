@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../shared/widgets/therapist_bottom_nav.dart';
 import '../../../shared/widgets/profile_avatar.dart';
 import '../providers/laporan_provider_real.dart';
 import '../../../core/models/laporan_model.dart';
@@ -91,6 +92,7 @@ class _TherapistReportDetailPageState
           ],
         ),
       ),
+      bottomNavigationBar: const TherapistBottomNav(currentIndex: 3),
     );
   }
 

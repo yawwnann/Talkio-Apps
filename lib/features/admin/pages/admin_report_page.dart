@@ -5,6 +5,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/admin_bottom_nav.dart';
 import '../../../shared/widgets/profile_avatar.dart';
 import '../../../shared/widgets/loading_widget.dart';
+import '../providers/admin_report_provider.dart';
 
 class AdminReportPage extends ConsumerStatefulWidget {
   const AdminReportPage({super.key});
@@ -18,46 +19,14 @@ class _AdminReportPageState extends ConsumerState<AdminReportPage> {
   final List<String> _tabs = ['Semua', 'Terkirim', 'Draft'];
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  bool _isLoading = true;
-
-  // Mock data - will be replaced with API call
-  final List<Map<String, dynamic>> _reports = [
-    {
-      'id': 'RPT-001',
-      'childName': 'Siti Nurhaliza',
-      'therapistName': 'Dr. Sarah Wijaya',
-      'therapistEmail': 'sarah@therapist.com',
-      'title': 'Laporan Perkembangan April',
-      'content': 'Siti menunjukkan peningkatan signifikan dalam artikulasi huruf S dan R. Vocabulary bertambah 15 kata baru bulan ini.',
-      'status': 'SENT',
-      'date': '2026-04-08',
-    },
-    {
-      'id': 'RPT-002',
-      'childName': 'Ahmad Fauzi',
-      'therapistName': 'Dr. Ahmad Fauzi',
-      'therapistEmail': 'ahmad@therapist.com',
-      'title': 'Laporan Mingguan',
-      'content': 'Ahmad masih kesulitan dengan interaksi sosial. Perlu latihan intensif.',
-      'status': 'SENT',
-      'date': '2026-04-07',
-    },
-    {
-      'id': 'RPT-003',
-      'childName': 'Dewi Lestari',
-      'therapistName': 'Dr. Sarah Wijaya',
-      'therapistEmail': 'sarah@therapist.com',
-      'title': 'Draft Laporan',
-      'content': '',
-      'status': 'DRAFT',
-      'date': '2026-04-06',
-    },
-  ];
 
   List<Map<String, dynamic>> get _filteredReports {
-    return _reports.where((report) {
-      final matchesSearch = report['childName'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          report['therapistName'].toLowerCase().contains(_searchQuery.toLowerCase());
+    final reports = ref.watch(adminReportProvider).reports;
+    return reports.where((report) {
+      final childName = report['childName']?.toString().toLowerCase() ?? '';
+      final therapistName = report['therapistName']?.toString().toLowerCase() ?? '';
+      final matchesSearch = childName.contains(_searchQuery.toLowerCase()) ||
+          therapistName.contains(_searchQuery.toLowerCase());
       final matchesTab = _selectedTab == 0 ||
           (_selectedTab == 1 && report['status'] == 'SENT') ||
           (_selectedTab == 2 && report['status'] == 'DRAFT');
@@ -74,36 +43,30 @@ class _AdminReportPageState extends ConsumerState<AdminReportPage> {
   @override
   void initState() {
     super.initState();
-    _fetchReports();
+    Future.microtask(() {
+      ref.read(adminReportProvider.notifier).fetchReports();
+    });
   }
 
   Future<void> _fetchReports() async {
-    setState(() => _isLoading = true);
-    
-    // TODO: Replace with actual API call when backend has the endpoint
-    // final apiService = ApiService();
-    // final response = await apiService.getAdminReports();
-    
-    // Simulate API delay
-    await Future.delayed(const Duration(seconds: 1));
-    
-    setState(() => _isLoading = false);
+    await ref.read(adminReportProvider.notifier).fetchReports();
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(adminReportProvider);
     final filteredReports = _filteredReports;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(state),
       body: Column(
         children: [
           _buildSearchBar(),
           _buildTabBar(),
-          _buildSummaryCards(),
+          _buildSummaryCards(state),
           Expanded(
-            child: _isLoading
+            child: state.isLoading
                 ? const Center(child: LoadingWidget())
                 : filteredReports.isEmpty
                     ? _buildEmptyState()
@@ -115,7 +78,7 @@ class _AdminReportPageState extends ConsumerState<AdminReportPage> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(AdminReportState state) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -132,7 +95,7 @@ class _AdminReportPageState extends ConsumerState<AdminReportPage> {
             ),
           ),
           Text(
-            '${_filteredReports.length} laporan',
+            '${state.total} laporan',
             style: GoogleFonts.poppins(
               fontSize: 11,
               color: const Color(0xFF6B7280),
@@ -216,9 +179,9 @@ class _AdminReportPageState extends ConsumerState<AdminReportPage> {
     );
   }
 
-  Widget _buildSummaryCards() {
-    final sentCount = _reports.where((r) => r['status'] == 'SENT').length;
-    final draftCount = _reports.where((r) => r['status'] == 'DRAFT').length;
+  Widget _buildSummaryCards(AdminReportState state) {
+    final sentCount = state.summary['sent'] ?? 0;
+    final draftCount = state.summary['draft'] ?? 0;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),

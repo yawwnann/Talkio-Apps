@@ -66,11 +66,11 @@ class ParentBottomNav extends StatelessWidget {
               ),
               _buildNavItem(
                 context,
-                Icons.article_outlined,
-                Icons.article,
-                'Edukasi',
+                Icons.chat_outlined,
+                Icons.chat,
+                'Konsultasi',
                 4,
-                '/edukasi',
+                '/konsultasi',
               ),
               _buildNavItem(
                 context,

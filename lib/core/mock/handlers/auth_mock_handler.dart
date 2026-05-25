@@ -33,7 +33,7 @@ class AuthMockHandler {
         userId = '2';
       } else if (email.toLowerCase().contains('admin')) {
         role = AppConstants.roleAdmin;
-        name = 'Admin Talkio';
+        name = 'Admin Terapi Wicara';
         userId = '3';
       } else if (email.contains('rizki')) {
         name = 'Bunda Rizki';

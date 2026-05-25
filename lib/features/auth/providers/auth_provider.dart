@@ -177,35 +177,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data;
-        if (data is Map<String, dynamic>) {
-          final responseData = data['data'] as Map<String, dynamic>?;
-          final token = data['token'] as String?;
-
-          if (responseData != null) {
-            final user = UserModel.fromJson(responseData);
-
-            // If token is in root level, save it
-            if (token != null) {
-              await StorageService.setString(AppConstants.tokenKey, token);
-            }
-            await StorageService.setObject(AppConstants.userKey, user.toJson());
-
-            state = state.copyWith(
-              user: user,
-              isAuthenticated: true,
-              isLoading: false,
-            );
-
-            return true;
-          }
-        }
-
-        final message = data is Map<String, dynamic>
-            ? data['message'] ?? 'Registrasi gagal'
-            : 'Registrasi gagal';
-        state = state.copyWith(error: message, isLoading: false);
-        return false;
+        state = state.copyWith(isLoading: false);
+        return true;
       } else {
         state = state.copyWith(error: 'Registrasi gagal', isLoading: false);
         return false;

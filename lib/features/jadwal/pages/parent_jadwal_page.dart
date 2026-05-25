@@ -499,23 +499,7 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => context.push('/booking/therapist'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppConstants.primaryBlue,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            ),
-            icon: const Icon(Icons.add_circle, color: Colors.white, size: 20),
-            label: Text(
-              'Booking Terapi',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
+ 
         ],
       ),
     );

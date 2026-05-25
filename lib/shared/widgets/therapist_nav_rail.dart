@@ -76,7 +76,7 @@ class TherapistNavRail extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Talkio',
+                    'Terapi Wicara',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/api_service.dart';
 import '../../../shared/widgets/admin_bottom_nav.dart';
+import '../../../shared/widgets/loading_widget.dart';
 import '../../../shared/widgets/profile_avatar.dart';
+import '../providers/admin_users_provider.dart';
 
 class AdminUserManagementPage extends ConsumerStatefulWidget {
   const AdminUserManagementPage({super.key});
@@ -18,57 +21,18 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Mock data
-  final List<Map<String, dynamic>> _users = [
-    {
-      'id': '1',
-      'name': 'Budi Santoso',
-      'email': 'budi@example.com',
-      'role': 'PARENT',
-      'isBlocked': false,
-      'joinDate': '2026-01-15',
-    },
-    {
-      'id': '2',
-      'name': 'Dr. Sarah Wijaya',
-      'email': 'sarah@therapist.com',
-      'role': 'THERAPIST',
-      'isBlocked': false,
-      'joinDate': '2026-02-01',
-    },
-    {
-      'id': '3',
-      'name': 'Ani Lestari',
-      'email': 'ani@example.com',
-      'role': 'PARENT',
-      'isBlocked': true,
-      'joinDate': '2025-12-20',
-    },
-    {
-      'id': '4',
-      'name': 'Dr. Ahmad Fauzi',
-      'email': 'ahmad@therapist.com',
-      'role': 'THERAPIST',
-      'isBlocked': false,
-      'joinDate': '2026-01-10',
-    },
-    {
-      'id': '5',
-      'name': 'Dewi Kartika',
-      'email': 'dewi@example.com',
-      'role': 'PARENT',
-      'isBlocked': false,
-      'joinDate': '2026-03-05',
-    },
-  ];
-
   List<Map<String, dynamic>> get _filteredUsers {
-    return _users.where((user) {
-      final matchesSearch = user['name'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          user['email'].toLowerCase().contains(_searchQuery.toLowerCase());
+    final users = ref.watch(adminUsersProvider).users;
+    return users.where((user) {
+      final name = user['name']?.toString().toLowerCase() ?? '';
+      final email = user['email']?.toString().toLowerCase() ?? '';
+      final matchesSearch = name.contains(_searchQuery.toLowerCase()) ||
+          email.contains(_searchQuery.toLowerCase());
+      final role = user['role']?.toString() ?? '';
+      if (role == 'ADMIN') return false;
       final matchesTab = _selectedTab == 0 ||
-          (_selectedTab == 1 && user['role'] == 'PARENT') ||
-          (_selectedTab == 2 && user['role'] == 'THERAPIST');
+          (_selectedTab == 1 && role == 'PARENT') ||
+          (_selectedTab == 2 && role == 'THERAPIST');
       return matchesSearch && matchesTab;
     }).toList();
   }
@@ -80,20 +44,31 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
   }
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(adminUsersProvider.notifier).fetchUsers();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = ref.watch(adminUsersProvider);
     final filteredUsers = _filteredUsers;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(state),
       body: Column(
         children: [
           _buildSearchBar(),
           _buildTabBar(),
           Expanded(
-            child: filteredUsers.isEmpty
-                ? _buildEmptyState()
-                : _buildUserList(filteredUsers),
+            child: state.isLoading
+                ? const Center(child: LoadingWidget())
+                : filteredUsers.isEmpty
+                    ? _buildEmptyState()
+                    : _buildUserList(filteredUsers),
           ),
         ],
       ),
@@ -101,7 +76,7 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(AdminUsersState state) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -118,7 +93,7 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
             ),
           ),
           Text(
-            '${_filteredUsers.length} user ditemukan',
+            '${state.total} user ditemukan',
             style: GoogleFonts.poppins(
               fontSize: 11,
               color: const Color(0xFF6B7280),
@@ -134,8 +109,8 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
             borderRadius: BorderRadius.circular(8),
           ),
           child: IconButton(
-            icon: const Icon(Icons.filter_alt_outlined, size: 20, color: AppConstants.primaryBlue),
-            onPressed: () {},
+            icon: const Icon(Icons.person_add_alt_1, size: 20, color: AppConstants.primaryBlue),
+            onPressed: _showAddTherapistDialog,
           ),
         ),
       ],
@@ -183,8 +158,12 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
         children: List.generate(_tabs.length, (index) {
           final isSelected = _selectedTab == index;
           return Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedTab = index),
+            child:             GestureDetector(
+              onTap: () {
+                setState(() => _selectedTab = index);
+                final role = index == 1 ? 'PARENT' : (index == 2 ? 'THERAPIST' : null);
+                ref.read(adminUsersProvider.notifier).fetchUsers(role: role);
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
@@ -240,7 +219,7 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
       ),
       child: Row(
         children: [
-          ProfileAvatar(name: user['name'], radius: 22),
+          ProfileAvatar(name: user['name']?.toString() ?? '', radius: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -250,7 +229,7 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
                   children: [
                     Expanded(
                       child: Text(
-                        user['name'],
+                        user['name']?.toString() ?? '-',
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -279,7 +258,7 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  user['email'],
+                  user['email']?.toString() ?? '-',
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     color: const Color(0xFF6B7280),
@@ -287,7 +266,7 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Bergabung: ${user['joinDate']}',
+                  'Bergabung: ${user['createdAt']?.toString().substring(0, 10) ?? '-'}',
                   style: GoogleFonts.poppins(
                     fontSize: 10,
                     color: const Color(0xFF9CA3AF),
@@ -327,6 +306,16 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
                         color: isBlocked ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                       ),
                     ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF4444)),
+                    const SizedBox(width: 8),
+                    Text('Hapus Akun', style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFFEF4444))),
                   ],
                 ),
               ),
@@ -386,10 +375,56 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
       case 'unblock':
         _showBlockConfirmDialog(user, false);
         break;
+      case 'delete':
+        _showDeleteConfirmDialog(user);
+        break;
       case 'reset_password':
         _showResetPasswordDialog(user);
         break;
     }
+  }
+
+  void _showDeleteConfirmDialog(Map<String, dynamic> user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('Hapus Akun?', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        content: Text(
+          'Akun ${user['name']?.toString() ?? '-'} akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.',
+          style: GoogleFonts.poppins(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Batal', style: GoogleFonts.poppins(color: const Color(0xFF6B7280))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await ref.read(adminUsersProvider.notifier).manageUser(
+                userId: user['id'],
+                action: 'delete',
+              );
+              if (success) {
+                ref.read(adminUsersProvider.notifier).fetchUsers();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Akun berhasil dihapus'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text('Hapus', style: GoogleFonts.poppins(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showUserDetailDialog(Map<String, dynamic> user) {
@@ -402,11 +437,11 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow('Nama', user['name']),
-            _buildDetailRow('Email', user['email']),
+            _buildDetailRow('Nama', user['name']?.toString() ?? '-'),
+            _buildDetailRow('Email', user['email']?.toString() ?? '-'),
             _buildDetailRow('Role', user['role'] == 'PARENT' ? 'Parent' : 'Therapist'),
             _buildDetailRow('Status', user['isBlocked'] ? 'Diblokir' : 'Aktif'),
-            _buildDetailRow('Bergabung', user['joinDate']),
+            _buildDetailRow('Bergabung', user['createdAt']?.toString().substring(0, 10) ?? '-'),
           ],
         ),
         actions: [
@@ -466,17 +501,22 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
             child: Text('Batal', style: GoogleFonts.poppins(color: const Color(0xFF6B7280))),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                user['isBlocked'] = block;
-              });
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(block ? 'User diblokir' : 'User diaktifkan'),
-                  backgroundColor: block ? Colors.red : Colors.green,
-                ),
+              final success = await ref.read(adminUsersProvider.notifier).manageUser(
+                userId: user['id'],
+                action: block ? 'block' : 'unblock',
+                reason: 'Diblokir oleh admin',
               );
+              if (success) {
+                ref.read(adminUsersProvider.notifier).fetchUsers();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(block ? 'User diblokir' : 'User diaktifkan'),
+                    backgroundColor: block ? Colors.red : Colors.green,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: block ? Colors.red : Colors.green,
@@ -521,6 +561,105 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
             child: Text('Reset', style: GoogleFonts.poppins(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAddTherapistDialog() {
+    final nameC = TextEditingController();
+    final emailC = TextEditingController();
+    final passwordC = TextEditingController();
+    bool loading = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('Tambah Terapis', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameC,
+                  decoration: InputDecoration(
+                    labelText: 'Nama Lengkap',
+                    labelStyle: GoogleFonts.poppins(fontSize: 13),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: emailC,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    labelStyle: GoogleFonts.poppins(fontSize: 13),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordC,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    labelStyle: GoogleFonts.poppins(fontSize: 13),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: loading ? null : () => Navigator.pop(ctx),
+              child: Text('Batal', style: GoogleFonts.poppins(color: const Color(0xFF6B7280))),
+            ),
+            ElevatedButton(
+              onPressed: loading
+                  ? null
+                  : () async {
+                      if (nameC.text.trim().isEmpty || emailC.text.trim().isEmpty || passwordC.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Harap isi semua field'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+                      setDialogState(() => loading = true);
+                      try {
+                        final api = ApiService();
+                        final response = await api.createAdminUser(
+                          name: nameC.text.trim(),
+                          email: emailC.text.trim(),
+                          password: passwordC.text.trim(),
+                        );
+                        if (response.statusCode == 201) {
+                          Navigator.pop(ctx);
+                          ref.read(adminUsersProvider.notifier).fetchUsers();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Terapis berhasil ditambahkan'), backgroundColor: Colors.green),
+                          );
+                        } else {
+                          final msg = response.data is Map ? response.data['message'] ?? 'Gagal menambahkan terapis' : 'Gagal menambahkan terapis';
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                      }
+                      if (ctx.mounted) setDialogState(() => loading = false);
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: loading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text('Tambah', style: GoogleFonts.poppins(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/progress_upload_model.dart';
 import '../../../core/services/api_service.dart';
 
-/// Progress Upload State
 class ProgressUploadState {
   final List<ProgressUploadModel> uploads;
   final bool isLoading;
@@ -36,13 +35,11 @@ class ProgressUploadState {
   }
 }
 
-/// Progress Upload Notifier
 class ProgressUploadNotifier extends StateNotifier<ProgressUploadState> {
   final ApiService _apiService;
 
   ProgressUploadNotifier(this._apiService) : super(const ProgressUploadState());
 
-  /// Upload progress (photo/video)
   Future<bool> uploadProgress({
     required String childId,
     required File file,
@@ -51,19 +48,22 @@ class ProgressUploadNotifier extends StateNotifier<ProgressUploadState> {
     state = state.copyWith(isUploading: true, error: null, uploadProgress: 0);
 
     try {
-      // Note: For actual upload progress tracking, you'd use Dio's onSendProgress
-      // For now, we'll simulate it
       final response = await _apiService.uploadProgress(
         childId: childId,
         file: file,
         notes: notes,
+        onProgress: (sent, total) {
+          if (total > 0) {
+            final progress = (sent / total) * 100;
+            state = state.copyWith(uploadProgress: progress);
+          }
+        },
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
         if (data is Map<String, dynamic> && data['status'] == 'success') {
           final newUpload = ProgressUploadModel.fromJson(data['data']);
-
           state = state.copyWith(
             uploads: [newUpload, ...state.uploads],
             isUploading: false,
@@ -72,7 +72,7 @@ class ProgressUploadNotifier extends StateNotifier<ProgressUploadState> {
           return true;
         } else {
           state = state.copyWith(
-            error: data['message'] ?? 'Gagal mengupload progress',
+            error: (data is Map ? data['message'] : null) ?? 'Gagal mengupload progress',
             isUploading: false,
             uploadProgress: null,
           );
@@ -90,18 +90,15 @@ class ProgressUploadNotifier extends StateNotifier<ProgressUploadState> {
     }
   }
 
-  /// Clear error
   void clearError() {
     state = state.copyWith(error: null);
   }
 
-  /// Clear state
   void clear() {
     state = const ProgressUploadState();
   }
 }
 
-/// Progress Upload Provider
 final progressUploadProvider =
     StateNotifierProvider<ProgressUploadNotifier, ProgressUploadState>((ref) {
   return ProgressUploadNotifier(ApiService());

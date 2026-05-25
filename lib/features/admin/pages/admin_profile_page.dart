@@ -416,7 +416,7 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Talkio',
+              'Terapi Wicara',
               style: GoogleFonts.poppins(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,

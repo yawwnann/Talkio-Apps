@@ -38,7 +38,8 @@ class _SelectTherapistPageState extends ConsumerState<SelectTherapistPage> {
               : therapists.isEmpty
                   ? _buildEmptyState()
                   : _buildTherapistList(therapists),
-      bottomNavigationBar: const ParentBottomNav(currentIndex: 0),
+      // Booking terapi adalah bagian dari menu Jadwal
+      bottomNavigationBar: const ParentBottomNav(currentIndex: 2),
     );
   }
 

@@ -27,8 +27,6 @@ class _ProgressUploadPageState extends ConsumerState<ProgressUploadPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userProvider = ref.read(anakProvider);
-      // Wait to ensure we have anak list, or maybe trigger fetch if empty
-      // Normally anakList is fetched at dashboard.
       if (userProvider.anakList.isNotEmpty) {
         setState(() {
           _selectedChildId = userProvider.anakList.first.id;
@@ -105,6 +103,7 @@ class _ProgressUploadPageState extends ConsumerState<ProgressUploadPage> {
   Widget build(BuildContext context) {
     final anakState = ref.watch(anakProvider);
     final uploadState = ref.watch(progressUploadProvider);
+    final progress = uploadState.uploadProgress;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -202,29 +201,33 @@ class _ProgressUploadPageState extends ConsumerState<ProgressUploadPage> {
                       const SizedBox(height: 16),
                     ],
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: () => _pickMedia(false),
-                          icon: const Icon(Icons.image, size: 18),
-                          label: const Text('Pilih Foto'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppConstants.lightBlue,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: uploadState.isUploading ? null : () => _pickMedia(false),
+                            icon: const Icon(Icons.image, size: 18),
+                            label: const Text('Pilih Foto'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppConstants.lightBlue,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),
-                        ElevatedButton.icon(
-                          onPressed: () => _pickMedia(true),
-                          icon: const Icon(Icons.videocam, size: 18),
-                          label: const Text('Pilih Video'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppConstants.primaryBlue,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: uploadState.isUploading ? null : () => _pickMedia(true),
+                            icon: const Icon(Icons.videocam, size: 18),
+                            label: const Text('Pilih Video'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppConstants.primaryBlue,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),
@@ -266,7 +269,48 @@ class _ProgressUploadPageState extends ConsumerState<ProgressUploadPage> {
                 ),
               ),
               
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
+
+              if (uploadState.isUploading) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppConstants.primaryBlue.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      LinearProgressIndicator(
+                        value: progress != null ? progress / 100 : null,
+                        backgroundColor: const Color(0xFFE2E8F0),
+                        color: AppConstants.primaryBlue,
+                        minHeight: 8,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        progress != null ? '${progress.toStringAsFixed(0)}%' : 'Mengupload...',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppConstants.primaryBlue,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Harap tunggu, jangan tinggalkan halaman ini',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
               
               SizedBox(
                 width: double.infinity,
@@ -280,7 +324,14 @@ class _ProgressUploadPageState extends ConsumerState<ProgressUploadPage> {
                     ),
                   ),
                   child: uploadState.isUploading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : Text(
                           'Unggah Progress',
                           style: GoogleFonts.poppins(

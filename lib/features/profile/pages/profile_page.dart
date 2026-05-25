@@ -268,7 +268,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   'Pasien',
                   const Color(0xFFE8F5E9),
                   const Color(0xFF4CAF50),
-                  () => context.go('/therapist/patients'),
+                  () => context.go('/therapist/pasien'),
                 ),
                 _buildQuickStatIcon(
                   Icons.assignment,
@@ -306,13 +306,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   const Color(0xFFE8F5E9),
                   const Color(0xFF4CAF50),
                   () => context.go('/konsultasi'),
-                ),
-                _buildQuickStatIcon(
-                  Icons.article,
-                  'Edukasi',
-                  const Color(0xFFF3E5F5),
-                  const Color(0xFF9C27B0),
-                  () => context.go('/edukasi'),
                 ),
               ],
       ),
@@ -710,7 +703,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Talkio',
+                'Terapi Wicara',
                 style: GoogleFonts.poppins(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -737,7 +730,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
               const SizedBox(height: 8),
               Text(
-                '© 2026 Talkio. All rights reserved.',
+                '© 2026 Terapi Wicara. All rights reserved.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 10,

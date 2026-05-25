@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../anak/providers/anak_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/models/progress_upload_model.dart';
 
 /// Therapist Patient Detail Page
 /// Halaman detail pasien untuk terapis menggunakan view single-scroll
@@ -26,7 +27,7 @@ class _TherapistPatientDetailPageState
   
   Map<String, dynamic>? _patientDetail;
   List<dynamic> _progressNotes = [];
-  List<dynamic> _progressUploads = [];
+  List<ProgressUploadModel> _progressUploads = [];
   List<dynamic> _exercises = [];
   bool _isLoading = true;
   bool _isSubmittingNote = false;
@@ -65,7 +66,10 @@ class _TherapistPatientDetailPageState
         final progressData = results[1].data;
         if (progressData is Map<String, dynamic> && progressData['status'] == 'success') {
           _progressNotes = progressData['data']['progressNotes'] ?? [];
-          _progressUploads = progressData['data']['progressUploads'] ?? [];
+          final rawUploads = progressData['data']['progressUploads'] ?? [];
+          _progressUploads = (rawUploads as List)
+              .map((e) => ProgressUploadModel.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
         }
       }
 
@@ -582,12 +586,24 @@ class _TherapistPatientDetailPageState
     
     return Column(
       children: _progressUploads.map((upload) {
-        // final String fileUrl = upload['fileUrl'] ?? ''; // will be used to show media
-        final String notes = upload['parentNotes'] ?? 'Tidak ada catatan';
-        final String date = upload['createdAt'] != null 
-            ? upload['createdAt'].toString().split('T')[0] 
-            : '';
-            
+        final IconData icon;
+        final Color iconColor;
+        final Color bgColor;
+        
+        if (upload.isVideo) {
+          icon = Icons.videocam;
+          iconColor = AppConstants.primaryBlue;
+          bgColor = AppConstants.primaryBlue.withValues(alpha: 0.1);
+        } else if (upload.isAudio) {
+          icon = Icons.mic;
+          iconColor = const Color(0xFF4A90E2);
+          bgColor = const Color(0xFF4A90E2).withValues(alpha: 0.1);
+        } else {
+          icon = Icons.image;
+          iconColor = const Color(0xFF16A34A);
+          bgColor = const Color(0xFF16A34A).withValues(alpha: 0.1);
+        }
+
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
@@ -596,46 +612,134 @@ class _TherapistPatientDetailPageState
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.perm_media, color: Colors.grey),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      date,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: const Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
-                      ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      notes,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: const Color(0xFF1E293B),
-                      ),
+                    child: Icon(icon, color: iconColor, size: 28),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          upload.formattedDateTime,
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          upload.parentNotes ?? 'Tidak ada catatan',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        if (upload.duration != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Durasi: ${upload.durationLabel}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: iconColor,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    color: AppConstants.primaryBlue,
+                    onPressed: () => _openMediaPreview(upload),
+                  ),
+                ],
               ),
             ],
           ),
         );
       }).toList(),
+    );
+  }
+
+  void _openMediaPreview(ProgressUploadModel upload) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            if (upload.isImage)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(upload.fileUrl, fit: BoxFit.contain),
+              )
+            else if (upload.isVideo)
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    const Icon(Icons.videocam, color: Colors.white, size: 64),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Video: ${upload.formattedDate}',
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      upload.fileUrl,
+                      style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    const Icon(Icons.mic, color: Colors.white, size: 64),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Rekaman Suara: ${upload.formattedDate}',
+                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
+                    ),
+                    if (upload.duration != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Durasi: ${upload.durationLabel}',
+                        style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

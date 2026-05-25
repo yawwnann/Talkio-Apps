@@ -12,6 +12,8 @@ import '../../features/anak/pages/anak_list_page.dart';
 import '../../features/anak/pages/add_anak_page.dart';
 import '../../features/anak/pages/anak_detail_page.dart';
 import '../../features/konsultasi/pages/konsultasi_page.dart';
+import '../../features/diagnosa/pages/diagnosa_history_page.dart';
+import '../../features/diagnosa/pages/diagnosa_detail_page.dart';
 import '../../features/game/pages/game_menu_page.dart';
 import '../../features/game/pages/voice_practice_simple_page.dart';
 import '../../features/pembayaran/pages/pembayaran_list_page.dart';
@@ -22,7 +24,6 @@ import '../../features/jadwal/pages/therapist_jadwal_page.dart';
 import '../../features/jadwal/pages/parent_jadwal_page.dart';
 import '../../features/laporan/pages/therapist_report_list_page.dart';
 import '../../features/laporan/pages/therapist_report_detail_page.dart';
-import '../../features/edukasi/pages/education_page.dart';
 import '../../features/laporan/pages/therapist_add_report_page.dart';
 import '../../features/profile/pages/profile_page.dart';
 import '../../features/therapist/pages/patient_list_page.dart';
@@ -40,6 +41,7 @@ import '../../features/booking/pages/select_schedule_page.dart';
 import '../../features/booking/pages/booking_confirmation_page.dart';
 import '../../features/booking/pages/therapist_detail_page.dart';
 import '../../features/progress/pages/progress_upload_page.dart';
+import '../../features/notifikasi/pages/notifikasi_page.dart';
 
 /// App Router Configuration
 /// Konfigurasi routing aplikasi menggunakan GoRouter
@@ -179,14 +181,27 @@ class AppRouter {
           builder: (context, state) => const KonsultasiPage(),
         ),
 
-        // Diagnosa Route
+        // Diagnosa Routes
         GoRoute(
           path: '/diagnosa',
           name: 'diagnosa',
-          builder: (context, state) => _buildPlaceholderPage(
-            'Diagnosa',
-            'Halaman hasil diagnosa speech delay',
-          ),
+          builder: (context, state) => const DiagnosaHistoryPage(),
+        ),
+        GoRoute(
+          path: '/diagnosa/:childId',
+          name: 'diagnosa-child',
+          builder: (context, state) {
+            final childId = state.pathParameters['childId']!;
+            return DiagnosaHistoryPage(childId: childId);
+          },
+        ),
+        GoRoute(
+          path: '/diagnosa/:childId/:diagnosisId',
+          name: 'diagnosa-detail',
+          builder: (context, state) {
+            final diagnosisId = state.pathParameters['diagnosisId']!;
+            return DiagnosaDetailPage(diagnosisId: diagnosisId);
+          },
         ),
 
         // Jadwal Route (role-based)
@@ -262,13 +277,6 @@ class AppRouter {
               ),
             ),
           ],
-        ),
-
-        // Edukasi Route
-        GoRoute(
-          path: '/edukasi',
-          name: 'edukasi',
-          builder: (context, state) => const EducationPage(),
         ),
 
         // Booking Routes (Parent)
@@ -351,8 +359,7 @@ class AppRouter {
         GoRoute(
           path: '/notifikasi',
           name: 'notifikasi',
-          builder: (context, state) =>
-              _buildPlaceholderPage('Notifikasi', 'Halaman notifikasi'),
+          builder: (context, state) => const NotificationPage(),
         ),
 
         // Terapis Dashboard Route

@@ -46,8 +46,23 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
 
     // Use replace instead of go to prevent splash screen from appearing
     if (success && mounted) {
-      print('🔐 [LOGIN] Navigating to /dashboard');
-      context.replace('/dashboard');
+      // Navigate langsung berdasarkan role, jangan lewat /dashboard dulu
+      // (karena GoRouter redirect bisa gagal lihat perubahan Riverpod state)
+      final user = ref.read(currentUserProvider);
+      final role = user?.role ?? '';
+      String destination;
+      switch (role) {
+        case 'THERAPIST':
+          destination = '/terapis-dashboard';
+          break;
+        case 'ADMIN':
+          destination = '/admin-dashboard';
+          break;
+        default:
+          destination = '/dashboard';
+      }
+      print('🔐 [LOGIN] Navigating to $destination');
+      context.replace(destination);
     } else if (!success) {
       print('🔐 [LOGIN] Login failed, staying on login page');
     }
@@ -105,7 +120,7 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                       const SizedBox(height: 16),
                       // App Name
                       Text(
-                        'Pondok Terapi Bicara',
+                        'Pondok Terapi Wicara',
                         style: GoogleFonts.poppins(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -138,7 +153,7 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                 // Subtitle
                 Center(
                   child: Text(
-                    'Silakan masuk untuk melanjutkan perjalanan terapi bicara Si Kecil.',
+                    'Silakan masuk untuk melanjutkan perjalanan terapi wicara Si Kecil.',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: const Color(0xFF64748B),

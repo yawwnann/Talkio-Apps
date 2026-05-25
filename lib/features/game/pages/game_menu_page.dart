@@ -1,18 +1,44 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'voice_practice_simple_page.dart';
+
+import '../../../core/constants/app_constants.dart';
+import '../../../core/models/anak_model.dart';
+import '../../../core/models/game_recommendation_model.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/parent_bottom_nav.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../anak/providers/anak_provider.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../providers/game_recommendation_provider.dart';
+import 'voice_practice_simple_page.dart';
 
 /// Game Menu Page
-/// Halaman menu game terapi untuk anak dengan desain modern
-class GameMenuPage extends ConsumerWidget {
+/// Menu game: pilih anak â†’ tampilkan rekomendasi game berdasarkan umur
+class GameMenuPage extends ConsumerStatefulWidget {
   const GameMenuPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GameMenuPage> createState() => _GameMenuPageState();
+}
+
+class _GameMenuPageState extends ConsumerState<GameMenuPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Fetch children list if not loaded
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        ref.read(anakProvider.notifier).getAnakList(user.id);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final anakState = ref.watch(anakProvider);
+    final selectedAnak = anakState.selectedAnak;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: const CustomAppBar(
@@ -26,12 +52,16 @@ class GameMenuPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Banner
             _buildHeaderBanner(),
+            const SizedBox(height: 20),
+
+            _buildChildPicker(context, anakState),
+            const SizedBox(height: 16),
+
+            _buildRecommendationsSection(context, selectedAnak),
 
             const SizedBox(height: 24),
 
-            // Section Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -59,7 +89,6 @@ class GameMenuPage extends ConsumerWidget {
 
             const SizedBox(height: 16),
 
-            // Game Grid
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -75,14 +104,337 @@ class GameMenuPage extends ConsumerWidget {
               },
             ),
 
-            const SizedBox(height: 32),
-
-            // Tips Section
+            const SizedBox(height: 28),
             _buildTipsSection(),
           ],
         ),
       ),
       bottomNavigationBar: const ParentBottomNav(currentIndex: 3),
+    );
+  }
+
+  Widget _buildChildPicker(BuildContext context, AnakState anakState) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppConstants.primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Pilih Anak',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (anakState.isLoading && anakState.anakList.isEmpty)
+            const LinearProgressIndicator(minHeight: 3)
+          else if (anakState.error != null)
+            Text(
+              anakState.error ?? 'Gagal memuat data anak',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.red,
+              ),
+            )
+          else if (anakState.anakList.isEmpty)
+            Text(
+              'Belum ada data anak. Tambahkan anak dulu di menu Anak.',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: const Color(0xFF64748B),
+              ),
+            )
+          else
+            DropdownButtonFormField<AnakModel>(
+              initialValue: anakState.selectedAnak,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              hint: const Text('Pilih anak'),
+              items: anakState.anakList
+                  .map(
+                    (anak) => DropdownMenuItem<AnakModel>(
+                      value: anak,
+                      child: Text('${anak.name} • ${anak.age} th'),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                ref.read(anakProvider.notifier).selectAnak(value);
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationsSection(
+      BuildContext context, AnakModel? selectedAnak) {
+    if (selectedAnak == null) {
+      return _buildEmptyRecommendations();
+    }
+
+    final recState =
+        ref.watch(gameRecommendationByChildProvider(selectedAnak.id));
+
+    if (recState.isLoading) {
+      return _buildLoadingRecommendations();
+    }
+
+    if (recState.error != null) {
+      return _buildErrorRecommendations(recState.error);
+    }
+
+    final rec = recState.recommendations;
+    if (rec == null || rec.games.isEmpty) {
+      return _buildEmptyRecommendations(
+        subtitle: 'Belum ada rekomendasi untuk anak ini.',
+      );
+    }
+
+    final bandLabel = rec.band?.label ?? '-';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Rekomendasi Game',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDBEAFE),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$bandLabel • ${rec.ageMonths} bln',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF2563EB),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...rec.games.map((g) => _buildRecommendationCard(context, g)),
+      ],
+    );
+  }
+
+  Widget _buildLoadingRecommendations() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppConstants.primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Memuat rekomendasi game...',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorRecommendations(String? message) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEE2E2),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        message ?? 'Gagal memuat rekomendasi',
+        style: GoogleFonts.poppins(
+          fontSize: 12,
+          color: const Color(0xFFDC2626),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyRecommendations({String? subtitle}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppConstants.primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Rekomendasi Game',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle ?? 'Pilih anak untuk melihat game yang relevan.',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationCard(
+      BuildContext context, GameRecommendationItem recItem) {
+    final title = recItem.gameType;
+    final params = recItem.params;
+
+    final chips = <Widget>[];
+    if (params['choicesCount'] != null) {
+      chips.add(_chip('${params['choicesCount']} pilihan'));
+    }
+    if (params['rounds'] != null) {
+      chips.add(_chip('${params['rounds']} ronde'));
+    }
+    if (params['hintMode'] != null) {
+      chips.add(_chip('hint: ${params['hintMode']}'));
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppConstants.primaryBlue.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFFDBEAFE),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.games_rounded, color: Color(0xFF2563EB)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(spacing: 6, runSpacing: 6, children: chips),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          IconButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Mulai "$title" (kerangka dulu, game menyusul)'),
+                  duration: const Duration(seconds: 1),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.play_arrow_rounded),
+            color: AppConstants.primaryBlue,
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.poppins(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF64748B),
+        ),
+      ),
     );
   }
 
@@ -502,3 +854,5 @@ final gameList = [
     'route': '/game/word-puzzle',
   },
 ];
+
+

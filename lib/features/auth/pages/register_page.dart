@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../providers/auth_provider.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/constants/app_constants.dart';
 
@@ -20,7 +20,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _agreeToTerms = false;
-  String _selectedRole = AppConstants.roleOrangTua;
+  bool _isSubmitting = false;
   
   @override
   void dispose() {
@@ -31,6 +31,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   }
   
   Future<void> _handleRegister() async {
+    if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
     
     if (!_agreeToTerms) {
@@ -45,34 +46,83 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       return;
     }
     
-    final success = await ref.read(authProvider.notifier).register(
-      name: _nameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-      role: _selectedRole,
-    );
+    setState(() => _isSubmitting = true);
     
-    if (success && mounted) context.go('/dashboard');
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
-    
-    ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.error != null) {
+    try {
+      final response = await ApiService().register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        role: 'PARENT',
+      );
+      
+      if (!mounted) return;
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle, size: 56, color: const Color(0xFF10B981)),
+                const SizedBox(height: 16),
+                Text('Akun Berhasil Terdaftar!', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Text('Silakan coba login dengan akun Anda.', style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF6B7280)), textAlign: TextAlign.center),
+              ],
+            ),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    context.go('/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppConstants.primaryBlue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text('Ke Halaman Login', style: GoogleFonts.poppins(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        final data = response.data;
+        final msg = data is Map<String, dynamic>
+            ? (data['message'] ?? 'Registrasi gagal')
+            : 'Registrasi gagal';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.error!),
+            content: Text(msg),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
-        ref.read(authProvider.notifier).clearError();
       }
-    });
-    
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -98,7 +148,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text('Talkio', style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: AppConstants.primaryBlue)),
+                    Text('Terapi Wicara', style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: AppConstants.primaryBlue)),
                   ],
                 ),
                 const SizedBox(height: 32),
@@ -112,35 +162,30 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   child: Text('Daftar sekarang untuk memulai\nperjalanan Anda.', style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF64748B), height: 1.5), textAlign: TextAlign.center),
                 ),
                 
-                const SizedBox(height: 32),
-                
-                // Role Selection
-                Text('PILIH PERAN', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF64748B), letterSpacing: 0.5)),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildRoleButton(
-                        label: 'Orang Tua',
-                        icon: Icons.people,
-                        value: AppConstants.roleOrangTua,
-                        isSelected: _selectedRole == AppConstants.roleOrangTua,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildRoleButton(
-                        label: 'Terapis',
-                        icon: Icons.medical_services,
-                        value: AppConstants.roleTerapis,
-                        isSelected: _selectedRole == AppConstants.roleTerapis,
-                      ),
-                    ),
-                  ],
-                ),
-                
                 const SizedBox(height: 24),
-                
+
+                // Info
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppConstants.primaryBlue.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: AppConstants.primaryBlue),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text('Daftar sebagai Orang Tua', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500, color: AppConstants.primaryBlue)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
                 // Name Field
                 Text('Nama Lengkap', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF334155))),
                 const SizedBox(height: 8),
@@ -230,14 +275,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: authState.isLoading ? null : _handleRegister,
+                    onPressed: _isSubmitting ? null : _handleRegister,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppConstants.primaryBlue,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: authState.isLoading
+                    child: _isSubmitting
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -274,35 +319,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     );
   }
   
-  Widget _buildRoleButton({required String label, required IconData icon, required String value, required bool isSelected}) {
-    return InkWell(
-      onTap: () => setState(() => _selectedRole = value),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: isSelected ? AppConstants.primaryBlue : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20, color: isSelected ? Colors.white : const Color(0xFF64748B)),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF64748B),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
   InputDecoration _buildInputDecoration({required String hintText, required IconData prefixIcon, Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hintText,
@@ -320,4 +336,3 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     );
   }
 }
-

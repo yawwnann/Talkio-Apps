@@ -4,8 +4,21 @@ import 'package:flutter/material.dart';
 /// Berisi konstanta-konstanta aplikasi seperti URL API, konfigurasi, dll
 class AppConstants {
   // API Configuration
-  static const String baseUrl = 'https://talkio-backend.vercel.app/api';
-  static const String wsUrl = 'https://talkio-backend.vercel.app';
+  /// Override in development using:
+  /// flutter run --dart-define=API_BASE_URL=http://localhost:3000/api
+  /// For Android emulator, use: http://10.0.2.2:3000/api
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://talkio-backend.vercel.app/api',
+  );
+
+  /// Override in development using:
+  /// flutter run --dart-define=WS_BASE_URL=http://localhost:3000
+  static const String wsUrl = String.fromEnvironment(
+    'WS_BASE_URL',
+    defaultValue: 'https://talkio-backend.vercel.app',
+  );
+
   static const String midtransBaseUrl = 'https://app.sandbox.midtrans.com/snap/v1';
 
   // Midtrans Configuration
@@ -13,7 +26,7 @@ class AppConstants {
   static const String midtransServerKey = 'SB-Mid-server-YOUR_SERVER_KEY';
 
   // App Configuration
-  static const String appName = 'Talkio';
+  static const String appName = 'Terapi Wicara';
   static const String appVersion = '1.0.0';
 
   // Premier Blue Color Palette - Warna Utama Aplikasi

@@ -300,13 +300,13 @@ class ApiService {
   /// POST /api/diagnosis/check
   Future<MockResponse> createDiagnosis({
     required String childId,
-    required List<String> symptoms,
+    required Map<String, String> answers,  // Changed from symptoms to answers
   }) async {
     if (_mockConfig.useMockData) {
       print('📦 [MOCK] Create diagnosis for child: $childId');
       return DiagnosaMockHandler.create({
         'childId': childId,
-        'symptoms': symptoms,
+        'answers': answers,  // Changed from symptoms to answers
       });
     }
 
@@ -314,7 +314,7 @@ class ApiService {
     try {
       final response = await dio.post('/diagnosis/check', data: {
         'childId': childId,
-        'symptoms': symptoms,
+        'answers': answers,  // Changed from symptoms to answers
       });
       return MockResponse(
         statusCode: response.statusCode ?? 200,
@@ -336,6 +336,26 @@ class ApiService {
     print('🌐 [API] GET /diagnosis/history/$childId');
     try {
       final response = await dio.get('/diagnosis/history/$childId');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Diagnosis By ID
+  /// GET /api/diagnosis/:id
+  Future<MockResponse> getDiagnosisById(String id) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get diagnosis by id: $id');
+      return DiagnosaMockHandler.getById(id);
+    }
+
+    print('🌐 [API] GET /diagnosis/$id');
+    try {
+      final response = await dio.get('/diagnosis/$id');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -470,14 +490,51 @@ class ApiService {
     }
   }
 
+  /// Get Game Recommendations (age-based)
+  /// GET /api/game/recommendations/:childId
+  Future<MockResponse> getGameRecommendations(String childId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get game recommendations: $childId');
+      return MockResponse.success({
+        'status': 'success',
+        'success': true,
+        'message': 'Mock game recommendations',
+        'data': {
+          'childId': childId,
+          'ageMonths': 24,
+          'band': {'label': '18–24 months', 'minMonths': 18, 'maxMonths': 24},
+          'games': [
+            {
+              'gameType': 'Kata Bergambar',
+              'params': {'choicesCount': 2, 'rounds': 6, 'hintMode': 'highlight'},
+              'reason': 'Mock recommendation',
+            },
+          ],
+        },
+      });
+    }
+
+    print('🌐 [API] GET /game/recommendations/$childId');
+    try {
+      final response = await dio.get('/game/recommendations/$childId');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // ========== PROGRESS UPLOAD ENDPOINTS ==========
 
-  /// Upload Progress (Photo/Video)
+  /// Upload Progress (Photo/Video/Audio)
   /// POST /api/progress/upload (multipart/form-data)
   Future<MockResponse> uploadProgress({
     required String childId,
     required File file,
     String? notes,
+    void Function(int sent, int total)? onProgress,
   }) async {
     if (_mockConfig.useMockData) {
       print('📦 [MOCK] Upload progress for child: $childId');
@@ -488,6 +545,7 @@ class ApiService {
           'childId': childId,
           'fileUrl': '/uploads/mock-file.jpg',
           'parentNotes': notes,
+          'fileType': 'image',
           'createdAt': DateTime.now().toIso8601String(),
         },
       });
@@ -504,6 +562,7 @@ class ApiService {
       final response = await uploadDio.post(
         '/progress/upload',
         data: formData,
+        onSendProgress: onProgress,
       );
       return MockResponse(
         statusCode: response.statusCode ?? 200,
@@ -845,8 +904,6 @@ class ApiService {
       throw _handleError(e);
     }
   }
-    }
-  }
 
   /// Delete Schedule
   /// DELETE /api/therapist/schedule/:id
@@ -876,6 +933,7 @@ class ApiService {
     if (_mockConfig.useMockData) {
       print('📦 [MOCK] Get dashboard stats');
       return MockResponse.success({
+        'status': 'success',
         'message': 'Dashboard stats fetched successfully',
         'data': {
           'todaySchedule': {'count': 0, 'sessions': []},
@@ -1244,6 +1302,46 @@ class ApiService {
     }
   }
 
+  /// Create User (Admin)
+  /// POST /api/admin/users
+  Future<MockResponse> createAdminUser({
+    required String name,
+    required String email,
+    required String password,
+    String role = 'THERAPIST',
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Create admin user');
+      return MockResponse.success({
+        'message': 'User created',
+        'data': {
+          'id': 'new-uuid',
+          'name': name,
+          'email': email,
+          'role': role,
+          'isBlocked': false,
+          'createdAt': DateTime.now().toIso8601String(),
+        },
+      });
+    }
+
+    print('🌐 [API] POST /admin/users');
+    try {
+      final response = await dio.post('/admin/users', data: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'role': role,
+      });
+      return MockResponse(
+        statusCode: response.statusCode ?? 201,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   /// Add Education Content
   /// POST /api/admin/education
   Future<MockResponse> addEducationContent({
@@ -1272,6 +1370,84 @@ class ApiService {
         'content': content,
         'type': type,
       });
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Admin Payments
+  /// GET /api/admin/payments
+  Future<MockResponse> getAdminPayments({
+    int page = 1,
+    int limit = 20,
+    String? status,
+    String? search,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get admin payments');
+      return MockResponse.success({
+        'message': 'Payments fetched',
+        'data': {
+          'transactions': [],
+          'summary': {'success': 0, 'pending': 0, 'failed': 0},
+          'pagination': {'page': page, 'limit': limit, 'total': 0, 'totalPages': 0},
+        },
+      });
+    }
+
+    print('🌐 [API] GET /admin/payments');
+    try {
+      final queryParameters = <String, dynamic>{
+        'page': page,
+        'limit': limit,
+      };
+      if (status != null) queryParameters['status'] = status;
+      if (search != null) queryParameters['search'] = search;
+
+      final response = await dio.get('/admin/payments', queryParameters: queryParameters);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Admin Reports
+  /// GET /api/admin/reports
+  Future<MockResponse> getAdminReports({
+    int page = 1,
+    int limit = 20,
+    String? status,
+    String? search,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get admin reports');
+      return MockResponse.success({
+        'message': 'Reports fetched',
+        'data': {
+          'reports': [],
+          'summary': {'sent': 0, 'draft': 0},
+          'pagination': {'page': page, 'limit': limit, 'total': 0, 'totalPages': 0},
+        },
+      });
+    }
+
+    print('🌐 [API] GET /admin/reports');
+    try {
+      final queryParameters = <String, dynamic>{
+        'page': page,
+        'limit': limit,
+      };
+      if (status != null) queryParameters['status'] = status;
+      if (search != null) queryParameters['search'] = search;
+
+      final response = await dio.get('/admin/reports', queryParameters: queryParameters);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -1395,9 +1571,27 @@ class ApiService {
 
   /// Create diagnosa (legacy alias → createDiagnosis)
   Future<MockResponse> createDiagnosa(Map<String, dynamic> diagnosaData) async {
+    // Check if it's using the new answers format or legacy symptoms format
+    final answers = diagnosaData['answers'];
+    final symptoms = diagnosaData['symptoms'];
+
+    Map<String, String> answersMap;
+    if (answers is Map) {
+      // New format: answers is already a Map<String, String>
+      answersMap = Map<String, String>.from(answers);
+    } else if (symptoms is List) {
+      // Legacy format: symptoms is a List<String>, convert to answers map
+      answersMap = {};
+      for (var i = 0; i < symptoms.length; i++) {
+        answersMap['symptom_$i'] = symptoms[i].toString();
+      }
+    } else {
+      answersMap = {};
+    }
+
     return createDiagnosis(
       childId: diagnosaData['childId'] ?? diagnosaData['child_id'] ?? '',
-      symptoms: (diagnosaData['symptoms'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      answers: answersMap,
     );
   }
 
@@ -1818,13 +2012,19 @@ class ApiService {
 
         case DioExceptionType.badResponse:
           final statusCode = error.response?.statusCode;
-          final message = error.response?.data['message'] ?? 'Terjadi kesalahan';
+          String message = 'Terjadi kesalahan';
+          try {
+            final data = error.response?.data;
+            if (data is Map) {
+              message = data['message']?.toString() ?? 'Terjadi kesalahan';
+            }
+          } catch (_) {}
 
           switch (statusCode) {
             case 400:
               return Exception('Request tidak valid: $message');
             case 401:
-              return Exception('Sesi telah berakhir. Silakan login kembali.');
+              return Exception('Email atau password salah.');
             case 403:
               return Exception('Akses ditolak: $message');
             case 404:
@@ -1832,20 +2032,29 @@ class ApiService {
             case 500:
               return Exception('Terjadi kesalahan server: $message');
             default:
-              return Exception('Terjadi kesalahan: $message');
+              return Exception('Terjadi kesalahan ($statusCode): $message');
           }
 
         case DioExceptionType.cancel:
           return Exception('Request dibatalkan');
 
+        case DioExceptionType.connectionError:
+          // Dio 5.x - connection error (network unreachable, SSL error, etc.)
+          return Exception('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.');
+
         case DioExceptionType.unknown:
-          if (error.message != null && error.message!.contains('SocketException')) {
-            return Exception('Tidak dapat terhubung ke server. Pastikan backend berjalan di ${AppConstants.baseUrl}');
+          final msg = error.message ?? '';
+          if (msg.contains('SocketException') || msg.contains('Connection refused')) {
+            return Exception('Tidak dapat terhubung ke server. Pastikan internet Anda aktif.');
+          }
+          if (msg.contains('HandshakeException') || msg.contains('CERTIFICATE')) {
+            return Exception('Koneksi tidak aman. Gagal verifikasi sertifikat SSL.');
           }
           return Exception('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.');
 
         default:
-          return Exception('Terjadi kesalahan tidak dikenal');
+          final detail = error.message ?? error.toString();
+          return Exception('Terjadi kesalahan: $detail');
       }
     }
 

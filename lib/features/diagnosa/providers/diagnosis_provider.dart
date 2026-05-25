@@ -51,23 +51,31 @@ class DiagnosisNotifier extends StateNotifier<DiagnosisState> {
 
       if (response.statusCode == 200) {
         final data = response.data;
-        if (data is Map<String, dynamic> && data['status'] == 'success') {
-          final diagnoses = ApiResponse.listFromJson<DiagnosisModel>(
-            data,
-            (json) => DiagnosisModel.fromJson(json),
-          );
+        List<DiagnosisModel> diagnoses = [];
 
-          state = state.copyWith(
-            diagnoses: diagnoses,
-            latestDiagnosis: diagnoses.isNotEmpty ? diagnoses.first : null,
-            isLoading: false,
-          );
-        } else {
-          state = state.copyWith(
-            error: data['message'] ?? 'Gagal memuat riwayat diagnosis',
-            isLoading: false,
-          );
+        // Handle different response formats
+        if (data is Map<String, dynamic>) {
+          if (data['data'] is List) {
+            diagnoses = (data['data'] as List)
+                .map((json) => DiagnosisModel.fromJson(json as Map<String, dynamic>))
+                .toList();
+          }
+        } else if (data is List) {
+          diagnoses = data
+              .map((json) => DiagnosisModel.fromJson(json as Map<String, dynamic>))
+              .toList();
         }
+
+        state = state.copyWith(
+          diagnoses: diagnoses,
+          latestDiagnosis: diagnoses.isNotEmpty ? diagnoses.first : null,
+          isLoading: false,
+        );
+      } else {
+        final msg = response.data is Map
+            ? (response.data as Map)['message'] ?? 'Gagal memuat riwayat diagnosis'
+            : 'Gagal memuat riwayat diagnosis';
+        state = state.copyWith(error: msg.toString(), isLoading: false);
       }
     } catch (e) {
       state = state.copyWith(
@@ -80,14 +88,14 @@ class DiagnosisNotifier extends StateNotifier<DiagnosisState> {
   /// Create new diagnosis
   Future<bool> createDiagnosis({
     required String childId,
-    required List<String> symptoms,
+    required Map<String, String> answers,
   }) async {
     state = state.copyWith(isSubmitting: true, error: null);
 
     try {
       final response = await _apiService.createDiagnosis(
         childId: childId,
-        symptoms: symptoms,
+        answers: answers,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -117,6 +125,23 @@ class DiagnosisNotifier extends StateNotifier<DiagnosisState> {
       );
       return false;
     }
+  }
+
+  /// Get single diagnosis by ID
+  Future<DiagnosisModel?> getDiagnosisById(String id) async {
+    try {
+      final response = await _apiService.getDiagnosisById(id);
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic> && data['data'] is Map<String, dynamic>) {
+          return DiagnosisModel.fromJson(data['data']);
+        }
+        if (data is Map<String, dynamic> && data['status'] == 'success' && data['data'] is Map<String, dynamic>) {
+          return DiagnosisModel.fromJson(data['data']);
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Clear error

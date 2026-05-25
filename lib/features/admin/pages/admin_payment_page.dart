@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/admin_bottom_nav.dart';
 import '../../../shared/widgets/loading_widget.dart';
+import '../providers/admin_payment_provider.dart';
 
 class AdminPaymentPage extends ConsumerStatefulWidget {
   const AdminPaymentPage({super.key});
@@ -17,71 +18,16 @@ class _AdminPaymentPageState extends ConsumerState<AdminPaymentPage> {
   final List<String> _tabs = ['Semua', 'Sukses', 'Pending', 'Gagal'];
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  bool _isLoading = true;
-
-  // Mock data - akan diganti dengan API call
-  final List<Map<String, dynamic>> _transactions = [
-    {
-      'id': 'TRX-2026-001',
-      'sessionId': 'sess-001',
-      'patientName': 'Siti Nurhaliza',
-      'therapistName': 'Dr. Sarah Wijaya',
-      'therapyType': 'Terapi Bicara',
-      'amount': 165000,
-      'status': 'SUCCESS',
-      'paymentMethod': 'bank_transfer',
-      'date': '2026-04-08 09:30',
-    },
-    {
-      'id': 'TRX-2026-002',
-      'sessionId': 'sess-002',
-      'patientName': 'Ahmad Fauzi',
-      'therapistName': 'Dr. Ahmad Fauzi',
-      'therapyType': 'Terapi Wicara',
-      'amount': 165000,
-      'status': 'PENDING',
-      'paymentMethod': 'gopay',
-      'date': '2026-04-08 11:00',
-    },
-    {
-      'id': 'TRX-2026-003',
-      'sessionId': 'sess-003',
-      'patientName': 'Dewi Lestari',
-      'therapistName': 'Dr. Sarah Wijaya',
-      'therapyType': 'Konsultasi',
-      'amount': 165000,
-      'status': 'SUCCESS',
-      'paymentMethod': 'shopeepay',
-      'date': '2026-04-07 14:00',
-    },
-    {
-      'id': 'TRX-2026-004',
-      'sessionId': 'sess-004',
-      'patientName': 'Budi Santoso',
-      'therapistName': 'Dr. Ahmad Fauzi',
-      'therapyType': 'Terapi Bicara',
-      'amount': 165000,
-      'status': 'FAILED',
-      'paymentMethod': 'bank_transfer',
-      'date': '2026-04-07 10:00',
-    },
-    {
-      'id': 'TRX-2026-005',
-      'sessionId': 'sess-005',
-      'patientName': 'Rina Kartika',
-      'therapistName': 'Dr. Sarah Wijaya',
-      'therapyType': 'Terapi Wicara',
-      'amount': 165000,
-      'status': 'SUCCESS',
-      'paymentMethod': 'mandiri_clickpay',
-      'date': '2026-04-06 16:00',
-    },
-  ];
 
   List<Map<String, dynamic>> get _filteredTransactions {
-    return _transactions.where((trx) {
-      final matchesSearch = trx['id'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          trx['patientName'].toLowerCase().contains(_searchQuery.toLowerCase());
+    final transactions = ref.watch(adminPaymentProvider).transactions;
+    return transactions.where((trx) {
+      final id = trx['id']?.toString().toLowerCase() ?? '';
+      final transactionId = trx['transactionId']?.toString().toLowerCase() ?? '';
+      final patientName = trx['patientName']?.toString().toLowerCase() ?? '';
+      final matchesSearch = id.contains(_searchQuery.toLowerCase()) ||
+          transactionId.contains(_searchQuery.toLowerCase()) ||
+          patientName.contains(_searchQuery.toLowerCase());
       final matchesTab = _selectedTab == 0 ||
           (_selectedTab == 1 && trx['status'] == 'SUCCESS') ||
           (_selectedTab == 2 && trx['status'] == 'PENDING') ||
@@ -99,36 +45,30 @@ class _AdminPaymentPageState extends ConsumerState<AdminPaymentPage> {
   @override
   void initState() {
     super.initState();
-    _fetchPayments();
+    Future.microtask(() {
+      ref.read(adminPaymentProvider.notifier).fetchPayments();
+    });
   }
 
   Future<void> _fetchPayments() async {
-    setState(() => _isLoading = true);
-    
-    // TODO: Replace with actual API call when backend has the endpoint
-    // final apiService = ApiService();
-    // final response = await apiService.getAdminPayments();
-    
-    // Simulate API delay
-    await Future.delayed(const Duration(seconds: 1));
-    
-    setState(() => _isLoading = false);
+    await ref.read(adminPaymentProvider.notifier).fetchPayments();
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(adminPaymentProvider);
     final filteredTransactions = _filteredTransactions;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(state),
       body: Column(
         children: [
           _buildSearchBar(),
           _buildTabBar(),
-          _buildSummaryCards(),
+          _buildSummaryCards(state),
           Expanded(
-            child: _isLoading
+            child: state.isLoading
                 ? const Center(child: LoadingWidget())
                 : filteredTransactions.isEmpty
                     ? _buildEmptyState()
@@ -140,7 +80,7 @@ class _AdminPaymentPageState extends ConsumerState<AdminPaymentPage> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(AdminPaymentState state) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -157,7 +97,7 @@ class _AdminPaymentPageState extends ConsumerState<AdminPaymentPage> {
             ),
           ),
           Text(
-            '${_filteredTransactions.length} transaksi',
+            '${state.total} transaksi',
             style: GoogleFonts.poppins(
               fontSize: 11,
               color: const Color(0xFF6B7280),
@@ -242,10 +182,10 @@ class _AdminPaymentPageState extends ConsumerState<AdminPaymentPage> {
     );
   }
 
-  Widget _buildSummaryCards() {
-    final successCount = _transactions.where((t) => t['status'] == 'SUCCESS').length;
-    final pendingCount = _transactions.where((t) => t['status'] == 'PENDING').length;
-    final failedCount = _transactions.where((t) => t['status'] == 'FAILED').length;
+  Widget _buildSummaryCards(AdminPaymentState state) {
+    final successCount = state.summary['success'] ?? 0;
+    final pendingCount = state.summary['pending'] ?? 0;
+    final failedCount = state.summary['failed'] ?? 0;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),

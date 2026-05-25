@@ -129,7 +129,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             ),
           ),
           Text(
-            'Kelola aplikasi Talkio',
+            'Kelola aplikasi Terapi Wicara',
             style: GoogleFonts.poppins(
               fontSize: 11,
               color: const Color(0xFF6B7280),

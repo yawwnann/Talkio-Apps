@@ -31,9 +31,35 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
   AnakModel? _selectedChild;
   String? _lastBookedTime; // Track recently booked time for optimistic UI update
 
+  bool _isWeekend(DateTime date) {
+    return date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+  }
+
+  DateTime _nextWorkingDay(DateTime from) {
+    var d = DateTime(from.year, from.month, from.day);
+    while (_isWeekend(d)) {
+      d = d.add(const Duration(days: 1));
+    }
+    return d;
+  }
+
+  bool _isSameDate(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  String _weekdayShort(DateTime date) {
+    // DateTime.weekday: Mon=1 ... Sun=7
+    const names = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+    return names[date.weekday - 1];
+  }
+
   @override
   void initState() {
     super.initState();
+
+    // If today is weekend, auto-move selection to the next working day
+    _selectedDate = _nextWorkingDay(DateTime.now());
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadChildren();
       _fetchAvailability();
@@ -61,8 +87,13 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
   }
 
   void _fetchAvailability() {
+    // Weekend is holiday: do not fetch availability to avoid showing selectable slots
+    if (_isWeekend(_selectedDate)) return;
+
     final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    ref.read(bookingProvider.notifier).fetchAvailability(widget.therapistId, dateStr);
+    ref
+        .read(bookingProvider.notifier)
+        .fetchAvailability(widget.therapistId, dateStr);
   }
 
   List<DateTime> _getWeekDates() {
@@ -110,7 +141,8 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
           ],
         ),
       ),
-      bottomNavigationBar: const ParentBottomNav(currentIndex: 0),
+      // Booking terapi adalah bagian dari menu Jadwal
+      bottomNavigationBar: const ParentBottomNav(currentIndex: 2),
     );
   }
 
@@ -268,7 +300,6 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
 
   Widget _buildDateSelector() {
     final weekDates = _getWeekDates();
-    final dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,29 +325,59 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
             itemCount: 7,
             itemBuilder: (context, index) {
               final date = weekDates[index];
-              final isSelected = date.day == _selectedDate.day && date.month == _selectedDate.month;
+              final isSelected = _isSameDate(date, _selectedDate);
+              final isHoliday = _isWeekend(date);
+              final canTap = !isHoliday;
+
+              final bgColor = isSelected
+                  ? AppConstants.primaryBlue
+                  : (isHoliday ? const Color(0xFFF3F4F6) : Colors.transparent);
+
+              final dayTextColor = isSelected
+                  ? Colors.white
+                  : (isHoliday ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280));
+
+              final dateTextColor = isSelected
+                  ? Colors.white
+                  : (isHoliday ? const Color(0xFF9CA3AF) : const Color(0xFF111827));
 
               return GestureDetector(
-                onTap: () {
-                  setState(() => _selectedDate = date);
-                  _fetchAvailability();
-                },
+                onTap: canTap
+                    ? () {
+                        setState(() {
+                          _selectedDate = date;
+                          _selectedTimeSlot = null;
+                        });
+                        _fetchAvailability();
+                      }
+                    : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Hari Sabtu & Minggu libur. Silakan pilih hari lain.',
+                              style: GoogleFonts.poppins(fontSize: 12),
+                            ),
+                            duration: const Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
                 child: Container(
                   width: 44,
                   margin: const EdgeInsets.only(right: 6),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppConstants.primaryBlue : Colors.transparent,
+                    color: bgColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        dayNames[index],
+                        _weekdayShort(date),
                         style: GoogleFonts.poppins(
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
-                          color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                          color: dayTextColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -325,7 +386,7 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isSelected ? Colors.white : const Color(0xFF111827),
+                          color: dateTextColor,
                         ),
                       ),
                     ],
@@ -340,6 +401,31 @@ class _SelectSchedulePageState extends ConsumerState<SelectSchedulePage> {
   }
 
   Widget _buildTimeSlots(List<dynamic> slots, BookingState bookingState) {
+    if (_isWeekend(_selectedDate)) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.event_busy, color: Color(0xFFEF4444), size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Hari Sabtu dan Minggu libur. Silakan pilih tanggal lain.',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: const Color(0xFF6B7280),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -490,7 +576,8 @@ bool isPassed = false;
   }
 
   Widget _buildBookButton() {
-    final canBook = _selectedChild != null && _selectedTimeSlot != null;
+    final canBook =
+        _selectedChild != null && _selectedTimeSlot != null && !_isWeekend(_selectedDate);
 
     return SizedBox(
       width: double.infinity,

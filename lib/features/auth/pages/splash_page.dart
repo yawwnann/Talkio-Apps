@@ -86,7 +86,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
             // App Name
             Text(
-              'Pondok Terapi Bicara',
+              'Pondok Terapi Wicara',
               style: GoogleFonts.poppins(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,

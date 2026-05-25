@@ -33,7 +33,7 @@ class _TherapistDashboardPageState extends ConsumerState<TherapistDashboardPage>
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       appBar: const CustomAppBar(
-        title: 'Talkio',
+        title: 'Terapi Wicara',
         showBackButton: false,
         showLogo: true,
         centerTitle: false,

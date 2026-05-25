@@ -5,7 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/anak_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/anak_model.dart';
+import '../../../core/models/diagnosis_model.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../diagnosa/providers/diagnosis_provider.dart';
 
 /// Halaman Detail Anak dengan Tabs (Data, Progress, Riwayat)
 class AnakDetailPage extends ConsumerStatefulWidget {
@@ -513,30 +515,34 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
   }
 
   Widget _buildRiwayatTab(AnakModel anak) {
+    final diagnosisState = ref.watch(diagnosisByChildProvider(anak.id));
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Riwayat Konsultasi
+          // Riwayat Diagnosa
           _buildRiwayatSection(
-            title: 'Riwayat Konsultasi',
+            title: 'Riwayat Diagnosa',
             icon: Icons.chat_outlined,
             iconColor: AppConstants.primaryBlue,
-            items: [
-              _buildRiwayatItem(
-                date: DateTime.now().subtract(const Duration(days: 7)),
-                title: 'Konsultasi Awal',
-                subtitle: 'Evaluasi perkembangan bicara',
-                status: 'completed',
-              ),
-              _buildRiwayatItem(
-                date: DateTime.now().subtract(const Duration(days: 30)),
-                title: 'Follow-up',
-                subtitle: 'Monitoring progress terapi',
-                status: 'completed',
-              ),
-            ],
+            trailing: TextButton(
+              onPressed: () => context.push('/diagnosa/${anak.id}'),
+              child: Text('Lihat Semua', style: GoogleFonts.poppins(fontSize: 12, color: AppConstants.primaryBlue)),
+            ),
+            items: diagnosisState.isLoading
+                ? [const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))]
+                : diagnosisState.diagnoses.isEmpty
+                    ? [
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Center(
+                            child: Text('Belum ada riwayat diagnosa', style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF94A3B8))),
+                          ),
+                        ),
+                      ]
+                    : diagnosisState.diagnoses.take(5).map((d) => _buildDiagnosaItem(d)).toList(),
           ),
 
           const SizedBox(height: 16),
@@ -591,10 +597,54 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
     );
   }
 
+  Widget _buildDiagnosaItem(DiagnosisModel d) {
+    final color = Color(d.riskLevelColorValue);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.push('/diagnosa/${d.childId}/${d.id}'),
+        child: Row(
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+              child: Icon(
+                d.riskLevel == 'HIGH' ? Icons.warning : d.riskLevel == 'MEDIUM' ? Icons.info_outline : Icons.check_circle,
+                color: color, size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(d.riskLevelDisplay, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text('Skor: ${d.score}%  |  ${d.ageCategory}', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[600])),
+                ],
+              ),
+            ),
+            Text(
+              _formatRelativeDate(d.createdAt),
+              style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildRiwayatSection({
     required String title,
     required IconData icon,
     required Color iconColor,
+    Widget? trailing,
     required List<Widget> items,
   }) {
     return Container(
@@ -617,13 +667,16 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             children: [
               Icon(icon, color: iconColor),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
+              if (trailing != null) trailing,
             ],
           ),
           const SizedBox(height: 12),
