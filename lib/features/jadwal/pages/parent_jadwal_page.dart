@@ -151,7 +151,8 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
 
   Widget _buildDateStrip(List<DateTime> weekDates) {
     final today = DateTime.now();
-    final dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    // Nama hari Indonesia - mapping dari weekday number
+    final dayNames = ['', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
     return Container(
       height: 68,
@@ -164,7 +165,8 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
           final date = weekDates[index];
           final isToday = date.day == today.day && date.month == today.month;
           final isSelected = index == _selectedWeekDay;
-          final dayName = dayNames[index];
+          // Gunakan weekday dari date объекта (1=Sen...7=Min)
+          final dayName = dayNames[date.weekday];
 
           return GestureDetector(
             onTap: () => setState(() => _selectedWeekDay = index),
@@ -299,22 +301,47 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
   Widget _buildSessionCard(Map<String, dynamic> session) {
     final isActive = session['isActive'] == true;
     final paymentStatus = session['paymentStatus'];
+    final sessionId = session['id']?.toString() ?? '';
 
+    // Parse schedule date
+    DateTime scheduleDate;
+    try {
+      scheduleDate = DateTime.parse(session['schedule']).toLocal();
+    } catch (e) {
+      scheduleDate = DateTime.now();
+    }
+
+    // Check if session has passed (add 30 minutes tolerance)
+    final now = DateTime.now();
+    final sessionExpired = scheduleDate.add(const Duration(minutes: 30)).isBefore(now);
+
+    // Determine status
     Color statusColor;
     String statusLabel;
+    bool showPayButton = false;
 
     if (paymentStatus == 'PENDING') {
-      statusColor = const Color(0xFFF59E0B);
-      statusLabel = 'Menunggu Pembayaran';
+      if (sessionExpired) {
+        // Session has passed - show as cancelled/expired
+        statusColor = const Color(0xFFEF4444);
+        statusLabel = 'Terlewat';
+        showPayButton = false;
+      } else {
+        // Session hasn't passed yet - show pending with pay button
+        statusColor = const Color(0xFFF59E0B);
+        statusLabel = 'Menunggu Pembayaran';
+        showPayButton = true;
+      }
     } else if (isActive) {
       statusColor = const Color(0xFF10B981);
       statusLabel = 'Aktif';
+      showPayButton = false;
     } else {
       statusColor = const Color(0xFF3B82F6);
       statusLabel = 'Selesai';
+      showPayButton = false;
     }
 
-    final scheduleDate = DateTime.parse(session['schedule']).toLocal();
     final timeStr = DateFormat('HH:mm').format(scheduleDate);
     final dateStr = DateFormat('dd MMM yyyy').format(scheduleDate);
 
@@ -428,9 +455,141 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
               ),
             ],
           ),
+          // Action buttons
+          if (showPayButton) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _handlePayNow(session),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppConstants.primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.payment, size: 18),
+                label: Text(
+                  'Bayar Sekarang',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          // Show cancel message if session expired
+          if (paymentStatus == 'PENDING' && sessionExpired) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 14, color: const Color(0xFFEF4444)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Waktu pembayaran telah habis. Sesi tidak dapat diproses.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: const Color(0xFFEF4444),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _handlePayNow(Map<String, dynamic> session) async {
+    final sessionId = session['id']?.toString();
+    if (sessionId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ID sesi tidak valid'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show loading
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    try {
+      final result = await ref.read(parentScheduleProvider.notifier).retakePayment(sessionId);
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+      }
+
+      if (result != null) {
+        final paymentUrl = result['paymentUrl']?.toString();
+
+        if (paymentUrl != null && paymentUrl.isNotEmpty) {
+          if (mounted) {
+            final paymentResult = await context.push<bool>('/payment/webview', extra: {
+              'paymentUrl': paymentUrl,
+              'sessionId': sessionId,
+            });
+
+            if (paymentResult == true && mounted) {
+              // Refresh schedule after successful payment
+              ref.read(parentScheduleProvider.notifier).fetchSchedule();
+            }
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('URL pembayaran tidak tersedia'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal mendapatkan URL pembayaran'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildErrorState(String error) {

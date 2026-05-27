@@ -147,7 +147,8 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
 
   Widget _buildDateStrip(List<DateTime> weekDates) {
     final today = DateTime.now();
-    final dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    // Nama hari Indonesia - mapping dari weekday number
+    final dayNames = ['', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
     return Container(
       height: 68,
@@ -160,7 +161,8 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
           final date = weekDates[index];
           final isToday = date.day == today.day && date.month == today.month;
           final isSelected = index == _selectedWeekDay;
-          final dayName = dayNames[index];
+          // Gunakan weekday dari date объекта (1=Sen...7=Min)
+          final dayName = dayNames[date.weekday];
 
           return GestureDetector(
             onTap: () => setState(() => _selectedWeekDay = index),

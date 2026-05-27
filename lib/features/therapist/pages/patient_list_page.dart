@@ -50,10 +50,11 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
       final name = anak.name.toLowerCase();
       final query = _searchQuery.toLowerCase();
       final matchesSearch = name.contains(query);
-      
-      final isDone = (anak.hashCode % 3 == 0); // Mock logic for 'Selesai Sesi'
-      final matchesFilter = _selectedFilter == 'Semua Pasien' || 
-          (_selectedFilter == 'Selesai Sesi' && isDone) || 
+
+      final status = anak.sessionStatus ?? '';
+      final isDone = status == 'COMPLETED' || status == 'CANCELLED';
+      final matchesFilter = _selectedFilter == 'Semua Pasien' ||
+          (_selectedFilter == 'Selesai Sesi' && isDone) ||
           (_selectedFilter == 'Aktif Terapi' && !isDone);
 
       return matchesSearch && matchesFilter;
@@ -241,15 +242,17 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
   }
 
   Widget _buildPatientCard(dynamic anak) {
-    // Determine status (use hashCode logic for display variety)
-    final isDone = (anak.hashCode % 3 == 0);
+    final status = anak.sessionStatus ?? '';
+    final isDone = status == 'COMPLETED' || status == 'CANCELLED';
     final statusText = isDone ? 'SELESAI SESI' : 'AKTIF TERAPI';
     final statusColor = isDone ? const Color(0xFF94A3B8) : const Color(0xFF16A34A);
-    final progress = isDone ? 0.92 : ((anak.hashCode % 50) + 40) / 100.0;
-    
-    // Choose progress label
-    final progressLabels = ['Kejelasan Bicara', 'Kosakata', 'Interaksi Sosial', 'Kejelasan Artikulasi'];
-    final progressLabel = progressLabels[anak.hashCode % progressLabels.length];
+
+    String lastSessionStr = 'Belum ada sesi';
+    if (anak.lastSessionDate != null) {
+      final d = DateTime.parse(anak.lastSessionDate.toString());
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      lastSessionStr = '${d.day} ${months[d.month - 1]} ${d.year}';
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -270,7 +273,6 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
               ProfileAvatar(
                 name: anak.name,
                 radius: 25,
@@ -311,62 +313,28 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
                             letterSpacing: 0.5,
                           ),
                         ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '${anak.totalSessions} sesi',
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
-              InkWell(
-                onTap: () {},
-                borderRadius: BorderRadius.circular(12),
-                child: const Padding(
-                  padding: EdgeInsets.all(4.0),
-                  child: Icon(Icons.more_vert, color: Color(0xFF94A3B8), size: 20),
-                ),
-              ),
             ],
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-               Text(
-                progressLabel,
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
-              Text(
-                '${(progress * 100).toInt()}%',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: isDone ? const Color(0xFF2E7D32) : AppConstants.primaryBlue,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFE2E8F0),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isDone ? const Color(0xFF1B5E20) : AppConstants.primaryBlue,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             children: [
               const Icon(Icons.calendar_today_outlined, size: 12, color: Color(0xFF94A3B8)),
               const SizedBox(width: 6),
               Text(
-                'Sesi Terakhir: 12 Okt 2023',
+                'Sesi Terakhir: $lastSessionStr',
                 style: GoogleFonts.poppins(
                   fontSize: 10,
                   color: const Color(0xFF94A3B8),
@@ -383,7 +351,7 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
                   child: ElevatedButton(
                     onPressed: () => context.push('/therapist/pasien/${anak.id}'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF005BAC), // primary blue
+                      backgroundColor: const Color(0xFF005BAC),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -405,7 +373,7 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
                 width: 42,
                 height: 42,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFFCA28), // yellow map
+                  color: Color(0xFFFFCA28),
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(

@@ -526,15 +526,95 @@ class ApiService {
     }
   }
 
+  // ========== CLOUDINARY UPLOAD ENDPOINTS ==========
+
+  /// Upload file to Cloudinary via backend
+  /// POST /api/cloudinary/upload (multipart/form-data)
+  Future<MockResponse> uploadToCloudinary({
+    required File file,
+    required String childId,
+    void Function(int sent, int total)? onProgress,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Upload to Cloudinary: $childId');
+      return MockResponse.success({
+        'message': 'File uploaded successfully',
+        'data': {
+          'secureUrl': 'https://res.cloudinary.com/demo/image/upload/v1/mock.jpg',
+          'publicId': 'mock_public_id',
+          'resourceType': 'image',
+          'bytes': 1024,
+          'duration': null,
+        },
+      });
+    }
+
+    print('🌐 [API] POST /cloudinary/upload: $childId');
+
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path),
+        'childId': childId,
+      });
+
+      // Use dio with longer timeout for video uploads (5 minutes)
+      final response = await dio.post(
+        '/cloudinary/upload',
+        data: formData,
+        onSendProgress: (sent, total) {
+          if (onProgress != null && total > 0) {
+            onProgress(sent, total);
+          }
+        },
+        options: Options(
+          headers: {'Content-Type': 'multipart/form-data'},
+          sendTimeout: const Duration(minutes: 5),
+          receiveTimeout: const Duration(minutes: 5),
+        ),
+      );
+
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Delete file from Cloudinary via backend
+  /// DELETE /api/cloudinary/delete
+  Future<MockResponse> deleteFromCloudinary(String publicId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Delete from Cloudinary: $publicId');
+      return MockResponse.success({'message': 'File deleted successfully'});
+    }
+
+    print('🌐 [API] DELETE /cloudinary/delete');
+    try {
+      final response = await dio.delete('/cloudinary/delete', data: {
+        'publicId': publicId,
+      });
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // ========== PROGRESS UPLOAD ENDPOINTS ==========
 
   /// Upload Progress (Photo/Video/Audio)
   /// POST /api/progress/upload (multipart/form-data)
   Future<MockResponse> uploadProgress({
     required String childId,
-    required File file,
+    required String fileUrl,
+    String? cloudinaryPublicId,
+    String? fileType,
+    int? duration,
     String? notes,
-    void Function(int sent, int total)? onProgress,
   }) async {
     if (_mockConfig.useMockData) {
       print('📦 [MOCK] Upload progress for child: $childId');
@@ -543,9 +623,11 @@ class ApiService {
         'data': {
           'id': 'mock-upload-id',
           'childId': childId,
-          'fileUrl': '/uploads/mock-file.jpg',
+          'fileUrl': fileUrl,
+          'cloudinaryPublicId': cloudinaryPublicId,
           'parentNotes': notes,
-          'fileType': 'image',
+          'fileType': fileType ?? 'image',
+          'duration': duration,
           'createdAt': DateTime.now().toIso8601String(),
         },
       });
@@ -553,16 +635,16 @@ class ApiService {
 
     print('🌐 [API] POST /progress/upload: $childId');
     try {
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(file.path),
-        'childId': childId,
-        if (notes != null) 'notes': notes,
-      });
-
-      final response = await uploadDio.post(
+      final response = await dio.post(
         '/progress/upload',
-        data: formData,
-        onSendProgress: onProgress,
+        data: {
+          'childId': childId,
+          'fileUrl': fileUrl,
+          if (cloudinaryPublicId != null) 'cloudinaryPublicId': cloudinaryPublicId,
+          if (fileType != null) 'fileType': fileType,
+          if (duration != null) 'duration': duration,
+          if (notes != null) 'notes': notes,
+        },
       );
       return MockResponse(
         statusCode: response.statusCode ?? 200,
@@ -1188,6 +1270,34 @@ class ApiService {
     }
   }
 
+  /// Get Payment URL for existing pending session
+  /// POST /api/therapy/payment-url
+  Future<MockResponse> getPaymentUrl(String sessionId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get payment URL for session: $sessionId');
+      return MockResponse.success({
+        'message': 'Payment URL generated',
+        'data': {
+          'paymentUrl': 'https://app.sandbox.midtrans.com/snap/v2/vtweb/example',
+          'orderId': 'THERAPY-$sessionId',
+        },
+      });
+    }
+
+    print('🌐 [API] POST /therapy/payment-url: $sessionId');
+    try {
+      final response = await dio.post('/therapy/payment-url', data: {
+        'sessionId': sessionId,
+      });
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // ========== ADMIN ENDPOINTS ==========
 
   /// Get Dashboard Statistics
@@ -1714,14 +1824,23 @@ class ApiService {
     );
   }
 
-  /// Update anak (legacy - backend doesn't have this endpoint)
+  /// Update anak
   Future<MockResponse> updateAnak(String anakId, Map<String, dynamic> anakData) async {
     if (_mockConfig.useMockData) {
       print('📦 [MOCK] Update anak: $anakId');
       return AnakMockHandler.update(anakId, anakData);
     }
-    print('🌐 [API] Update anak (not directly supported by backend)');
-    return MockResponse(statusCode: 501, data: {'message': 'Not implemented in backend'});
+    try {
+      final response = await _dio.put(
+        '/children/$anakId',
+        data: anakData,
+      );
+      print('🌐 [API] Update anak: ${response.statusCode}');
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } on DioException catch (e) {
+      print('❌ [API] Update anak error: ${e.message}');
+      return _handleDioError(e);
+    }
   }
 
   /// Delete anak (legacy - backend doesn't have this endpoint)

@@ -35,12 +35,9 @@ class _ProgressUploadPageState extends ConsumerState<ProgressUploadPage> {
     });
   }
 
-  Future<void> _pickMedia(bool isVideo) async {
+  Future<void> _pickVideo() async {
     try {
-      final XFile? pickedFile = isVideo 
-          ? await _picker.pickVideo(source: ImageSource.gallery)
-          : await _picker.pickImage(source: ImageSource.gallery);
-      
+      final XFile? pickedFile = await _picker.pickVideo(source: ImageSource.gallery);
       if (pickedFile != null) {
         setState(() {
           _selectedFile = File(pickedFile.path);
@@ -48,7 +45,7 @@ class _ProgressUploadPageState extends ConsumerState<ProgressUploadPage> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memilih file: $e')),
+        SnackBar(content: Text('Gagal memilih video: $e')),
       );
     }
   }
@@ -171,7 +168,7 @@ class _ProgressUploadPageState extends ConsumerState<ProgressUploadPage> {
               const SizedBox(height: 24),
               
               Text(
-                'Media Progress (Foto/Video)',
+                'Media Progress (Video)',
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -200,38 +197,21 @@ class _ProgressUploadPageState extends ConsumerState<ProgressUploadPage> {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: uploadState.isUploading ? null : () => _pickMedia(false),
-                            icon: const Icon(Icons.image, size: 18),
-                            label: const Text('Pilih Foto'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppConstants.lightBlue,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: uploadState.isUploading ? null : () => _pickVideo(),
+                        icon: const Icon(Icons.videocam, size: 18),
+                        label: const Text('Pilih Video'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppConstants.primaryBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: uploadState.isUploading ? null : () => _pickMedia(true),
-                            icon: const Icon(Icons.videocam, size: 18),
-                            label: const Text('Pilih Video'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppConstants.primaryBlue,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),

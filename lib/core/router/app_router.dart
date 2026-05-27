@@ -11,6 +11,7 @@ import '../../features/dashboard/pages/therapist_dashboard_page.dart';
 import '../../features/anak/pages/anak_list_page.dart';
 import '../../features/anak/pages/add_anak_page.dart';
 import '../../features/anak/pages/anak_detail_page.dart';
+import '../../features/anak/pages/edit_anak_page.dart';
 import '../../features/konsultasi/pages/konsultasi_page.dart';
 import '../../features/diagnosa/pages/diagnosa_history_page.dart';
 import '../../features/diagnosa/pages/diagnosa_detail_page.dart';
@@ -160,7 +161,7 @@ class AppRouter {
               name: 'anak-edit',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
-                return _buildPlaceholderPage('Edit Anak', 'ID: $id');
+                return EditAnakPage(anakId: id);
               },
             ),
             GoRoute(

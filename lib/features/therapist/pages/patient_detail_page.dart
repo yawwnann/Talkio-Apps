@@ -3,6 +3,8 @@ import '../../../shared/widgets/profile_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:chewie/chewie.dart';
+import 'package:video_player/video_player.dart';
 import '../../anak/providers/anak_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/api_service.dart';
@@ -24,13 +26,16 @@ class _TherapistPatientDetailPageState
     extends ConsumerState<TherapistPatientDetailPage> {
   final TextEditingController _noteController = TextEditingController();
   final ApiService _apiService = ApiService();
-  
+
   Map<String, dynamic>? _patientDetail;
   List<dynamic> _progressNotes = [];
   List<ProgressUploadModel> _progressUploads = [];
   List<dynamic> _exercises = [];
+  List<dynamic> _reports = [];
   bool _isLoading = true;
   bool _isSubmittingNote = false;
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
 
   @override
   void initState() {
@@ -44,15 +49,17 @@ class _TherapistPatientDetailPageState
     });
 
     try {
-      // Fetch patient detail, progress, and exercises in parallel
+      // Fetch patient detail, progress, exercises, and reports in parallel
       final detailFuture = _apiService.getPatientDetail(widget.patientId);
       final progressFuture = _apiService.getPatientProgress(widget.patientId);
       final exercisesFuture = _apiService.getPatientExercises(widget.patientId);
+      final reportsFuture = _apiService.getReportHistory();
 
       final results = await Future.wait([
         detailFuture,
         progressFuture,
         exercisesFuture,
+        reportsFuture,
       ]);
 
       if (results[0].statusCode == 200) {
@@ -77,6 +84,14 @@ class _TherapistPatientDetailPageState
         final exercisesData = results[2].data;
         if (exercisesData is Map<String, dynamic> && exercisesData['status'] == 'success') {
           _exercises = exercisesData['data'] ?? [];
+        }
+      }
+
+      if (results[3].statusCode == 200) {
+        final reportsData = results[3].data;
+        if (reportsData is Map<String, dynamic> && reportsData['status'] == 'success') {
+          final allReports = reportsData['data'] as List? ?? [];
+          _reports = allReports.where((r) => r['patient_id'] == widget.patientId).toList();
         }
       }
     } catch (e) {
@@ -215,10 +230,6 @@ class _TherapistPatientDetailPageState
                   children: [
                     _buildProfileHeader(),
                     const SizedBox(height: 32),
-                    _buildSectionTitle('Ringkasan Kemajuan'),
-                    const SizedBox(height: 16),
-                    _buildProgressCards(),
-                    const SizedBox(height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -296,10 +307,32 @@ class _TherapistPatientDetailPageState
     final patientName = _patientDetail!['name'] ?? 'Pasien';
     final dateOfBirthStr = _patientDetail!['dateOfBirth'];
     final dateOfBirth = dateOfBirthStr != null ? DateTime.parse(dateOfBirthStr) : DateTime.now();
+    final diagnoses = _patientDetail!['diagnoses'] as List? ?? [];
+    final diagnosisLabel = diagnoses.isNotEmpty
+        ? diagnoses.map((d) => d['label'] ?? d['result'] ?? '').join(', ')
+        : 'Belum ada diagnosis';
+    final sessions = _patientDetail!['therapySessions'] as List? ?? [];
+    String lastSessionStr = 'Belum ada sesi';
+    if (sessions.isNotEmpty) {
+      final sorted = List<Map<String, dynamic>>.from(sessions)
+        ..sort((a, b) {
+          final da = DateTime.tryParse(a['schedule'] ?? '');
+          final db = DateTime.tryParse(b['schedule'] ?? '');
+          if (da == null && db == null) return 0;
+          if (da == null) return 1;
+          if (db == null) return -1;
+          return db.compareTo(da);
+        });
+      final last = sorted.first['schedule'];
+      if (last != null) {
+        final d = DateTime.parse(last.toString());
+        final months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        lastSessionStr = '${d.day} ${months[d.month - 1]} ${d.year}';
+      }
+    }
 
     return Column(
       children: [
-        // Avatar with Badge
         Center(
           child: Stack(
             clipBehavior: Clip.none,
@@ -319,7 +352,7 @@ class _TherapistPatientDetailPageState
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32), // Green color for AKTIF
+                      color: const Color(0xFF2E7D32),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -338,7 +371,6 @@ class _TherapistPatientDetailPageState
           ),
         ),
         const SizedBox(height: 24),
-        // Name
         Center(
           child: Text(
             patientName,
@@ -350,7 +382,6 @@ class _TherapistPatientDetailPageState
           ),
         ),
         const SizedBox(height: 8),
-        // ID Badge
         Center(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -359,7 +390,7 @@ class _TherapistPatientDetailPageState
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              'ID: LK-2024-039',
+              '${sessions.length} sesi terapi',
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: const Color(0xFF64748B),
@@ -369,7 +400,6 @@ class _TherapistPatientDetailPageState
           ),
         ),
         const SizedBox(height: 24),
-        // Usia and Diagnosis
         Row(
           children: [
             Expanded(
@@ -411,7 +441,7 @@ class _TherapistPatientDetailPageState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Keterlambatan Bicara -\nSedang',
+                    diagnosisLabel,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
@@ -431,7 +461,6 @@ class _TherapistPatientDetailPageState
           color: const Color(0xFFF1F5F9),
         ),
         const SizedBox(height: 16),
-        // Last Session
         Center(
           child: Column(
             children: [
@@ -446,7 +475,7 @@ class _TherapistPatientDetailPageState
               ),
               const SizedBox(height: 4),
               Text(
-                '12 Okt 2023',
+                lastSessionStr,
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -457,122 +486,6 @@ class _TherapistPatientDetailPageState
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildProgressCards() {
-    return Column(
-      children: [
-        _buildSingleProgressCard(
-          icon: Icons.record_voice_over,
-          color: AppConstants.primaryBlue,
-          bgColor: const Color(0xFFF0F5FF),
-          title: 'Kejelasan',
-          increase: '+12% Bulan ini',
-          value: 0.65,
-        ),
-        const SizedBox(height: 12),
-        _buildSingleProgressCard(
-          icon: Icons.menu_book,
-          color: const Color(0xFF16A34A), // Green
-          bgColor: const Color(0xFFF0FDF4),
-          title: 'Kosakata',
-          increase: '+5% Bulan ini',
-          value: 0.40,
-        ),
-        const SizedBox(height: 12),
-        _buildSingleProgressCard(
-          icon: Icons.forum,
-          color: const Color(0xFFD97706), // Gold/Brown
-          bgColor: const Color(0xFFFFFBEB),
-          title: 'Interaksi',
-          increase: '+18% Bulan ini',
-          value: 0.82,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSingleProgressCard({
-    required IconData icon,
-    required Color color,
-    required Color bgColor,
-    required String title,
-    required String increase,
-    required double value,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 18, color: color),
-              ),
-              Text(
-                increase,
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF1E293B),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: value,
-                    minHeight: 6,
-                    backgroundColor: Colors.black.withValues(alpha: 0.05),
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 36,
-                child: Text(
-                  '${(value * 100).toInt()}%',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                  textAlign: TextAlign.end,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -676,218 +589,296 @@ class _TherapistPatientDetailPageState
   }
 
   void _openMediaPreview(ProgressUploadModel upload) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.black,
-        insetPadding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            if (upload.isImage)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(upload.fileUrl, fit: BoxFit.contain),
-              )
-            else if (upload.isVideo)
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  children: [
-                    const Icon(Icons.videocam, color: Colors.white, size: 64),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Video: ${upload.formattedDate}',
-                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      upload.fileUrl,
-                      style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+    if (upload.isVideo) {
+      // Initialize video player
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(upload.fileUrl));
+      _chewieController = ChewieController(
+        videoPlayerController: _videoController!,
+        autoPlay: true,
+        looping: false,
+        aspectRatio: 16 / 9,
+        errorBuilder: (context, errorMessage) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 48),
+                const SizedBox(height: 8),
+                Text(
+                  'Gagal memuat video',
+                  style: GoogleFonts.poppins(color: Colors.white),
                 ),
-              )
-            else
+                Text(
+                  errorMessage,
+                  style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () {
+                    _chewieController?.dispose();
+                    _videoController?.dispose();
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
               Padding(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Chewie(controller: _chewieController!),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Video dari ${upload.formattedDate}',
+                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ).then((_) {
+        _chewieController?.dispose();
+        _videoController?.dispose();
+      });
+    } else if (upload.isImage) {
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              Flexible(
+                child: InteractiveViewer(
+                  child: Image.network(
+                    upload.fileUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Icon(Icons.error, color: Colors.white, size: 48),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // Audio
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(16),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.mic, color: Colors.white, size: 64),
+                const SizedBox(height: 16),
+                Text(
+                  'Rekaman Suara: ${upload.formattedDate}',
+                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
+                ),
+                if (upload.duration != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Durasi: ${upload.durationLabel}',
+                    style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // TODO: Implement audio playback
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Fitur pemutar audio sedang dikembangkan')),
+                    );
+                  },
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Putar'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppConstants.primaryBlue,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildExerciseHistory() {
+    if (_exercises.isEmpty) {
+      return Text(
+        'Belum ada riwayat latihan.',
+        style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+      );
+    }
+
+    return Column(
+      children: _exercises.take(5).map((e) {
+        final gameName = e['gameName'] ?? e['gameType'] ?? 'Latihan';
+        final playedAt = e['playedAt'] ?? e['createdAt'];
+        final score = e['score'];
+        String subtitle = '';
+        if (playedAt != null) {
+          final d = DateTime.parse(playedAt.toString());
+          final months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+          subtitle = '${d.day} ${months[d.month - 1]} ${d.year}';
+        }
+        if (score != null) subtitle += ' • Skor: $score';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryBlue.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.sports_esports, color: AppConstants.primaryBlue, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.mic, color: Colors.white, size: 64),
-                    const SizedBox(height: 16),
                     Text(
-                      'Rekaman Suara: ${upload.formattedDate}',
-                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
+                      gameName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1E293B),
+                      ),
                     ),
-                    if (upload.duration != null) ...[
-                      const SizedBox(height: 8),
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 4),
                       Text(
-                        'Durasi: ${upload.durationLabel}',
-                        style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
+                        subtitle,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: const Color(0xFF64748B),
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExerciseHistory() {
-    return Column(
-      children: [
-        _buildExerciseItem(
-          icon: Icons.mic,
-          color: AppConstants.primaryBlue,
-          bgColor: const Color(0xFFF0F5FF),
-          title: 'Latihan Huruf S',
-          subtitle: 'Kemarin • 15:30 • 0:45s',
-        ),
-        const SizedBox(height: 12),
-        _buildExerciseItem(
-          icon: Icons.extension,
-          color: const Color(0xFF16A34A), // Green puzzle
-          bgColor: const Color(0xFFF0FDF4),
-          title: 'Tebak Hewan',
-          subtitle: '14 Okt 2023 • 10:15 • 2:10s',
-        ),
-        const SizedBox(height: 12),
-        _buildExerciseItem(
-          icon: Icons.emoji_events,
-          color: const Color(0xFFD97706), // Gold trophy
-          bgColor: const Color(0xFFFFFBEB),
-          title: 'Pengulangan Kata Kerja',
-          subtitle: '12 Okt 2023 • 16:00 • 1:30s',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExerciseItem({
-    required IconData icon,
-    required Color color,
-    required Color bgColor,
-    required String title,
-    required String subtitle,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 24),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF1E293B),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: const Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: AppConstants.primaryBlue,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.play_arrow, color: Colors.white, size: 24),
-          ),
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildReports() {
-    return Column(
-      children: [
-        _buildReportItem('Laporan Bulanan - September', 'PDF • 1,2 MB'),
-        const SizedBox(height: 12),
-        _buildReportItem('Hasil Observasi Awal', 'PDF • 2,6 MB'),
-      ],
-    );
-  }
+    if (_reports.isEmpty) {
+      return Text(
+        'Belum ada laporan.',
+        style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+      );
+    }
 
-  Widget _buildReportItem(String title, String details) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.picture_as_pdf,
-            color: Color(0xFFDC2626),
-            size: 28,
-          ), // Red PDF Icon
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF1E293B),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  details,
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: const Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
+    return Column(
+      children: _reports.map((r) {
+        final title = r['title'] ?? r['summary'] ?? 'Laporan';
+        final date = r['date'] ?? '';
+        final status = r['status'] ?? '';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(24),
           ),
-          const Icon(
-            Icons.file_download_outlined,
-            color: Color(0xFF64748B),
-            size: 24,
+          child: Row(
+            children: [
+              const Icon(Icons.picture_as_pdf, color: Color(0xFFDC2626), size: 28),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      date,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.file_download_outlined, color: Color(0xFF64748B), size: 24),
+            ],
           ),
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 
@@ -951,9 +942,7 @@ class _TherapistPatientDetailPageState
           width: double.infinity,
           height: 52,
           child: ElevatedButton(
-            onPressed: () {
-              // Action save note
-            },
+            onPressed: _isSubmittingNote ? null : _submitNote,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppConstants.primaryBlue,
               shape: RoundedRectangleBorder(

@@ -9,6 +9,10 @@ class AnakModel {
   final String gender; // MALE or FEMALE
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  // Therapist-specific fields
+  final int totalSessions;
+  final DateTime? lastSessionDate;
+  final String? sessionStatus;
 
   AnakModel({
     required this.id,
@@ -18,6 +22,9 @@ class AnakModel {
     required this.gender,
     this.createdAt,
     this.updatedAt,
+    this.totalSessions = 0,
+    this.lastSessionDate,
+    this.sessionStatus,
   });
 
   // Calculate age
@@ -72,6 +79,11 @@ class AnakModel {
       updatedAt: json['updatedAt'] != null 
           ? DateTime.parse(json['updatedAt']) 
           : null,
+      totalSessions: json['totalSessions'] ?? 0,
+      lastSessionDate: json['lastSessionDate'] != null
+          ? DateTime.parse(json['lastSessionDate'])
+          : null,
+      sessionStatus: json['sessionStatus'],
     );
   }
 
@@ -97,6 +109,9 @@ class AnakModel {
     String? gender,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? totalSessions,
+    DateTime? lastSessionDate,
+    String? sessionStatus,
   }) {
     return AnakModel(
       id: id ?? this.id,
@@ -106,6 +121,9 @@ class AnakModel {
       gender: gender ?? this.gender,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      totalSessions: totalSessions ?? this.totalSessions,
+      lastSessionDate: lastSessionDate ?? this.lastSessionDate,
+      sessionStatus: sessionStatus ?? this.sessionStatus,
     );
   }
 

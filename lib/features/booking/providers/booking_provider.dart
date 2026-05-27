@@ -56,7 +56,7 @@ class BookingNotifier extends StateNotifier<BookingState> {
         if (data is Map<String, dynamic> && data['status'] == 'success') {
           final therapistData = data['data'] as List<dynamic>;
           state = state.copyWith(
-            therapists: therapistData.cast<Map<String, dynamic>>(),
+            therapists: therapistData.whereType<Map<String, dynamic>>().toList(),
             isLoading: false,
           );
         } else {

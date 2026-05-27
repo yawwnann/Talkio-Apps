@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
@@ -268,18 +269,21 @@ class _ParentPembayaranPageState extends ConsumerState<ParentPembayaranPage> {
                 ),
                 const Spacer(),
                 if (status == 'PENDING')
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppConstants.primaryBlue,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'Bayar',
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                  GestureDetector(
+                    onTap: () => _payNow(payment),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppConstants.primaryBlue,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Bayar',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -360,6 +364,23 @@ class _ParentPembayaranPageState extends ConsumerState<ParentPembayaranPage> {
     );
   }
 
+  Future<void> _payNow(Map<String, dynamic> payment) async {
+    final paymentUrl = payment['paymentUrl'];
+    if (paymentUrl == null || paymentUrl.toString().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('URL pembayaran tidak tersedia')),
+      );
+      return;
+    }
+    final result = await context.push<bool>('/payment/webview', extra: {
+      'paymentUrl': paymentUrl,
+      'sessionId': payment['sessionId'] ?? payment['id'],
+    });
+    if (result == true) {
+      ref.read(parentPaymentProvider.notifier).fetchPayments();
+    }
+  }
+
   void _showPaymentDetail(Map<String, dynamic> payment) {
     final status = payment['paymentStatus'];
     Color statusColor;
@@ -429,6 +450,14 @@ class _ParentPembayaranPageState extends ConsumerState<ParentPembayaranPage> {
           ),
         ),
         actions: [
+          if (status == 'PENDING')
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _payNow(payment);
+              },
+              child: Text('Bayar Sekarang', style: GoogleFonts.poppins(color: AppConstants.primaryBlue, fontWeight: FontWeight.w600)),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Tutup', style: GoogleFonts.poppins(color: AppConstants.primaryBlue)),

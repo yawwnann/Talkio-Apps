@@ -5,18 +5,18 @@ import 'package:flutter/material.dart';
 class AppConstants {
   // API Configuration
   /// Override in development using:
-  /// flutter run --dart-define=API_BASE_URL=http://localhost:3000/api
-  /// For Android emulator, use: http://10.0.2.2:3000/api
+  /// flutter run --dart-define=API_BASE_URL=http://localhost:4000/api
+  /// For Android emulator, use: http://10.0.2.2:4000/api
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://talkio-backend.vercel.app/api',
+    defaultValue: 'http://103.253.213.239/api',
   );
 
   /// Override in development using:
-  /// flutter run --dart-define=WS_BASE_URL=http://localhost:3000
+  /// flutter run --dart-define=WS_BASE_URL=http://localhost:4000
   static const String wsUrl = String.fromEnvironment(
     'WS_BASE_URL',
-    defaultValue: 'https://talkio-backend.vercel.app',
+    defaultValue: 'http://103.253.213.239',
   );
 
   static const String midtransBaseUrl = 'https://app.sandbox.midtrans.com/snap/v1';
@@ -75,4 +75,10 @@ class AppConstants {
   static const String sessionOngoing = 'ongoing';
   static const String sessionCompleted = 'completed';
   static const String sessionCancelled = 'cancelled';
+
+  // Cloudinary Configuration
+  static const String cloudinaryCloudName = 'dztyts5m1';
+  // Buat unsigned upload preset di https://cloudinary.com/console → Settings → Upload → Upload presets
+  // Ganti nilai ini sesuai nama preset yang dibuat
+  static const String cloudinaryUploadPreset = 'talkio_progress';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/dashboard_stats_provider.dart';
@@ -139,7 +140,7 @@ class _TherapistDashboardPageState extends ConsumerState<TherapistDashboardPage>
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: Navigate to reports page
+                    context.push('/therapist/laporan');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
@@ -164,7 +165,7 @@ class _TherapistDashboardPageState extends ConsumerState<TherapistDashboardPage>
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    // TODO: Navigate to schedule page
+                    context.push('/therapist/jadwal');
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
@@ -392,7 +393,7 @@ class _TherapistDashboardPageState extends ConsumerState<TherapistDashboardPage>
             ),
             TextButton(
               onPressed: () {
-                // TODO: Navigate to calendar view
+                context.push('/therapist/jadwal');
               },
               child: Text(
                 'Lihat Kalender >',
@@ -430,7 +431,7 @@ class _TherapistDashboardPageState extends ConsumerState<TherapistDashboardPage>
               padding: const EdgeInsets.only(bottom: 12),
               child: GestureDetector(
                 onTap: () {
-                  // TODO: Navigate to session detail
+                  context.push('/therapist/pasien/${session['childId']}');
                 },
                 child: _buildScheduleItem(
                   time,
@@ -445,7 +446,7 @@ class _TherapistDashboardPageState extends ConsumerState<TherapistDashboardPage>
         Center(
           child: TextButton.icon(
             onPressed: () {
-              // TODO: Open create schedule dialog
+              context.push('/therapist/jadwal');
             },
             icon: const Icon(Icons.add_circle_outline, size: 20),
             label: Text(
@@ -660,7 +661,7 @@ class _TherapistDashboardPageState extends ConsumerState<TherapistDashboardPage>
             if (patientCount > 0)
               TextButton(
                 onPressed: () {
-                  // TODO: Navigate to all patients page
+                  context.push('/therapist/pasien');
                 },
                 child: Text(
                   'Semua ($patientCount)',
@@ -697,8 +698,7 @@ class _TherapistDashboardPageState extends ConsumerState<TherapistDashboardPage>
               padding: const EdgeInsets.only(bottom: 12),
               child: GestureDetector(
                 onTap: () {
-                  // TODO: Navigate to patient detail
-                  // context.push('/therapist/patients/${patient['id']}');
+                  context.push('/therapist/pasien/${patient['id']}');
                 },
                 child: _buildPatientItem(
                   patient['name'] ?? 'Pasien',
@@ -711,7 +711,7 @@ class _TherapistDashboardPageState extends ConsumerState<TherapistDashboardPage>
         Center(
           child: TextButton(
             onPressed: () {
-              // TODO: Navigate to manage all patients
+              context.push('/therapist/pasien');
             },
             child: Text(
               'Kelola Semua Pasien',

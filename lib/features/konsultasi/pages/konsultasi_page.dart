@@ -381,9 +381,6 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
   }
 
   Widget _buildQuestionsStep(FCKonsultasiState state) {
-    final konsultasiNotifier = ref.read(fcKonsultasiProvider.notifier);
-    final milestoneInfo = konsultasiNotifier.getMilestoneInfo();
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -413,7 +410,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
                         ),
                       ),
                       Text(
-                        '${state.ageInMonths} bulan (${milestoneInfo['category'] ?? ''})',
+                        '${state.ageInMonths} bulan',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -425,11 +422,6 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
               ],
             ),
           ),
-
-          const SizedBox(height: 16),
-
-          // Milestone Info
-          _buildMilestoneCard(milestoneInfo),
 
           const SizedBox(height: 24),
 
@@ -462,90 +454,6 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMilestoneCard(Map<String, dynamic> milestoneInfo) {
-    final milestones = List<String>.from(milestoneInfo['milestones'] ?? []);
-    final warningSigns = List<String>.from(milestoneInfo['warningSigns'] ?? []);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.emoji_events, color: AppConstants.primaryBlue),
-              const SizedBox(width: 8),
-              Text(
-                'Milestone ${milestoneInfo['ageRange'] ?? ''}',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: milestones
-                .map((m) => Chip(
-                      label: Text(m, style: const TextStyle(fontSize: 11)),
-                      backgroundColor: const Color(0xFFE3F2FD),
-                      side: BorderSide.none,
-                    ))
-                .toList(),
-          ),
-          if (warningSigns.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const Divider(),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.warning_amber, color: Colors.orange[700], size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  'Tanda Bahaya:',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.orange[700],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ...warningSigns.map((w) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.circle,
-                          size: 6, color: Colors.orange),
-                      const SizedBox(width: 8),
-                      Text(
-                        w,
-                        style: GoogleFonts.poppins(fontSize: 11),
-                      ),
-                    ],
-                  ),
-                )),
-          ],
         ],
       ),
     );

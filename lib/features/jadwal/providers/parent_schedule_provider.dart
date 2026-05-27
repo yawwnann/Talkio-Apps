@@ -69,6 +69,24 @@ class ParentScheduleNotifier extends StateNotifier<ParentScheduleState> {
     }
   }
 
+  /// Retake payment for a session (generate new payment URL)
+  Future<Map<String, dynamic>?> retakePayment(String sessionId) async {
+    try {
+      final response = await _apiService.getPaymentUrl(sessionId);
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic> && data['status'] == 'success') {
+          return data['data'] as Map<String, dynamic>;
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error retake payment: $e');
+      return null;
+    }
+  }
+
   /// Clear error
   void clearError() {
     state = state.copyWith(error: null);
