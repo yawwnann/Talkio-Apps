@@ -84,17 +84,17 @@ class LaporanNotifier extends StateNotifier<LaporanState> {
     print('   Base URL: ${AppConstants.baseUrl}');
     print('   Endpoint: /therapist/reports');
     print('========================================');
-    
+
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       final response = await _dio.get('/therapist/reports');
-      
+
       if (response.statusCode == 200) {
         final data = response.data;
         print('📦 Response data type: ${data.runtimeType}');
         print('📦 Response data: $data');
-        
+
         if (data is Map<String, dynamic>) {
           if (data['status'] == 'success') {
             final laporanData = data['data'];
@@ -145,6 +145,7 @@ class LaporanNotifier extends StateNotifier<LaporanState> {
   }
 
   /// Create laporan - REAL API CALL
+  /// status: "DRAFT" or "SENT"
   Future<bool> createLaporan({
     required String childId,
     required String title,
@@ -155,13 +156,15 @@ class LaporanNotifier extends StateNotifier<LaporanState> {
     double? socialInteraction,
     String? barriers,
     List<String>? parentExercises,
+    String status = "DRAFT",
   }) async {
     print('========================================');
     print('🚀 Creating laporan via REAL API...');
     print('   Patient: $childId');
     print('   Title: $title');
+    print('   Status: $status');
     print('========================================');
-    
+
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -169,8 +172,9 @@ class LaporanNotifier extends StateNotifier<LaporanState> {
         'childId': childId,
         'title': title,
         'progressNotes': progressNotes,
+        'status': status,
       };
-      
+
       if (sessionDate != null) data['sessionDate'] = sessionDate;
       if (speechClarity != null) data['speechClarity'] = speechClarity;
       if (vocabulary != null) data['vocabulary'] = vocabulary;
@@ -180,20 +184,20 @@ class LaporanNotifier extends StateNotifier<LaporanState> {
 
       print('📤 Sending POST request...');
       print('   Payload: $data');
-      
+
       final response = await _dio.post('/therapist/report', data: data);
 
       print('📥 Response status: ${response.statusCode}');
       print('📥 Response data: ${response.data}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✅ Laporan created successfully!');
+        print('✅ Laporan created successfully with status: $status!');
         state = state.copyWith(isLoading: false);
         // Refresh laporan list
         await fetchLaporan();
         return true;
       } else {
-        final errorMsg = response.data is Map 
+        final errorMsg = response.data is Map
             ? response.data['message'] ?? 'Gagal menyimpan laporan'
             : 'Gagal menyimpan laporan';
         print('❌ Server returned error: $errorMsg');
@@ -215,7 +219,7 @@ class LaporanNotifier extends StateNotifier<LaporanState> {
     print('🚀 Publishing laporan via REAL API...');
     print('   Laporan ID: $laporanId');
     print('========================================');
-    
+
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -226,7 +230,7 @@ class LaporanNotifier extends StateNotifier<LaporanState> {
       print('📤 Sending PATCH request...');
       print('   URL: /therapist/report/$laporanId');
       print('   Payload: $data');
-      
+
       final response = await _dio.patch('/therapist/report/$laporanId', data: data);
 
       print('📥 Response status: ${response.statusCode}');
@@ -239,7 +243,7 @@ class LaporanNotifier extends StateNotifier<LaporanState> {
         await fetchLaporan();
         return true;
       } else {
-        final errorMsg = response.data is Map 
+        final errorMsg = response.data is Map
             ? response.data['message'] ?? 'Gagal mempublikasikan laporan'
             : 'Gagal mempublikasikan laporan';
         print('❌ Server returned error: $errorMsg');

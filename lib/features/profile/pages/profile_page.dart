@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/api_service.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/parent_bottom_nav.dart';
 import '../../../shared/widgets/therapist_bottom_nav.dart';
@@ -184,6 +185,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Column(
         children: [
           _buildMenuItem(Icons.person_outline, 'Edit Profil', () {}),
+          _buildMenuItem(Icons.shield_outlined, 'PIN Pemulihan', () => _showRecoveryPinDialog()),
           if (isTherapist) _buildMenuItem(Icons.calendar_today_outlined, 'Jadwal Terapi', () => context.go('/jadwal')),
           _buildMenuItem(Icons.notifications_outlined, 'Notifikasi', () => context.go('/notifikasi')),
           _buildMenuItem(Icons.info_outline, 'Tentang Aplikasi', () => _showAboutDialog()),
@@ -212,6 +214,176 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           side: const BorderSide(color: Colors.red),
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+    );
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  Future<void> _showRecoveryPinDialog() async {
+    final user = ref.read(currentUserProvider);
+    final hasPin = user?.hasRecoveryPin ?? false;
+
+    final oldPinC = TextEditingController();
+    final newPinC = TextEditingController();
+    final confirmPinC = TextEditingController();
+    bool loading = false;
+    bool obscureOld = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.shield_outlined, size: 22, color: AppConstants.primaryBlue),
+              const SizedBox(width: 8),
+              Text(
+                hasPin ? 'Ubah PIN Pemulihan' : 'Aktifkan PIN Pemulihan',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasPin
+                      ? 'Masukkan PIN lama, lalu buat PIN baru 6 digit.'
+                      : 'Buat PIN 6 digit untuk memulihkan akun jika lupa password.',
+                  style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 16),
+                if (hasPin) ...[
+                  TextField(
+                    controller: oldPinC,
+                    obscureText: obscureOld,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: InputDecoration(
+                      labelText: 'PIN Lama',
+                      labelStyle: GoogleFonts.poppins(fontSize: 13),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      counterText: '',
+                      suffixIcon: IconButton(
+                        icon: Icon(obscureOld ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18),
+                        onPressed: () => setDialogState(() => obscureOld = !obscureOld),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                TextField(
+                  controller: newPinC,
+                  obscureText: obscureNew,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: InputDecoration(
+                    labelText: hasPin ? 'PIN Baru' : 'PIN Pemulihan',
+                    labelStyle: GoogleFonts.poppins(fontSize: 13),
+                    hintText: '6 digit angka',
+                    hintStyle: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFFCBD5E1)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    counterText: '',
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureNew ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18),
+                      onPressed: () => setDialogState(() => obscureNew = !obscureNew),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: confirmPinC,
+                  obscureText: obscureConfirm,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: InputDecoration(
+                    labelText: 'Konfirmasi PIN',
+                    labelStyle: GoogleFonts.poppins(fontSize: 13),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    counterText: '',
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18),
+                      onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: loading ? null : () => Navigator.pop(ctx),
+              child: Text('Batal', style: GoogleFonts.poppins(color: const Color(0xFF6B7280))),
+            ),
+            ElevatedButton(
+              onPressed: loading
+                  ? null
+                  : () async {
+                      final newPin = newPinC.text.trim();
+                      final confirmPin = confirmPinC.text.trim();
+                      final oldPin = oldPinC.text.trim();
+
+                      if (hasPin && oldPin.isEmpty) {
+                        _showSnackBar('PIN lama harus diisi.', isError: true);
+                        return;
+                      }
+                      if (newPin.length != 6 || !RegExp(r'^\d{6}$').hasMatch(newPin)) {
+                        _showSnackBar('PIN baru harus 6 digit angka.', isError: true);
+                        return;
+                      }
+                      if (newPin != confirmPin) {
+                        _showSnackBar('PIN baru tidak cocok.', isError: true);
+                        return;
+                      }
+
+                      setDialogState(() => loading = true);
+                      try {
+                        final api = ApiService();
+                        final response = await api.setRecoveryPin(
+                          newPin: newPin,
+                          oldPin: hasPin ? oldPin : null,
+                        );
+                        if (response.statusCode == 200) {
+                          Navigator.pop(ctx);
+                          ref.read(authProvider.notifier).refreshProfile();
+                          _showSnackBar(
+                            hasPin ? 'PIN pemulihan berhasil diubah.' : 'PIN pemulihan berhasil diaktifkan.',
+                          );
+                        } else {
+                          final msg = response.data is Map ? response.data['message'] ?? 'Gagal menyimpan PIN.' : 'Gagal menyimpan PIN.';
+                          _showSnackBar(msg, isError: true);
+                        }
+                      } catch (e) {
+                        _showSnackBar(e.toString().replaceFirst('Exception: ', ''), isError: true);
+                      }
+                      if (ctx.mounted) setDialogState(() => loading = false);
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: loading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(hasPin ? 'Ubah PIN' : 'Aktifkan', style: GoogleFonts.poppins(color: Colors.white)),
+            ),
+          ],
         ),
       ),
     );

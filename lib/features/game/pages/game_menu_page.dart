@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_constants.dart';
@@ -10,7 +11,6 @@ import '../../../shared/widgets/parent_bottom_nav.dart';
 import '../../anak/providers/anak_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/game_recommendation_provider.dart';
-import 'voice_practice_simple_page.dart';
 
 /// Game Menu Page
 /// Menu game: pilih anak â†’ tampilkan rekomendasi game berdasarkan umur
@@ -61,50 +61,6 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
             _buildRecommendationsSection(context, selectedAnak),
 
             const SizedBox(height: 24),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Daftar Game',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1E293B),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  child: Text(
-                    'Lihat Semua',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: AppConstants.primaryBlue,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.72,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: gameList.length,
-              itemBuilder: (context, index) {
-                return _buildGameCard(context, gameList[index]);
-              },
-            ),
-
-            const SizedBox(height: 28),
             _buildTipsSection(),
           ],
         ),
@@ -172,7 +128,7 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
                   .map(
                     (anak) => DropdownMenuItem<AnakModel>(
                       value: anak,
-                      child: Text('${anak.name} • ${anak.age} th'),
+                      child: Text('${anak.name} \u2022 ${anak.age} th'),
                     ),
                   )
                   .toList(),
@@ -216,16 +172,19 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Rekomendasi Game',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1E293B),
+            Expanded(
+              child: Text(
+                'Rekomendasi Game',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E293B),
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
+            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
@@ -233,7 +192,7 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                '$bandLabel • ${rec.ageMonths} bln',
+                '$bandLabel \u2022 ${rec.ageMonths} bln',
                 style: GoogleFonts.poppins(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -244,7 +203,7 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
           ],
         ),
         const SizedBox(height: 12),
-        ...rec.games.map((g) => _buildRecommendationCard(context, g)),
+        ...rec.games.map((g) => _buildRecommendationCard(context, g, selectedAnak)),
       ],
     );
   }
@@ -340,7 +299,7 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
   }
 
   Widget _buildRecommendationCard(
-      BuildContext context, GameRecommendationItem recItem) {
+      BuildContext context, GameRecommendationItem recItem, AnakModel selectedAnak) {
     final title = recItem.gameType;
     final params = recItem.params;
 
@@ -401,16 +360,47 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
           const SizedBox(width: 10),
           IconButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Mulai "$title" (kerangka dulu, game menyusul)'),
-                  duration: const Duration(seconds: 1),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
+              final childId = selectedAnak.id;
+              switch (recItem.gameType) {
+                case 'Suara Binatang':
+                  context.pushNamed(
+                    'suara-binatang',
+                    extra: {
+                      'childId': childId,
+                      'choicesCount': params['choicesCount'] ?? 2,
+                      'rounds': params['rounds'] ?? 5,
+                    },
+                  );
+                  break;
+                case 'Kata Bergambar':
+                  context.pushNamed(
+                    'kata-bergambar',
+                    extra: {
+                      'childId': childId,
+                      'choicesCount': params['choicesCount'] ?? 3,
+                      'rounds': params['rounds'] ?? 8,
+                      'hintMode': params['hintMode'] ?? 'none',
+                    },
+                  );
+                  break;
+                case 'Tebak Suara':
+                  context.pushNamed('tebak-suara', extra: {'childId': childId});
+                  break;
+                case 'Latihan Artikulasi':
+                  context.pushNamed('latihan-artikulasi', extra: {'childId': childId});
+                  break;
+                case 'Cerita Interaktif':
+                  context.pushNamed('cerita-interaktif', extra: {'childId': childId});
+                  break;
+                default:
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Game "$title" sedang dalam pengembangan'),
+                      duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+              }
             },
             icon: const Icon(Icons.play_arrow_rounded),
             color: AppConstants.primaryBlue,
@@ -500,161 +490,6 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildGameCard(BuildContext context, Map<String, dynamic> game) {
-    return InkWell(
-      onTap: () => _navigateToGame(context, game),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: (game['bgColor'] as Color).withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Icon Container
-            Container(
-              width: double.infinity,
-              height: 80,
-              decoration: BoxDecoration(
-                color: game['bgColor'] as Color,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Icon(
-                  game['icon'] as IconData,
-                  size: 38,
-                  color: game['iconColor'] as Color,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // Title
-            Text(
-              game['title'] as String,
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1E293B),
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            const SizedBox(height: 2),
-
-            // Description - dengan Flexible
-            Flexible(
-              child: Text(
-                game['description'] as String,
-                style: GoogleFonts.poppins(
-                  fontSize: 9,
-                  color: const Color(0xFF94A3B8),
-                  height: 1.2,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-
-            const Spacer(),
-
-            // Badge and Coins
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildLevelBadge(game['level'] as String),
-                _buildCoinCounter(game['coins'] as int? ?? 0),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCoinCounter(int coins) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.attach_money,
-            size: 10,
-            color: const Color(0xFFFFB74D),
-          ),
-          const SizedBox(width: 2),
-          Text(
-            '$coins',
-            style: GoogleFonts.poppins(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF64748B),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLevelBadge(String level) {
-    Color badgeColor;
-    Color textColor;
-
-    switch (level.toLowerCase()) {
-      case 'level 1':
-        badgeColor = const Color(0xFFDCFCE7);
-        textColor = const Color(0xFF16A34A);
-        break;
-      case 'baru':
-        badgeColor = const Color(0xFFFEF3C7);
-        textColor = const Color(0xFFD97706);
-        break;
-      case 'hot':
-        badgeColor = const Color(0xFFDBEAFE);
-        textColor = const Color(0xFF2563EB);
-        break;
-      case 'sesuaikan':
-        badgeColor = const Color(0xFFFEE2E2);
-        textColor = const Color(0xFFDC2626);
-        break;
-      default:
-        badgeColor = const Color(0xFFF1F5F9);
-        textColor = const Color(0xFF64748B);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: badgeColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        level,
-        style: GoogleFonts.poppins(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: textColor,
-        ),
       ),
     );
   }
@@ -789,70 +624,6 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
     );
   }
 
-  void _navigateToGame(BuildContext context, Map<String, dynamic> game) {
-    if (game['route'] == '/game/voice-practice') {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => const VoicePracticeSimplePage(),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Membuka ${game['title']}...'),
-          duration: const Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    }
-  }
 }
-
-// Game Data
-final gameList = [
-  {
-    'title': 'Menirukan Suara',
-    'description': 'Kiri suara hewan dan benda di sekitar kita',
-    'icon': Icons.volume_up_rounded,
-    'bgColor': const Color(0xFFDCFCE7),
-    'iconColor': const Color(0xFF16A34A),
-    'level': 'Level 1',
-    'coins': 0,
-    'route': '/game/mimic-sound',
-  },
-  {
-    'title': 'Tebak Gambar',
-    'description': 'Sebutkan nama benda yang ada di gambar',
-    'icon': Icons.image_rounded,
-    'bgColor': const Color(0xFFFEF3C7),
-    'iconColor': const Color(0xFFD97706),
-    'level': 'Baru',
-    'coins': 0,
-    'route': '/game/guess-image',
-  },
-  {
-    'title': 'Latihan Suara',
-    'description': 'Rekam dan dengarkan suaramu sendiri',
-    'icon': Icons.mic_rounded,
-    'bgColor': const Color(0xFFDBEAFE),
-    'iconColor': const Color(0xFF2563EB),
-    'level': 'Hot',
-    'coins': 0,
-    'route': '/game/voice-practice',
-  },
-  {
-    'title': 'Puzzle Kata',
-    'description': 'Susun huruf menjadi kata yang benar',
-    'icon': Icons.toys_rounded,
-    'bgColor': const Color(0xFFFEE2E2),
-    'iconColor': const Color(0xFFDC2626),
-    'level': 'Sesuaikan',
-    'coins': 0,
-    'route': '/game/word-puzzle',
-  },
-];
 
 

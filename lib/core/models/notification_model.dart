@@ -4,6 +4,7 @@ class NotificationModel {
   final String body;
   final String type;
   final bool isRead;
+  final String? childId; // For PROGRESS_UPLOAD notifications - links to the child
   final DateTime createdAt;
 
   NotificationModel({
@@ -12,6 +13,7 @@ class NotificationModel {
     required this.body,
     required this.type,
     required this.isRead,
+    this.childId,
     required this.createdAt,
   });
 
@@ -22,6 +24,7 @@ class NotificationModel {
       body: json['body'] ?? '',
       type: json['type'] ?? 'INFO',
       isRead: json['isRead'] ?? false,
+      childId: json['childId'] ?? json['child_id'],
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
@@ -34,6 +37,7 @@ class NotificationModel {
     String? body,
     String? type,
     bool? isRead,
+    String? childId,
     DateTime? createdAt,
   }) {
     return NotificationModel(
@@ -42,6 +46,7 @@ class NotificationModel {
       body: body ?? this.body,
       type: type ?? this.type,
       isRead: isRead ?? this.isRead,
+      childId: childId ?? this.childId,
       createdAt: createdAt ?? this.createdAt,
     );
   }

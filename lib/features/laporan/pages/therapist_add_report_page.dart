@@ -9,7 +9,9 @@ import '../../anak/providers/anak_provider.dart';
 import '../providers/laporan_provider_real.dart';
 
 class TherapistAddReportPage extends ConsumerStatefulWidget {
-  const TherapistAddReportPage({super.key});
+  final String? initialPatientId;
+
+  const TherapistAddReportPage({super.key, this.initialPatientId});
 
   @override
   ConsumerState<TherapistAddReportPage> createState() =>
@@ -36,6 +38,20 @@ class _TherapistAddReportPageState
     });
   }
 
+  void _onAnakLoaded(List<AnakModel> allAnak) {
+    if (_selectedPatient != null) return;
+    if (widget.initialPatientId != null) {
+      final match = allAnak.where((p) => p.id == widget.initialPatientId);
+      if (match.isNotEmpty) {
+        setState(() => _selectedPatient = match.first);
+        return;
+      }
+    }
+    if (allAnak.isNotEmpty) {
+      setState(() => _selectedPatient = allAnak.first);
+    }
+  }
+
   @override
   void dispose() {
     _progressNotesController.dispose();
@@ -48,10 +64,7 @@ class _TherapistAddReportPageState
     final anakState = ref.watch(anakProvider);
     final allAnak = anakState.anakList;
 
-    // Auto-select first patient if available and empty
-    if (_selectedPatient == null && allAnak.isNotEmpty) {
-      _selectedPatient = allAnak.first;
-    }
+    _onAnakLoaded(allAnak);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -120,9 +133,10 @@ class _TherapistAddReportPageState
   Widget _buildPatientSelection(List<AnakModel> allAnak) {
     final name = _selectedPatient?.name ?? 'Pilih Pasien';
     final isMale = _selectedPatient?.gender == 'L';
+    final readOnly = widget.initialPatientId != null;
 
     return GestureDetector(
-      onTap: () {
+      onTap: readOnly ? null : () {
         if (allAnak.isNotEmpty) {
           _showPatientSelectionBottomSheet(allAnak);
         }
@@ -155,9 +169,11 @@ class _TherapistAddReportPageState
                     ),
                   ),
                   Text(
-                    _selectedPatient != null 
-                        ? 'Tap untuk ganti pasien' 
-                        : 'Pilih pasien terlebih dahulu',
+                    readOnly
+                        ? 'Pasien'
+                        : (_selectedPatient != null
+                            ? 'Tap untuk ganti pasien'
+                            : 'Pilih pasien terlebih dahulu'),
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       color: const Color(0xFF6B7280),
@@ -166,11 +182,12 @@ class _TherapistAddReportPageState
                 ],
               ),
             ),
-            Icon(
-              Icons.keyboard_arrow_down,
-              color: const Color(0xFF9CA3AF),
-              size: 20,
-            ),
+            if (!readOnly)
+              Icon(
+                Icons.keyboard_arrow_down,
+                color: const Color(0xFF9CA3AF),
+                size: 20,
+              ),
           ],
         ),
       ),
@@ -1025,7 +1042,9 @@ class _TherapistAddReportPageState
     try {
       // DIRECT API CALL - NO MOCK!
       final notifier = ref.read(laporanProvider.notifier);
-      
+
+      final reportStatus = isDraft ? "DRAFT" : "SENT";
+
       final success = await notifier.createLaporan(
         childId: _selectedPatient!.id,
         title: isDraft ? 'Draft Report' : 'Laporan Perkembangan',
@@ -1036,6 +1055,7 @@ class _TherapistAddReportPageState
         socialInteraction: _socialInteraction,
         barriers: _barriersController.text.trim(),
         parentExercises: _parentExercises,
+        status: reportStatus, // Send DRAFT or SENT
       );
 
       if (success) {

@@ -210,6 +210,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Refresh user profile from API
+  Future<void> refreshProfile() async {
+    try {
+      final response = await _apiService.getMyProfile();
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          final userData = data['data'];
+          if (userData is Map<String, dynamic>) {
+            final user = UserModel.fromJson(userData);
+            await StorageService.setObject(AppConstants.userKey, user.toJson());
+            state = state.copyWith(user: user);
+          }
+        }
+      }
+    } catch (e) {
+      print('⚠️ [AUTH] Failed to refresh profile: $e');
+    }
+  }
+
   /// Update user profile
   Future<bool> updateProfile(UserModel updatedUser) async {
     state = state.copyWith(isLoading: true, error: null);

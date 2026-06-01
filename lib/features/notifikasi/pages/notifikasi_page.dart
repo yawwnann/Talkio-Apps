@@ -200,8 +200,10 @@ class NotificationPage extends ConsumerWidget {
       case 'PAYMENT':
         return Icons.payment;
       case 'THERAPY':
+      case 'THERAPY_UPDATE':
         return Icons.medical_services;
       case 'REPORT':
+      case 'LAPORAN_BARU':
         return Icons.description;
       case 'MESSAGE':
         return Icons.chat_bubble;
@@ -209,6 +211,8 @@ class NotificationPage extends ConsumerWidget {
         return Icons.games;
       case 'PROGRESS_UPLOAD':
         return Icons.cloud_upload;
+      case 'ARTIKULASI_REVIEW':
+        return Icons.mic;
       default:
         return Icons.notifications;
     }
@@ -221,8 +225,10 @@ class NotificationPage extends ConsumerWidget {
       case 'PAYMENT':
         return const Color(0xFF4CAF50);
       case 'THERAPY':
+      case 'THERAPY_UPDATE':
         return const Color(0xFF9C27B0);
       case 'REPORT':
+      case 'LAPORAN_BARU':
         return const Color(0xFFFF9800);
       case 'MESSAGE':
         return const Color(0xFF00BCD4);
@@ -230,6 +236,8 @@ class NotificationPage extends ConsumerWidget {
         return const Color(0xFFE91E63);
       case 'PROGRESS_UPLOAD':
         return const Color(0xFF3B82F6);
+      case 'ARTIKULASI_REVIEW':
+        return const Color(0xFF10B981);
       default:
         return const Color(0xFF607D8B);
     }
@@ -262,13 +270,27 @@ class NotificationPage extends ConsumerWidget {
         context.push('/pembayaran');
         break;
       case 'REPORT':
+      case 'LAPORAN_BARU':
         context.push('/laporan');
         break;
       case 'GAME':
         context.push('/game');
         break;
       case 'THERAPY':
+      case 'THERAPY_UPDATE':
         context.push('/dashboard');
+        break;
+      case 'PROGRESS_UPLOAD':
+        // Navigate to patient detail page with childId if available
+        if (notification.childId != null) {
+          context.push('/therapist/pasien/${notification.childId}');
+        } else {
+          context.push('/therapist/pasien');
+        }
+        break;
+      case 'ARTIKULASI_REVIEW':
+        // Navigate to game/artikulasi page
+        context.push('/game');
         break;
       default:
         break;

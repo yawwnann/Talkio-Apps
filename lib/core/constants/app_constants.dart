@@ -81,4 +81,7 @@ class AppConstants {
   // Buat unsigned upload preset di https://cloudinary.com/console → Settings → Upload → Upload presets
   // Ganti nilai ini sesuai nama preset yang dibuat
   static const String cloudinaryUploadPreset = 'talkio_progress';
+
+  // Admin Contact (forgot password fallback)
+  static const String adminWhatsApp = '6281234567890';
 }

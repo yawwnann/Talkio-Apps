@@ -86,7 +86,9 @@ class ProgressUploadNotifier extends StateNotifier<ProgressUploadState> {
       final cloudinaryResult = cloudinaryData['data'] as Map<String, dynamic>;
       final secureUrl = cloudinaryResult['secureUrl'] as String;
       final publicId = cloudinaryResult['publicId'] as String;
-      final duration = cloudinaryResult['duration'] as int?;
+      final duration = cloudinaryResult['duration'] != null
+          ? (cloudinaryResult['duration'] as num).toInt()
+          : null;
 
       // Step 2: Save metadata to backend
       print('🔄 [ProgressUpload] Saving progress metadata...');

@@ -229,17 +229,7 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                     ),
                     TextButton(
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                              'Fitur lupa password akan segera hadir',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        );
+                        context.push('/forgot-password');
                       },
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,

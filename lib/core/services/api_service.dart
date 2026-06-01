@@ -151,6 +151,7 @@ class ApiService {
     required String email,
     required String password,
     String role = 'PARENT',
+    String? recoveryPin,
   }) async {
     if (_mockConfig.useMockData) {
       print('📦 [MOCK] Register: $email');
@@ -159,16 +160,129 @@ class ApiService {
         email: email,
         password: password,
         role: role,
+        recoveryPin: recoveryPin,
       );
     }
 
     print('🌐 [API] POST /auth/register: $email');
     try {
-      final response = await dio.post('/auth/register', data: {
+      final data = <String, dynamic>{
         'name': name,
         'email': email,
         'password': password,
         'role': role,
+      };
+      if (recoveryPin != null) data['recoveryPin'] = recoveryPin;
+
+      final response = await dio.post('/auth/register', data: data);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Forgot Password - Step 1 & 2: verify email + PIN
+  /// POST /api/auth/forgot-password
+  Future<MockResponse> forgotPassword({
+    required String email,
+    String? recoveryPin,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Forgot password: $email');
+      return AuthMockHandler.forgotPassword(email: email, recoveryPin: recoveryPin);
+    }
+
+    print('🌐 [API] POST /auth/forgot-password: $email');
+    try {
+      final data = <String, dynamic>{'email': email};
+      if (recoveryPin != null) data['recoveryPin'] = recoveryPin;
+
+      final response = await dio.post('/auth/forgot-password', data: data);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Reset Password - Step 3: reset with token
+  /// POST /api/auth/reset-password
+  Future<MockResponse> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Reset password');
+      return AuthMockHandler.resetPassword(token: token, newPassword: newPassword);
+    }
+
+    print('🌐 [API] POST /auth/reset-password');
+    try {
+      final response = await dio.post('/auth/reset-password', data: {
+        'token': token,
+        'newPassword': newPassword,
+      });
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Set/Change Recovery PIN (authenticated user)
+  /// PUT /api/auth/recovery-pin
+  Future<MockResponse> setRecoveryPin({
+    required String newPin,
+    String? oldPin,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Set recovery PIN');
+      return MockResponse.success({
+        'status': 'success',
+        'message': 'PIN pemulihan berhasil diubah.',
+      });
+    }
+
+    print('🌐 [API] PUT /auth/recovery-pin');
+    try {
+      final data = <String, dynamic>{'newPin': newPin};
+      if (oldPin != null) data['oldPin'] = oldPin;
+
+      final response = await dio.put('/auth/recovery-pin', data: data);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Admin: Reset User Recovery PIN
+  /// PUT /api/admin/users/:id/reset-pin
+  Future<MockResponse> resetUserPin({
+    required String userId,
+    required String recoveryPin,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Reset user PIN: $userId');
+      return MockResponse.success({
+        'message': 'PIN pemulihan berhasil direset',
+        'data': {'userId': userId},
+      });
+    }
+
+    print('🌐 [API] PUT /admin/users/$userId/reset-pin');
+    try {
+      final response = await dio.put('/admin/users/$userId/reset-pin', data: {
+        'recoveryPin': recoveryPin,
       });
       return MockResponse(
         statusCode: response.statusCode ?? 200,
@@ -727,6 +841,278 @@ class ApiService {
       });
 
       final response = await uploadDio.post('/v1/audio/store', data: formData);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ========== ARTIKULASI ENDPOINTS ==========
+
+  /// Log Articulation Session
+  /// POST /api/artikulasi/log (multipart/form-data)
+  Future<MockResponse> logArtikulasiSession({
+    required String childId,
+    required String targetWord,
+    required String targetSound,
+    required bool parentRating,
+    String? parentNotes,
+    File? audioFile,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Log artikulasi session: $targetWord ($targetSound)');
+      return MockResponse.success({
+        'status': 'success',
+        'message': 'Artikulasi sesi disimpan',
+        'data': {
+          'session': {
+            'id': 'mock-session-id',
+            'childId': childId,
+            'targetWord': targetWord,
+            'targetSound': targetSound,
+            'parentRating': parentRating,
+            'sessionScore': 15,
+            'createdAt': DateTime.now().toIso8601String(),
+          },
+          'hints': ['Bunyi $targetSound berkembang baik!'],
+          'nextRecommendation': 'Lanjutkan latihan!',
+          'soundStats': {
+            'sound': targetSound,
+            'total': 1,
+            'correct': parentRating ? 1 : 0,
+            'incorrect': parentRating ? 0 : 1,
+            'rate': parentRating ? 100 : 0,
+            'status': 'practicing',
+          },
+        },
+      });
+    }
+
+    print('🌐 [API] POST /artikulasi/log: $targetWord ($targetSound)');
+    try {
+      final formData = FormData();
+
+      // Add text fields
+      formData.fields.add(MapEntry('childId', childId));
+      formData.fields.add(MapEntry('targetWord', targetWord));
+      formData.fields.add(MapEntry('targetSound', targetSound));
+      formData.fields.add(MapEntry('parentRating', parentRating.toString()));
+      formData.fields.add(MapEntry('parentNotes', parentNotes ?? ''));
+      formData.fields.add(MapEntry('sessionScore', '15'));
+
+      // Add audio file if provided
+      if (audioFile != null) {
+        print('🌐 [API] Audio file path: ${audioFile.path}');
+        print('🌐 [API] Audio file exists: ${audioFile.existsSync()}');
+        if (audioFile.existsSync()) {
+          final stat = audioFile.statSync();
+          print('🌐 [API] Audio file size: ${stat.size} bytes');
+        }
+
+        formData.files.add(MapEntry(
+          'audio',
+          await MultipartFile.fromFile(audioFile.path, filename: 'articulation.m4a'),
+        ));
+      } else {
+        print('🌐 [API] No audio file provided');
+      }
+
+      final response = await uploadDio.post(
+        '/artikulasi/log',
+        data: formData,
+        options: Options(
+          headers: {'Content-Type': 'multipart/form-data'},
+          sendTimeout: const Duration(minutes: 2),
+        ),
+      );
+
+      return MockResponse(
+        statusCode: response.statusCode ?? 201,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Artikulasi Sessions for Child
+  /// GET /api/artikulasi/:childId
+  Future<MockResponse> getArtikulasiSessions(String childId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get artikulasi sessions: $childId');
+      return MockResponse.success({
+        'status': 'success',
+        'message': 'Data artikulasi berhasil diambil',
+        'data': {
+          'sessions': [],
+          'soundStats': {},
+          'nextRecommendation': 'Mulai latihan!',
+          'nextSound': null,
+        },
+      });
+    }
+
+    print('🌐 [API] GET /artikulasi/$childId');
+    try {
+      final response = await dio.get('/artikulasi/$childId');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Artikulasi Summary for Therapist
+  /// GET /api/artikulasi/:childId/summary
+  Future<MockResponse> getArtikulasiSummary(String childId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get artikulasi summary: $childId');
+      return MockResponse.success({
+        'status': 'success',
+        'message': 'Ringkasan artikulasi berhasil diambil',
+        'data': {
+          'soundStats': {
+            'R': {'sound': 'R', 'total': 5, 'correct': 3, 'incorrect': 2, 'rate': 60, 'status': 'practicing'},
+            'S': {'sound': 'S', 'total': 3, 'correct': 1, 'incorrect': 2, 'rate': 33, 'status': 'practicing'},
+            'L': {'sound': 'L', 'total': 0, 'correct': 0, 'incorrect': 0, 'rate': 0, 'status': 'not_started'},
+            'N': {'sound': 'N', 'total': 0, 'correct': 0, 'incorrect': 0, 'rate': 0, 'status': 'not_started'},
+          },
+          'summary': {
+            'masteredSounds': [],
+            'strugglingSounds': [],
+            'totalPractice': 8,
+          },
+          'timeline': [],
+          'latestSessions': [
+            {
+              'id': 'session-1',
+              'targetWord': 'RAJA',
+              'targetSound': 'R',
+              'parentRating': true,
+              'audioUrl': '/uploads/recordings/session-1.m4a',
+              'createdAt': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+              'needsReview': true,
+            },
+            {
+              'id': 'session-2',
+              'targetWord': 'RUSAK',
+              'targetSound': 'R',
+              'parentRating': null,
+              'audioUrl': '/uploads/recordings/session-2.m4a',
+              'createdAt': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
+              'needsReview': true,
+            },
+          ],
+          'needsReview': 2,
+          'trends': {},
+          'chartData': [],
+          'evaluation': {
+            'hints': [],
+            'recommendation': 'Fokus ke bunyi S yang masih perlu latihan.',
+          },
+        },
+      });
+    }
+
+    print('🌐 [API] GET /artikulasi/$childId/summary');
+    try {
+      final response = await dio.get('/artikulasi/$childId/summary');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Unreviewed Artikulasi Sessions (for therapist)
+  /// GET /api/artikulasi/:childId/unreviewed
+  Future<MockResponse> getUnreviewedSessions(String childId) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Get unreviewed artikulasi sessions: $childId');
+      return MockResponse.success({
+        'status': 'success',
+        'message': 'Sesi yang perlu direview',
+        'data': [
+          {
+            'id': 'session-1',
+            'targetWord': 'RAJA',
+            'targetSound': 'R',
+            'parentRating': true,
+            'audioUrl': '/uploads/recordings/session-1.m4a',
+            'createdAt': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+            'needsReview': true,
+          },
+          {
+            'id': 'session-2',
+            'targetWord': 'RUSUK',
+            'targetSound': 'R',
+            'parentRating': false,
+            'audioUrl': '/uploads/recordings/session-2.m4a',
+            'createdAt': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
+            'needsReview': true,
+          },
+        ],
+      });
+    }
+
+    print('🌐 [API] GET /artikulasi/$childId/unreviewed');
+    try {
+      final response = await dio.get('/artikulasi/$childId/unreviewed');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Review Articulation Session (Therapist)
+  /// POST /api/artikulasi/:sessionId/review
+  Future<MockResponse> reviewArtikulasiSession({
+    required String sessionId,
+    required String therapistRating, // "OKE" or "BELUM_OK"
+    required int therapistScore, // 0-100
+    String? therapistNotes,
+    List<String>? suggestedWords,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Review artikulasi session: $sessionId');
+      return MockResponse.success({
+        'status': 'success',
+        'message': 'Review berhasil disimpan',
+        'data': {
+          'session': {
+            'id': sessionId,
+            'therapistRating': therapistRating,
+            'therapistScore': therapistScore,
+            'therapistNotes': therapistNotes,
+            'suggestedWords': suggestedWords,
+            'reviewedAt': DateTime.now().toIso8601String(),
+          },
+          'notification': 'Notifikasi telah dikirim ke orang tua',
+        },
+      });
+    }
+
+    print('🌐 [API] POST /artikulasi/$sessionId/review');
+    try {
+      final response = await dio.post(
+        '/artikulasi/$sessionId/review',
+        data: {
+          'therapistRating': therapistRating,
+          'therapistScore': therapistScore,
+          if (therapistNotes != null) 'therapistNotes': therapistNotes,
+          if (suggestedWords != null) 'suggestedWords': suggestedWords,
+        },
+      );
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -1831,15 +2217,15 @@ class ApiService {
       return AnakMockHandler.update(anakId, anakData);
     }
     try {
-      final response = await _dio.put(
+      final response = await dio.put(
         '/children/$anakId',
         data: anakData,
       );
       print('🌐 [API] Update anak: ${response.statusCode}');
       return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
-    } on DioException catch (e) {
-      print('❌ [API] Update anak error: ${e.message}');
-      return _handleDioError(e);
+    } catch (e) {
+      print('❌ [API] Update anak error: $e');
+      throw _handleError(e);
     }
   }
 

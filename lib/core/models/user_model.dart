@@ -6,6 +6,7 @@ class UserModel {
   final String email;
   final String? name;
   final String role; // PARENT, THERAPIST, ADMIN
+  final bool hasRecoveryPin;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -14,6 +15,7 @@ class UserModel {
     required this.email,
     this.name,
     required this.role,
+    this.hasRecoveryPin = false,
     this.createdAt,
     this.updatedAt,
   });
@@ -25,6 +27,7 @@ class UserModel {
       email: json['email'] ?? '',
       name: json['name'],
       role: json['role'] ?? 'PARENT',
+      hasRecoveryPin: json['hasRecoveryPin'] ?? false,
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt']) 
           : null,
@@ -41,6 +44,7 @@ class UserModel {
       'email': email,
       'name': name,
       'role': role,
+      'hasRecoveryPin': hasRecoveryPin,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -52,6 +56,7 @@ class UserModel {
     String? email,
     String? name,
     String? role,
+    bool? hasRecoveryPin,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -60,6 +65,7 @@ class UserModel {
       email: email ?? this.email,
       name: name ?? this.name,
       role: role ?? this.role,
+      hasRecoveryPin: hasRecoveryPin ?? this.hasRecoveryPin,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

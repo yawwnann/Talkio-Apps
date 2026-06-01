@@ -224,7 +224,7 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
                     Row(
                       children: [
                         Text(
-                          _report['child']?['gender'] == 'L' ? 'Laki-laki' : 'Perempuan',
+                          _report['child']?['gender'] == 'MALE' ? 'Laki-laki' : 'Perempuan',
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             color: const Color(0xFF6B7280),

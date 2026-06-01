@@ -59,6 +59,65 @@ class AuthMockHandler {
     });
   }
 
+  /// Forgot Password mock
+  static Future<MockResponse> forgotPassword({
+    required String email,
+    String? recoveryPin,
+  }) async {
+    return _mockConfig.withDelay(() async {
+      if (email.isEmpty) {
+        return MockResponse.error('Email harus diisi', statusCode: 400);
+      }
+
+      // Step 1: just email check
+      if (recoveryPin == null) {
+        return MockResponse.success({
+          'status': 'success',
+          'message': 'Email ditemukan.',
+          'data': {'email': email, 'name': 'User Demo'},
+        });
+      }
+
+      // Step 2: verify PIN
+      if (recoveryPin != '123456') {
+        return MockResponse.error(
+          'PIN salah. Hubungi admin via WhatsApp di ${AppConstants.adminWhatsApp} untuk bantuan.',
+          statusCode: 400,
+        );
+      }
+
+      return MockResponse.success({
+        'status': 'success',
+        'message': 'PIN benar. Silakan reset password.',
+        'data': {
+          'resetToken': 'mock_reset_token_${DateTime.now().millisecondsSinceEpoch}',
+          'email': email,
+        },
+      });
+    });
+  }
+
+  /// Reset Password mock
+  static Future<MockResponse> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    return _mockConfig.withDelay(() async {
+      if (token.isEmpty) {
+        return MockResponse.error('Token tidak valid', statusCode: 400);
+      }
+
+      if (newPassword.length < 6) {
+        return MockResponse.error('Password minimal 6 karakter', statusCode: 400);
+      }
+
+      return MockResponse.success({
+        'status': 'success',
+        'message': 'Password berhasil direset. Silakan login.',
+      });
+    });
+  }
+
   /// Register mock
   static Future<MockResponse> register({
     required String name,
@@ -66,6 +125,7 @@ class AuthMockHandler {
     required String password,
     String? phone,
     String role = AppConstants.roleOrangTua,
+    String? recoveryPin,
   }) async {
     return _mockConfig.withDelay(() async {
       final mockData = await _mockConfig.loadMockData('auth_mock.json');

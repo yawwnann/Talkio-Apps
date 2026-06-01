@@ -329,6 +329,16 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
                   ],
                 ),
               ),
+              const PopupMenuItem(
+                value: 'reset_pin',
+                child: Row(
+                  children: [
+                    Icon(Icons.pin, size: 18, color: Color(0xFF8B5CF6)),
+                    SizedBox(width: 8),
+                    Text('Reset PIN', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
@@ -380,6 +390,9 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
         break;
       case 'reset_password':
         _showResetPasswordDialog(user);
+        break;
+      case 'reset_pin':
+        _showResetPinDialog(user);
         break;
     }
   }
@@ -561,6 +574,120 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
             child: Text('Reset', style: GoogleFonts.poppins(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showResetPinDialog(Map<String, dynamic> user) {
+    final pinC = TextEditingController();
+    final pinConfirmC = TextEditingController();
+    bool loading = false;
+    bool obscurePin = true;
+    bool obscureConfirm = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('Reset PIN Pemulihan', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Reset PIN untuk ${user['name']} (${user['email']})',
+                style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF6B7280)),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: pinC,
+                obscureText: obscurePin,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                decoration: InputDecoration(
+                  labelText: 'PIN Baru (6 digit)',
+                  labelStyle: GoogleFonts.poppins(fontSize: 13),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  counterText: '',
+                  suffixIcon: IconButton(
+                    icon: Icon(obscurePin ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18),
+                    onPressed: () => setDialogState(() => obscurePin = !obscurePin),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: pinConfirmC,
+                obscureText: obscureConfirm,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                decoration: InputDecoration(
+                  labelText: 'Konfirmasi PIN',
+                  labelStyle: GoogleFonts.poppins(fontSize: 13),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  counterText: '',
+                  suffixIcon: IconButton(
+                    icon: Icon(obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18),
+                    onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: loading ? null : () => Navigator.pop(ctx),
+              child: Text('Batal', style: GoogleFonts.poppins(color: const Color(0xFF6B7280))),
+            ),
+            ElevatedButton(
+              onPressed: loading
+                  ? null
+                  : () async {
+                      final pin = pinC.text.trim();
+                      final confirm = pinConfirmC.text.trim();
+
+                      if (pin.length != 6 || !RegExp(r'^\d{6}$').hasMatch(pin)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('PIN harus 6 digit angka'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+                      if (pin != confirm) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('PIN tidak cocok'), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => loading = true);
+                      try {
+                        final api = ApiService();
+                        final response = await api.resetUserPin(userId: user['id'], recoveryPin: pin);
+                        if (response.statusCode == 200) {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('PIN berhasil direset'), backgroundColor: Colors.green),
+                          );
+                        } else {
+                          final msg = response.data is Map ? response.data['message'] ?? 'Gagal reset PIN' : 'Gagal reset PIN';
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                      }
+                      if (ctx.mounted) setDialogState(() => loading = false);
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: loading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text('Reset PIN', style: GoogleFonts.poppins(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -424,7 +424,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Jadwal Terapi Terdekat',
+            'Jadwal Telah di Booking',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -448,7 +448,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                     Icon(Icons.event_busy_outlined, size: 40, color: Colors.grey[400]),
                     const SizedBox(height: 8),
                     Text(
-                      'Belum ada jadwal terdekat',
+                      'Belum ada jadwal booking',
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -480,7 +480,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                         const Icon(Icons.calendar_today, color: Colors.white, size: 20),
                         const SizedBox(height: 2),
                         Text(
-                          '${DateTime.parse(nearestSchedule['schedule']).day}',
+                          '${DateTime.parse(nearestSchedule['schedule']).toLocal().day}',
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -505,7 +505,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Pukul ${DateFormat('HH.mm').format(DateTime.parse(nearestSchedule['schedule']))} WIB',
+                          'Pukul ${DateFormat('HH.mm').format(DateTime.parse(nearestSchedule['schedule']).toLocal())} WIB',
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             color: const Color(0xFF64748B),
@@ -709,6 +709,15 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             const Color(0xFFF3E5F5),
             const Color(0xFF9C27B0),
             () => context.push('/progress/upload'),
+          ),
+          const SizedBox(height: 12),
+          _buildQuickAccessItem(
+            Icons.description_outlined,
+            'Lihat Laporan',
+            'Laporan perkembangan anak',
+            const Color(0xFFFCE4EC),
+            const Color(0xFFDC2626),
+            () => context.push('/laporan'),
           ),
           const SizedBox(height: 12),
           _buildQuickAccessItem(

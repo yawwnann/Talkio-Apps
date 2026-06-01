@@ -6,6 +6,7 @@ import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/pages/splash_page.dart';
 import '../../features/auth/pages/login_page_new.dart';
 import '../../features/auth/pages/register_page.dart';
+import '../../features/auth/pages/forgot_password_page.dart';
 import '../../features/dashboard/pages/parent_dashboard_page.dart';
 import '../../features/dashboard/pages/therapist_dashboard_page.dart';
 import '../../features/anak/pages/anak_list_page.dart';
@@ -16,7 +17,13 @@ import '../../features/konsultasi/pages/konsultasi_page.dart';
 import '../../features/diagnosa/pages/diagnosa_history_page.dart';
 import '../../features/diagnosa/pages/diagnosa_detail_page.dart';
 import '../../features/game/pages/game_menu_page.dart';
+import '../../features/game/pages/game_history_page.dart';
 import '../../features/game/pages/voice_practice_simple_page.dart';
+import '../../features/game/pages/suara_binatang_page.dart';
+import '../../features/game/pages/kata_bergambar_page.dart';
+import '../../features/game/pages/tebak_suara_page.dart';
+import '../../features/game/pages/latihan_artikulasi_page.dart';
+import '../../features/game/pages/cerita_interaktif_page.dart';
 import '../../features/pembayaran/pages/pembayaran_list_page.dart';
 import '../../features/pembayaran/pages/parent_pembayaran_page.dart';
 import '../../features/pembayaran/pages/payment_webview_page.dart';
@@ -72,7 +79,8 @@ class AppRouter {
 
         final isOnAuthPage =
             state.matchedLocation == '/login' ||
-            state.matchedLocation == '/register';
+            state.matchedLocation == '/register' ||
+            state.matchedLocation == '/forgot-password';
 
         // ── Not authenticated → ke login ───────────────────────────────────
         if (!isAuthenticated && !isOnAuthPage) {
@@ -128,6 +136,11 @@ class AppRouter {
           path: '/register',
           name: 'register',
           builder: (context, state) => const RegisterPage(),
+        ),
+        GoRoute(
+          path: '/forgot-password',
+          name: 'forgot-password',
+          builder: (context, state) => const ForgotPasswordPage(),
         ),
 
         // Dashboard Route
@@ -254,28 +267,68 @@ class AppRouter {
               builder: (context, state) => const VoicePracticeSimplePage(),
             ),
             GoRoute(
-              path: 'mimic-sound',
-              name: 'mimic-sound',
-              builder: (context, state) => _buildPlaceholderPage(
-                'Menirukan Suara',
-                'Game menirukan suara hewan dan benda',
-              ),
+              path: 'suara-binatang',
+              name: 'suara-binatang',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return SuaraBinatangPage(
+                  childId: extra['childId']?.toString() ?? '',
+                  choicesCount: extra['choicesCount'] ?? 2,
+                  totalRounds: extra['rounds'] ?? 5,
+                );
+              },
             ),
             GoRoute(
-              path: 'guess-image',
-              name: 'guess-image',
-              builder: (context, state) => _buildPlaceholderPage(
-                'Tebak Gambar',
-                'Game tebak nama benda dari gambar',
-              ),
+              path: 'kata-bergambar',
+              name: 'kata-bergambar',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return KataBergambarPage(
+                  childId: extra['childId']?.toString() ?? '',
+                  choicesCount: extra['choicesCount'] ?? 3,
+                  totalRounds: extra['rounds'] ?? 8,
+                  hintMode: extra['hintMode']?.toString() ?? 'none',
+                );
+              },
             ),
             GoRoute(
-              path: 'word-puzzle',
-              name: 'word-puzzle',
-              builder: (context, state) => _buildPlaceholderPage(
-                'Puzzle Kata',
-                'Game susun huruf menjadi kata',
-              ),
+              path: 'tebak-suara',
+              name: 'tebak-suara',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return TebakSuaraPage(
+                  childId: extra['childId']?.toString() ?? '',
+                  totalRounds: extra['rounds'] ?? 5,
+                );
+              },
+            ),
+            GoRoute(
+              path: 'latihan-artikulasi',
+              name: 'latihan-artikulasi',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return LatihanArtikulasiPage(
+                  childId: extra['childId']?.toString() ?? '',
+                  totalRounds: extra['rounds'] ?? 6,
+                  targetSound: extra['targetSound']?.toString(),
+                );
+              },
+            ),
+            GoRoute(
+              path: 'cerita-interaktif',
+              name: 'cerita-interaktif',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return CeritaInteraktifPage(
+                  childId: extra['childId']?.toString() ?? '',
+                  storyIndex: extra['storyIndex'] ?? 0,
+                );
+              },
+            ),
+            GoRoute(
+              path: 'history',
+              name: 'game-history',
+              builder: (context, state) => const GameHistoryPage(),
             ),
           ],
         ),
@@ -405,7 +458,9 @@ class AppRouter {
         GoRoute(
           path: '/therapist/laporan/add',
           name: 'therapist-laporan-add',
-          builder: (context, state) => const TherapistAddReportPage(),
+          builder: (context, state) => TherapistAddReportPage(
+            initialPatientId: state.extra as String?,
+          ),
         ),
 
         // Therapist Laporan Detail Route

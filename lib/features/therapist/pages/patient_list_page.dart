@@ -80,18 +80,9 @@ class _TherapistPatientPageState extends ConsumerState<TherapistPatientPage> {
             filteredAnak.isEmpty
                 ? _buildEmptyState(anakState.isLoading)
                 : _buildPatientList(filteredAnak),
-            const SizedBox(height: 80), // Fab spacing
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: const Color(0xFF005BAC), // primaryBlue
-        shape: const CircleBorder(),
-        elevation: 4,
-        child: const Icon(Icons.person_add, color: Colors.white, size: 24),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: TherapistBottomNav(currentIndex: 1),
     );
   }

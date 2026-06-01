@@ -42,7 +42,13 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
       backgroundColor: const Color(0xFFF8F9FE),
       appBar: SimpleAppBar(
         title: 'Konsultasi Speech Delay',
-        onBackPress: () => context.pop(),
+        onBackPress: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/dashboard');
+          }
+        },
       ),
       body: Column(
         children: [
