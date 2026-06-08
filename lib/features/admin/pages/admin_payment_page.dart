@@ -452,7 +452,7 @@ class _AdminPaymentPageState extends ConsumerState<AdminPaymentPage> {
               _buildDetailRow('Status', statusLabel, color: statusColor),
               const Divider(),
               _buildDetailRow('Pasien', trx['patientName']),
-              _buildDetailRow('Therapist', trx['therapistName']),
+              _buildDetailRow('Terapis', trx['therapistName']),
               _buildDetailRow('Jenis Terapi', trx['therapyType']),
               const Divider(),
               _buildDetailRow('Metode Pembayaran', trx['paymentMethod'].toUpperCase()),

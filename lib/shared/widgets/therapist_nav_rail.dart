@@ -23,7 +23,7 @@ class TherapistNavRail extends StatelessWidget {
       NavigationRailDestination(
         icon: const Icon(Icons.home_outlined),
         selectedIcon: const Icon(Icons.home),
-        label: const Text('Home'),
+        label: const Text('Beranda'),
       ),
       NavigationRailDestination(
         icon: const Icon(Icons.people_outline),

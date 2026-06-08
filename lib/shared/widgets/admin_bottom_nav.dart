@@ -36,7 +36,7 @@ class AdminBottomNav extends StatelessWidget {
                 context,
                 Icons.home_outlined,
                 Icons.home,
-                'Home',
+                'Beranda',
                 0,
                 '/admin-dashboard',
               ),

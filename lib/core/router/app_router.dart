@@ -34,6 +34,7 @@ import '../../features/laporan/pages/therapist_report_list_page.dart';
 import '../../features/laporan/pages/therapist_report_detail_page.dart';
 import '../../features/laporan/pages/therapist_add_report_page.dart';
 import '../../features/profile/pages/profile_page.dart';
+import '../../features/profile/pages/edit_profile_page.dart';
 import '../../features/therapist/pages/patient_list_page.dart';
 import '../../features/therapist/pages/patient_detail_page.dart';
 import '../../features/admin/pages/admin_dashboard_page.dart';
@@ -42,6 +43,7 @@ import '../../features/admin/pages/admin_payment_page.dart';
 import '../../features/admin/pages/admin_report_page.dart';
 import '../../features/admin/pages/admin_profile_page.dart';
 import '../../features/admin/pages/admin_asset_management_page.dart';
+import '../../features/admin/pages/admin_notification_page.dart';
 import '../../features/laporan/pages/parent_report_list_page.dart';
 import '../../features/laporan/pages/parent_report_detail_page.dart';
 import '../../features/booking/pages/select_therapist_page.dart';
@@ -434,7 +436,12 @@ class AppRouter {
               name: 'therapist-patient-detail',
               builder: (context, state) {
                 final id = state.pathParameters['id']!;
-                return TherapistPatientDetailPage(patientId: id);
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                final openTab = extra['openTab'] as String?;
+                return TherapistPatientDetailPage(
+                  patientId: id,
+                  openTab: openTab,
+                );
               },
             ),
           ],
@@ -454,13 +461,17 @@ class AppRouter {
           builder: (context, state) => const TherapistReportListPage(),
         ),
 
-        // Therapist Add Laporan Route
+        // Therapist Add/Edit Laporan Route
         GoRoute(
           path: '/therapist/laporan/add',
           name: 'therapist-laporan-add',
-          builder: (context, state) => TherapistAddReportPage(
-            initialPatientId: state.extra as String?,
-          ),
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            return TherapistAddReportPage(
+              initialPatientId: extra?['patientId'] as String?,
+              initialLaporanId: extra?['laporanId'] as String?,
+            );
+          },
         ),
 
         // Therapist Laporan Detail Route
@@ -508,6 +519,13 @@ class AppRouter {
           builder: (context, state) => const AdminAssetManagementPage(),
         ),
 
+        // Admin Notification Route
+        GoRoute(
+          path: '/admin/notifikasi',
+          name: 'admin-notifications',
+          builder: (context, state) => const AdminNotificationPage(),
+        ),
+
         // Profile Route (role-based)
         GoRoute(
           path: '/profile',
@@ -515,7 +533,7 @@ class AppRouter {
           builder: (context, state) {
             final user = ref.read(currentUserProvider);
             final role = user?.role ?? '';
-            
+
             if (role == AppConstants.roleAdmin) {
               return const AdminProfilePage();
             } else if (role == AppConstants.roleTerapis) {
@@ -526,6 +544,13 @@ class AppRouter {
               return const ProfilePage();
             }
           },
+        ),
+
+        // Edit Profile Route
+        GoRoute(
+          path: '/profile/edit',
+          name: 'edit-profile',
+          builder: (context, state) => const EditProfilePage(),
         ),
       ],
       errorBuilder: (context, state) => _buildErrorPage(state.error.toString()),

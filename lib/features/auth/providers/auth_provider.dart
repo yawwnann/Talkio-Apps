@@ -232,21 +232,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Update user profile
   Future<bool> updateProfile(UserModel updatedUser) async {
-    state = state.copyWith(isLoading: true, error: null);
-
     try {
-      // Note: Update profile API endpoint would go here
-      // For now, just update local storage
       await StorageService.setObject(
         AppConstants.userKey,
         updatedUser.toJson(),
       );
-
-      state = state.copyWith(user: updatedUser, isLoading: false);
-
+      // Update state without triggering isLoading to avoid splash screen
+      state = state.copyWith(user: updatedUser);
       return true;
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
       return false;
     }
   }

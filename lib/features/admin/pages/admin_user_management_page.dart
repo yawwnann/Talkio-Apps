@@ -16,8 +16,8 @@ class AdminUserManagementPage extends ConsumerStatefulWidget {
 }
 
 class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPage> {
-  int _selectedTab = 0; // 0 = Semua, 1 = Parent, 2 = Therapist
-  final List<String> _tabs = ['Semua', 'Parent', 'Therapist'];
+  int _selectedTab = 0; // 0 = Semua, 1 = Orang Tua, 2 = Terapis
+  final List<String> _tabs = ['Semua', 'Orang Tua', 'Terapis'];
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -85,7 +85,7 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Manajemen User',
+            'Manajemen Pengguna',
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.w600,
               color: const Color(0xFF111827),
@@ -93,7 +93,7 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
             ),
           ),
           Text(
-            '${state.total} user ditemukan',
+            '${state.total} pengguna ditemukan',
             style: GoogleFonts.poppins(
               fontSize: 11,
               color: const Color(0xFF6B7280),
@@ -102,17 +102,18 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
         ],
       ),
       actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 12),
-          decoration: BoxDecoration(
-            color: AppConstants.primaryBlue.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
+        if (_selectedTab == 2)
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: AppConstants.primaryBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.person_add_alt_1, size: 20, color: AppConstants.primaryBlue),
+              onPressed: _showAddTherapistDialog,
+            ),
           ),
-          child: IconButton(
-            icon: const Icon(Icons.person_add_alt_1, size: 20, color: AppConstants.primaryBlue),
-            onPressed: _showAddTherapistDialog,
-          ),
-        ),
       ],
     );
   }
@@ -246,7 +247,7 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        isParent ? 'Parent' : 'Therapist',
+                        isParent ? 'Orang Tua' : 'Terapis',
                         style: GoogleFonts.poppins(
                           fontSize: 9,
                           fontWeight: FontWeight.w600,
@@ -309,23 +310,13 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
                   ],
                 ),
               ),
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF4444)),
-                    const SizedBox(width: 8),
-                    Text('Hapus Akun', style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFFEF4444))),
-                  ],
-                ),
-              ),
               const PopupMenuItem(
                 value: 'reset_password',
                 child: Row(
                   children: [
                     Icon(Icons.lock_reset, size: 18, color: Color(0xFFF59E0B)),
                     SizedBox(width: 8),
-                    Text('Reset Password', style: TextStyle(fontSize: 12)),
+                    Text('Reset Kata Sandi', style: TextStyle(fontSize: 12)),
                   ],
                 ),
               ),
@@ -385,9 +376,6 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
       case 'unblock':
         _showBlockConfirmDialog(user, false);
         break;
-      case 'delete':
-        _showDeleteConfirmDialog(user);
-        break;
       case 'reset_password':
         _showResetPasswordDialog(user);
         break;
@@ -397,62 +385,19 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
     }
   }
 
-  void _showDeleteConfirmDialog(Map<String, dynamic> user) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Hapus Akun?', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        content: Text(
-          'Akun ${user['name']?.toString() ?? '-'} akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.',
-          style: GoogleFonts.poppins(fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Batal', style: GoogleFonts.poppins(color: const Color(0xFF6B7280))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final success = await ref.read(adminUsersProvider.notifier).manageUser(
-                userId: user['id'],
-                action: 'delete',
-              );
-              if (success) {
-                ref.read(adminUsersProvider.notifier).fetchUsers();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Akun berhasil dihapus'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text('Hapus', style: GoogleFonts.poppins(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showUserDetailDialog(Map<String, dynamic> user) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Detail User', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text('Detail Pengguna', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildDetailRow('Nama', user['name']?.toString() ?? '-'),
             _buildDetailRow('Email', user['email']?.toString() ?? '-'),
-            _buildDetailRow('Role', user['role'] == 'PARENT' ? 'Parent' : 'Therapist'),
+            _buildDetailRow('Peran', user['role'] == 'PARENT' ? 'Orang Tua' : 'Terapis'),
             _buildDetailRow('Status', user['isBlocked'] ? 'Diblokir' : 'Aktif'),
             _buildDetailRow('Bergabung', user['createdAt']?.toString().substring(0, 10) ?? '-'),
           ],
@@ -501,11 +446,11 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(block ? 'Blokir User?' : 'Buka Blokir User?', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text(block ? 'Blokir Pengguna?' : 'Buka Blokir Pengguna?', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         content: Text(
           block
-              ? 'User ${user['name']} akan diblokir dan tidak dapat login.'
-              : 'User ${user['name']} akan diaktifkan kembali.',
+              ? 'Pengguna ${user['name']} akan diblokir dan tidak dapat login.'
+              : 'Pengguna ${user['name']} akan diaktifkan kembali.',
           style: GoogleFonts.poppins(fontSize: 13),
         ),
         actions: [
@@ -525,7 +470,7 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
                 ref.read(adminUsersProvider.notifier).fetchUsers();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(block ? 'User diblokir' : 'User diaktifkan'),
+                    content: Text(block ? 'Pengguna diblokir' : 'Pengguna diaktifkan'),
                     backgroundColor: block ? Colors.red : Colors.green,
                   ),
                 );
@@ -545,27 +490,75 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
   void _showResetPasswordDialog(Map<String, dynamic> user) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Reset Password', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text('Reset Kata Sandi', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         content: Text(
-          'Password ${user['name']} akan direset ke default. User harus mengganti password saat login berikutnya.',
+          'Kata Sandi ${user['name']} akan direset ke default. Pengguna harus mengganti kata sandi saat login berikutnya.',
           style: GoogleFonts.poppins(fontSize: 13),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('Batal', style: GoogleFonts.poppins(color: const Color(0xFF6B7280))),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
+            onPressed: () async {
+              // Tutup dialog dulu
+              Navigator.pop(dialogContext);
+              // Tunggu sebentar agar dialog benar-benar tertutup
+              await Future.delayed(const Duration(milliseconds: 100));
+              // Baru tampilkan loading
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Password ${user['name']} berhasil direset'),
-                  backgroundColor: Colors.green,
+                const SnackBar(
+                  content: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      ),
+                      SizedBox(width: 12),
+                      Text('Mereset kata sandi...'),
+                    ],
+                  ),
+                  backgroundColor: Color(0xFF3B82F6),
+                  duration: Duration(seconds: 10),
                 ),
               );
+              // Panggil API
+              final success = await ref.read(adminUsersProvider.notifier).resetUserPassword(user['id']);
+              if (!mounted) return;
+              // Hapus loading snackbar
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('Kata sandi ${user['name']} berhasil direset')),
+                      ],
+                    ),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.error, color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text('Gagal mereset kata sandi'),
+                      ],
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppConstants.primaryBlue,

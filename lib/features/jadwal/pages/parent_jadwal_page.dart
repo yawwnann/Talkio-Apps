@@ -18,6 +18,7 @@ class ParentJadwalPage extends ConsumerStatefulWidget {
 
 class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
   int _selectedWeekDay = 0;
+  String _selectedFilter = 'all'; // 'all', 'active', 'pending', 'completed'
 
   @override
   void initState() {
@@ -29,7 +30,6 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
 
   List<DateTime> _getWeekDates() {
     final today = DateTime.now();
-    // Return 7 days starting from today
     return List.generate(7, (index) => today.add(Duration(days: index)));
   }
 
@@ -37,7 +37,7 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
   List<Map<String, dynamic>> _getSelectedDaySessions(List<Map<String, dynamic>> sessions) {
     final weekDates = _getWeekDates();
     final selectedDate = weekDates[_selectedWeekDay];
-    
+
     return sessions.where((session) {
       try {
         final scheduleDate = DateTime.parse(session['schedule']);
@@ -50,14 +50,28 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
     }).toList();
   }
 
+  /// Get sessions filtered by status
+  List<Map<String, dynamic>> _getFilteredSessions(List<Map<String, dynamic>> allSessions) {
+    switch (_selectedFilter) {
+      case 'active':
+        return allSessions.where((s) => s['isActive'] == true && s['paymentStatus'] == 'SUCCESS').toList();
+      case 'pending':
+        return allSessions.where((s) => s['paymentStatus'] == 'PENDING').toList();
+      case 'completed':
+        return allSessions.where((s) => s['isActive'] == false && s['paymentStatus'] == 'SUCCESS').toList();
+      default:
+        return allSessions;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final weekDates = _getWeekDates();
     final scheduleState = ref.watch(parentScheduleProvider);
     final allSessions = scheduleState.scheduleList;
-    
-    // Filter sessions by selected day
-    final selectedSessions = _getSelectedDaySessions(allSessions);
+
+    // Filter sessions by selected day AND status filter
+    List<Map<String, dynamic>> filteredSessions = _getFilteredSessions(allSessions);
 
     // Calculate stats from ALL sessions (not just selected day)
     final activeCount = allSessions.where((s) => s['isActive'] == true && s['paymentStatus'] == 'SUCCESS').length;
@@ -69,16 +83,15 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
       appBar: _buildAppBar(),
       body: Column(
         children: [
-          _buildDateStrip(weekDates),
-          _buildStatsRow(activeCount, pendingCount, completedCount),
+          _buildFilterTabs(activeCount, pendingCount, completedCount),
           Expanded(
             child: scheduleState.isLoading
                 ? const Center(child: LoadingWidget())
                 : scheduleState.error != null
                     ? _buildErrorState(scheduleState.error!)
-                    : selectedSessions.isEmpty
+                    : filteredSessions.isEmpty
                         ? _buildEmptyState()
-                        : _buildScheduleList(selectedSessions),
+                        : _buildScheduleList(filteredSessions),
           ),
         ],
       ),
@@ -96,7 +109,7 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
-      bottomNavigationBar: const ParentBottomNav(currentIndex: 2),
+      bottomNavigationBar: const ParentBottomNav(currentIndex: 3),
     );
   }
 
@@ -231,68 +244,127 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
     );
   }
 
-  Widget _buildStatsRow(int active, int pending, int completed) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+  Widget _buildFilterTabs(int active, int pending, int completed) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _buildStatChip('Aktif', active, const Color(0xFF10B981)),
+            _buildFilterChip('Semua', 'all', active + pending + completed, AppConstants.primaryBlue),
             const SizedBox(width: 8),
-            _buildStatChip('Pending', pending, const Color(0xFFF59E0B)),
+            _buildFilterChip('Aktif', 'active', active, const Color(0xFF10B981)),
             const SizedBox(width: 8),
-            _buildStatChip('Selesai', completed, const Color(0xFF3B82F6)),
+            _buildFilterChip('Pending', 'pending', pending, const Color(0xFFF59E0B)),
+            const SizedBox(width: 8),
+            _buildFilterChip('Selesai', 'completed', completed, const Color(0xFF3B82F6)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatChip(String label, int count, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+  Widget _buildFilterChip(String label, String filter, int count, Color color) {
+    final isSelected = _selectedFilter == filter;
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedFilter = filter),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.1) : const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 1.5,
           ),
-          const SizedBox(width: 6),
-          Text(
-            '$count $label',
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
+        ),
+        child: Text(
+          '$count $label',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? color : const Color(0xFF6B7280),
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildScheduleList(List<Map<String, dynamic>> sessions) {
+    // Group sessions by child name
+    final groupedSessions = <String, List<Map<String, dynamic>>>{};
+    for (final session in sessions) {
+      final childName = session['childName'] ?? 'Tidak Diketahui';
+      groupedSessions.putIfAbsent(childName, () => []).add(session);
+    }
+
     return RefreshIndicator(
       onRefresh: () => ref.read(parentScheduleProvider.notifier).fetchSchedule(),
       color: AppConstants.primaryBlue,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-        itemCount: sessions.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 8),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        itemCount: groupedSessions.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
-          final session = sessions[index];
-          return _buildSessionCard(session);
+          final childName = groupedSessions.keys.elementAt(index);
+          final childSessions = groupedSessions[childName]!;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Child header
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppConstants.primaryBlue.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        childName.isNotEmpty ? childName[0].toUpperCase() : '?',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppConstants.primaryBlue,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          childName,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF111827),
+                          ),
+                        ),
+                        Text(
+                          '${childSessions.length} jadwal',
+                          style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ...childSessions.map((s) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildSessionCard(s),
+              )),
+            ],
+          );
         },
       ),
     );

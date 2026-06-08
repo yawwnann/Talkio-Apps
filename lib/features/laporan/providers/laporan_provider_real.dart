@@ -259,6 +259,72 @@ class LaporanNotifier extends StateNotifier<LaporanState> {
     }
   }
 
+  /// Update laporan - REAL API CALL
+  Future<bool> updateLaporan({
+    required String laporanId,
+    required String childId,
+    required String title,
+    required String progressNotes,
+    String? sessionDate,
+    double? speechClarity,
+    double? vocabulary,
+    double? socialInteraction,
+    String? barriers,
+    List<String>? parentExercises,
+    String? status,
+  }) async {
+    print('========================================');
+    print('🚀 Updating laporan via REAL API...');
+    print('   Laporan ID: $laporanId');
+    print('========================================');
+
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final data = <String, dynamic>{
+        'childId': childId,
+        'title': title,
+        'progressNotes': progressNotes,
+      };
+
+      if (sessionDate != null) data['sessionDate'] = sessionDate;
+      if (speechClarity != null) data['speechClarity'] = speechClarity;
+      if (vocabulary != null) data['vocabulary'] = vocabulary;
+      if (socialInteraction != null) data['socialInteraction'] = socialInteraction;
+      if (barriers != null) data['barriers'] = barriers;
+      if (parentExercises != null) data['parentExercises'] = parentExercises;
+      if (status != null) data['status'] = status;
+
+      print('📤 Sending PATCH request...');
+      print('   Payload: $data');
+
+      final response = await _dio.patch('/therapist/report/$laporanId', data: data);
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response data: ${response.data}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✅ Laporan updated successfully!');
+        state = state.copyWith(isLoading: false);
+        await fetchLaporan();
+        return true;
+      } else {
+        final errorMsg = response.data is Map
+            ? response.data['message'] ?? 'Gagal memperbarui laporan'
+            : 'Gagal memperbarui laporan';
+        print('❌ Server returned error: $errorMsg');
+        throw Exception(errorMsg);
+      }
+    } catch (e) {
+      print('❌ Error updating laporan: $e');
+      state = state.copyWith(
+        error: e.toString(),
+        isLoading: false,
+      );
+      return false;
+    }
+  }
+
   void clearError() {
     state = state.copyWith(error: null);
   }

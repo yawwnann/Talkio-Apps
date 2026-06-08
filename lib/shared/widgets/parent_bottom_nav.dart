@@ -50,10 +50,18 @@ class ParentBottomNav extends StatelessWidget {
               ),
               _buildNavItem(
                 context,
+                Icons.chat_outlined,
+                Icons.chat,
+                'Konsultasi',
+                2,
+                '/konsultasi',
+              ),
+              _buildNavItem(
+                context,
                 Icons.calendar_today_outlined,
                 Icons.calendar_today,
                 'Jadwal',
-                2,
+                3,
                 '/jadwal',
               ),
               _buildNavItem(
@@ -61,16 +69,8 @@ class ParentBottomNav extends StatelessWidget {
                 Icons.games_outlined,
                 Icons.games,
                 'Game',
-                3,
-                '/game',
-              ),
-              _buildNavItem(
-                context,
-                Icons.chat_outlined,
-                Icons.chat,
-                'Konsultasi',
                 4,
-                '/konsultasi',
+                '/game',
               ),
               _buildNavItem(
                 context,

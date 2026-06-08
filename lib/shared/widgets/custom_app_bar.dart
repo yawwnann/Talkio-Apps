@@ -14,6 +14,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final bool? showBackButton;
   final bool? showLogo;
   final bool? showUserMenu;
+  final bool? showNotifications; // New parameter to show notification badge
   final List<Widget>? actions;
   final VoidCallback? onBackPress;
   final VoidCallback? onLogoTap;
@@ -30,6 +31,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
     this.showBackButton,
     this.showLogo,
     this.showUserMenu,
+    this.showNotifications,
     this.actions,
     this.onBackPress,
     this.onLogoTap,
@@ -52,6 +54,8 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
     final shouldShowBackButton = showBackButton ?? false;
     final shouldShowLogo = showLogo ?? false;
     final shouldShowUserMenu = showUserMenu ?? true;
+    // Default: show notifications if not explicitly set to false
+    final shouldShowNotifications = showNotifications ?? true;
 
     return AppBar(
       backgroundColor: bgColor,
@@ -61,7 +65,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       leading: leading ?? (shouldShowBackButton ? _buildLeading(context, fgColor) : null),
       title: _buildTitle(context, fgColor, shouldShowLogo, isCenterTitle: isCenterTitle),
-      actions: _buildActions(context, fgColor, shouldShowUserMenu, ref),
+      actions: _buildActions(context, fgColor, shouldShowUserMenu, shouldShowNotifications, ref),
       bottom: bottom,
     );
   }
@@ -127,16 +131,20 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
     );
   }
 
-  List<Widget> _buildActions(BuildContext context, Color fgColor, bool showUserMenu, WidgetRef ref) {
+  List<Widget> _buildActions(BuildContext context, Color fgColor, bool showUserMenu, bool showNotifications, WidgetRef ref) {
     final actionsList = <Widget>[];
 
     if (actions != null) {
       actionsList.addAll(actions!);
     }
 
-    if (showUserMenu) {
+    // Show notification badge if showNotifications is true, or if showUserMenu is true (default behavior)
+    if (showNotifications || showUserMenu) {
       actionsList.add(const NotificationBadge());
       actionsList.add(const SizedBox(width: 8));
+    }
+
+    if (showUserMenu) {
       actionsList.add(_buildUserMenu(context, fgColor, ref));
       actionsList.add(const SizedBox(width: 16));
     }
@@ -147,69 +155,14 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
   Widget _buildUserMenu(BuildContext context, Color fgColor, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final userName = authState.user?.name ?? 'User';
-    
-    return PopupMenuButton<String>(
-      onSelected: (value) => _handleMenuAction(context, value),
-      offset: const Offset(0, 50),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+
+    return GestureDetector(
+      onTap: () => context.push('/profile'),
       child: ProfileAvatar(
         name: userName,
         radius: 18,
       ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'profile',
-          child: Row(
-            children: [
-              Icon(Icons.person_outline, size: 20, color: AppConstants.primaryBlue),
-              const SizedBox(width: 12),
-              Text('Profil', style: GoogleFonts.poppins(fontSize: 14)),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'settings',
-          child: Row(
-            children: [
-              Icon(Icons.settings_outlined, size: 20, color: AppConstants.primaryBlue),
-              const SizedBox(width: 12),
-              Text('Pengaturan', style: GoogleFonts.poppins(fontSize: 14)),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'logout',
-          child: Row(
-            children: [
-              const Icon(Icons.logout, size: 20, color: Colors.red),
-              const SizedBox(width: 12),
-              Text('Keluar', style: GoogleFonts.poppins(fontSize: 14, color: Colors.red)),
-            ],
-          ),
-        ),
-      ],
     );
-  }
-
-  void _handleMenuAction(BuildContext context, String action) {
-    switch (action) {
-      case 'profile':
-        context.push('/profile');
-        break;
-      case 'settings':
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Fitur pengaturan akan segera hadir'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
-        break;
-      case 'logout':
-        _showLogoutDialog(context);
-        break;
-    }
   }
 
   Future<void> _showLogoutDialog(BuildContext context) async {

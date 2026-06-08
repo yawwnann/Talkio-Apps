@@ -126,10 +126,10 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-        _buildQuickIcon(Icons.people, 'Users', () => context.go('/admin/users')),
-        _buildQuickIcon(Icons.payments, 'Payments', () => context.go('/admin/payments')),
-        _buildQuickIcon(Icons.assessment, 'Laporan', () => context.go('/admin/reports')),
-        _buildQuickIcon(Icons.dashboard, 'Dashboard', () => context.go('/admin/dashboard')),
+        _buildQuickIcon(Icons.people, 'Pengguna', () => context.go('/admin/users')),
+        _buildQuickIcon(Icons.payments, 'Pembayaran', () => context.go('/admin/pembayaran')),
+        _buildQuickIcon(Icons.assessment, 'Laporan', () => context.go('/admin/laporan')),
+        _buildQuickIcon(Icons.dashboard, 'Dasbor', () => context.go('/admin-dashboard')),
       ]),
     );
   }
@@ -157,8 +157,7 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
-          _buildMenuItem(Icons.person_outline, 'Edit Profil', () {}),
-          _buildMenuItem(Icons.notifications_outlined, 'Notifikasi', () => context.go('/notifikasi')),
+          _buildMenuItem(Icons.notifications_outlined, 'Notifikasi', () => context.push('/notifikasi')),
           _buildMenuItem(Icons.info_outline, 'Tentang Aplikasi', () => _showAboutDialog()),
         ],
       ),

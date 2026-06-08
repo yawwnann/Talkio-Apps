@@ -21,7 +21,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
   bool _isLoading = true;
   String _searchQuery = '';
 
-  static const _kondisiOptions = ['BAIK', 'RUSAK', 'TIDAK_ADA'];
   static const _satuanOptions = ['Pcs', 'Unit', 'Set', 'Buah', 'Lembar', 'Pasang', 'Kotak'];
 
   @override
@@ -71,11 +70,9 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
     final isEdit = existing != null;
     final kodeCtrl = TextEditingController(text: existing?['kode'] ?? '');
     final namaCtrl = TextEditingController(text: existing?['nama'] ?? '');
-    final kategoriCtrl = TextEditingController(text: existing?['kategori'] ?? '');
     final jumlahCtrl = TextEditingController(text: '${existing?['jumlah'] ?? 0}');
     final keteranganCtrl = TextEditingController(text: existing?['keterangan'] ?? '');
     String selectedSatuan = existing?['satuan'] ?? 'Pcs';
-    String selectedKondisi = existing?['kondisi'] ?? 'BAIK';
     final formKey = GlobalKey<FormState>();
 
     // Auto-generate kode if adding new
@@ -145,15 +142,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Kategori
-                  _buildFormField(
-                    controller: kategoriCtrl,
-                    label: 'Kategori (opsional)',
-                    hint: 'cth: Peralatan, Furnitur',
-                    icon: Icons.category,
-                  ),
-                  const SizedBox(height: 14),
-
                   // Jumlah + Satuan row
                   Row(
                     children: [
@@ -195,51 +183,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Kondisi
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Kondisi',
-                        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: _kondisiOptions.map((k) {
-                          final isSelected = selectedKondisi == k;
-                          Color chipColor = k == 'BAIK'
-                              ? const Color(0xFF10B981)
-                              : k == 'RUSAK'
-                                  ? const Color(0xFFEF4444)
-                                  : const Color(0xFF94A3B8);
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: GestureDetector(
-                              onTap: () => setModalState(() => selectedKondisi = k),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? chipColor : Colors.white,
-                                  border: Border.all(color: chipColor),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  k.replaceAll('_', ' '),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: isSelected ? Colors.white : chipColor,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
                   // Keterangan
                   _buildFormField(
                     controller: keteranganCtrl,
@@ -268,11 +211,9 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
                           id: existing?['id'],
                           kode: kodeCtrl.text.trim(),
                           nama: namaCtrl.text.trim(),
-                          kategori: kategoriCtrl.text.trim(),
                           jumlah: int.tryParse(jumlahCtrl.text) ?? 0,
                           satuan: selectedSatuan,
                           keterangan: keteranganCtrl.text.trim(),
-                          kondisi: selectedKondisi,
                         );
                       },
                       child: Text(
@@ -299,33 +240,27 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
     String? id,
     required String kode,
     required String nama,
-    required String kategori,
     required int jumlah,
     required String satuan,
     required String keterangan,
-    required String kondisi,
   }) async {
     try {
       if (isEdit && id != null) {
         await _apiService.updateAsset(id, {
           'kode': kode,
           'nama': nama,
-          'kategori': kategori.isEmpty ? null : kategori,
           'jumlah': jumlah,
           'satuan': satuan,
           'keterangan': keterangan.isEmpty ? null : keterangan,
-          'kondisi': kondisi,
         });
         _showSnackBar('Asset berhasil diperbarui');
       } else {
         await _apiService.createAsset(
           kode: kode,
           nama: nama,
-          kategori: kategori.isEmpty ? null : kategori,
           jumlah: jumlah,
           satuan: satuan,
           keterangan: keterangan.isEmpty ? null : keterangan,
-          kondisi: kondisi,
         );
         _showSnackBar('Asset berhasil ditambahkan');
       }
@@ -478,18 +413,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
               child: Row(
                 children: [
                   _buildSummaryChip('Total', '${_assets.length}', AppConstants.primaryBlue),
-                  const SizedBox(width: 8),
-                  _buildSummaryChip(
-                    'Baik',
-                    '${_assets.where((a) => a['kondisi'] == 'BAIK').length}',
-                    const Color(0xFF10B981),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildSummaryChip(
-                    'Rusak',
-                    '${_assets.where((a) => a['kondisi'] == 'RUSAK').length}',
-                    const Color(0xFFEF4444),
-                  ),
                 ],
               ),
             ),
@@ -566,12 +489,9 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
                           final String id = asset['id'] ?? '';
                           final String kode = asset['kode'] ?? '';
                           final String nama = asset['nama'] ?? '';
-                          final String kategori = asset['kategori'] ?? '-';
                           final int jumlah = int.tryParse(asset['jumlah']?.toString() ?? '0') ?? 0;
                           final String satuan = asset['satuan'] ?? '';
-                          final String kondisi = asset['kondisi'] ?? 'BAIK';
                           final String keterangan = asset['keterangan'] ?? '';
-                          final kondisiColor = _kondisiColor(kondisi);
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 10),
@@ -604,23 +524,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      // Kondisi badge
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: kondisiColor.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          kondisi.replaceAll('_', ' '),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: kondisiColor,
-                                          ),
-                                        ),
-                                      ),
                                       const Spacer(),
                                       // Edit button
                                       IconButton(
@@ -650,34 +553,19 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
                                       color: const Color(0xFF1E293B),
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.category_outlined, size: 14, color: Colors.grey[500]),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        kategori,
-                                        style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[500]),
+                                  if (keterangan.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      keterangan,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.grey[500],
+                                        fontStyle: FontStyle.italic,
                                       ),
-                                      if (keterangan.isNotEmpty) ...[
-                                        const SizedBox(width: 12),
-                                        Icon(Icons.notes, size: 14, color: Colors.grey[400]),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                          child: Text(
-                                            keterangan,
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
-                                              color: Colors.grey[400],
-                                              fontStyle: FontStyle.italic,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                   const SizedBox(height: 10),
                                   const Divider(height: 1, color: Color(0xFFF1F5F9)),
                                   const SizedBox(height: 10),

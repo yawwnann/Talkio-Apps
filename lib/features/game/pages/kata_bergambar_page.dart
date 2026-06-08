@@ -143,28 +143,6 @@ class _KataBergambarPageState extends ConsumerState<KataBergambarPage>
     return Scaffold(
       appBar: SimpleAppBar(
         title: 'Kata Bergambar',
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppConstants.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '⭐ $_score',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppConstants.primaryBlue,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: Container(
         decoration: BoxDecoration(

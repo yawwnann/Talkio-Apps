@@ -52,8 +52,8 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
         child: anakState.isLoading
             ? const LoadingWidget(message: 'Memuat data anak...')
             : anakState.error != null
-                ? _buildErrorState(context, anakState.error)
-                : _buildContent(context, anakState),
+            ? _buildErrorState(context, anakState.error)
+            : _buildContent(context, anakState),
       ),
     );
   }
@@ -82,10 +82,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppConstants.primaryBlue,
-            AppConstants.lightBlue,
-          ],
+          colors: [AppConstants.primaryBlue, AppConstants.lightBlue],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -167,7 +164,9 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor: AppConstants.primaryBlue.withValues(alpha: 0.1),
+                  backgroundColor: AppConstants.primaryBlue.withValues(
+                    alpha: 0.1,
+                  ),
                   child: Icon(
                     Icons.child_care,
                     size: 30,
@@ -190,22 +189,34 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.cake_outlined, size: 14, color: Colors.grey[600]),
+                          Icon(
+                            Icons.cake_outlined,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '${anak.age ?? '-'} Tahun',
-                            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Icon(
                             anak.gender == 'L' ? Icons.male : Icons.female,
                             size: 14,
-                            color: anak.gender == 'L' ? AppConstants.primaryBlue : const Color(0xFFFF6584),
+                            color: anak.gender == 'L'
+                                ? AppConstants.primaryBlue
+                                : const Color(0xFFFF6584),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             anak.gender == 'L' ? 'Laki-laki' : 'Perempuan',
-                            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
                       ),
@@ -230,7 +241,9 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
                         color: AppConstants.primaryBlue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppConstants.primaryBlue.withValues(alpha: 0.2),
+                          color: AppConstants.primaryBlue.withValues(
+                            alpha: 0.2,
+                          ),
                         ),
                       ),
                       child: Center(
@@ -391,7 +404,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
                   const Icon(Icons.add, size: 18, color: Colors.white),
                   const SizedBox(width: 8),
                   Text(
-                    'Tambah Anak Sekarang',
+                    'Tambah Data Anak',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -438,10 +451,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
             const SizedBox(height: 8),
             Text(
               error ?? 'Gagal memuat data',
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: Colors.grey[600],
-              ),
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -178,10 +179,113 @@ class _DiagnosaDetailPageState extends ConsumerState<DiagnosaDetailPage> {
           if (d.ageCategory.isNotEmpty) _detailRow('Kategori Usia', d.ageCategory),
           if (d.derivedFacts.isNotEmpty) _detailRow('Fakta Terdeteksi', d.derivedFacts.join(', ')),
           if (d.triggeredRules.isNotEmpty) _detailRow('Rules Terpicu', '${d.triggeredRules.length} rule(s)'),
-          if (d.summary != null) _detailRow('Ringkasan', d.summary!),
+          if (d.summary != null && d.summary!.isNotEmpty) _buildSummarySection(d.summary!),
         ],
       ),
     );
+  }
+
+  Widget _buildSummarySection(String summaryJson) {
+    try {
+      // Parse JSON string summary
+      Map<String, dynamic> summary;
+      if (summaryJson.startsWith('{')) {
+        summary = jsonDecode(summaryJson) as Map<String, dynamic>;
+      } else {
+        summary = {'summary': summaryJson};
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ringkasan',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...summary.entries.map<Widget>((entry) {
+                  final value = entry.value;
+                  if (value is int) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            _getSummaryIcon(entry.key),
+                            size: 16,
+                            color: AppConstants.primaryBlue,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${_formatSummaryKey(entry.key)}: $value',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: const Color(0xFF475569),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
+              ],
+            ),
+          ),
+        ],
+      );
+    } catch (e) {
+      // If parsing fails, show as plain text
+      return _detailRow('Ringkasan', summaryJson);
+    }
+  }
+
+  IconData _getSummaryIcon(String key) {
+    switch (key.toLowerCase()) {
+      case 'total':
+        return Icons.analytics;
+      case 'speech':
+        return Icons.record_voice_over;
+      case 'vocabulary':
+        return Icons.library_books;
+      case 'articulation':
+        return Icons.speaker;
+      case 'response':
+        return Icons.touch_app;
+      case 'communication':
+        return Icons.chat;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  String _formatSummaryKey(String key) {
+    return key
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((word) => word.isNotEmpty
+            ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
+            : '')
+        .join(' ');
   }
 
   Widget _buildFindingsCard() {

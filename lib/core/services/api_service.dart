@@ -10,6 +10,7 @@ import '../mock/handlers/jadwal_mock_handler.dart';
 import '../mock/handlers/laporan_mock_handler.dart';
 import '../mock/handlers/pembayaran_mock_handler.dart';
 import '../mock/handlers/konsultasi_mock_handler.dart';
+import '../mock/handlers/admin_mock_handler.dart';
 
 /// API Service
 /// Service untuk handle HTTP requests ke backend Express.js API
@@ -303,6 +304,32 @@ class ApiService {
     print('🌐 [API] POST /auth/logout');
     try {
       final response = await dio.post('/auth/logout');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Update Profile
+  /// PUT /api/users/profile
+  Future<MockResponse> updateProfile({String? name}) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Update profile');
+      return MockResponse.success({
+        'message': 'Profil berhasil diperbarui',
+        'data': {'name': name},
+      });
+    }
+
+    print('🌐 [API] PUT /users/profile');
+    try {
+      final data = <String, dynamic>{};
+      if (name != null) data['name'] = name;
+
+      final response = await dio.put('/users/profile', data: data);
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -1278,6 +1305,29 @@ class ApiService {
     }
   }
 
+  /// Start Session
+  /// PUT /api/therapist/schedule/:id/start
+  Future<MockResponse> startSession(String id) async {
+    if (_mockConfig.useMockData) {
+      print('📦 [MOCK] Start session');
+      return MockResponse.success({
+        'message': 'Session started successfully',
+        'data': {'id': id, 'sessionStatus': 'ONGOING'},
+      });
+    }
+
+    print('🌐 [API] PUT /therapist/schedule/$id/start');
+    try {
+      final response = await dio.put('/therapist/schedule/$id/start');
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   /// Create Schedule
   /// POST /api/therapist/schedule
   Future<MockResponse> createSchedule({
@@ -1367,6 +1417,48 @@ class ApiService {
     }
     try {
       final response = await dio.put('/notifications/$id/read');
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Get Admin Notifications
+  /// GET /api/admin/notifications
+  Future<MockResponse> getAdminNotifications({
+    int page = 1,
+    int limit = 20,
+    String? type,
+    String? priority,
+  }) async {
+    if (_mockConfig.useMockData) {
+      return MockResponse.success({
+        'data': [],
+        'summary': {'high': 0, 'medium': 0, 'low': 0, 'total': 0},
+      });
+    }
+    try {
+      final queryParams = {
+        'page': page,
+        'limit': limit,
+        if (type != null) 'type': type,
+        if (priority != null) 'priority': priority,
+      };
+      final response = await dio.get('/admin/notifications', queryParameters: queryParams);
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Mark All Admin Notifications as Read
+  /// PUT /api/admin/notifications/read-all
+  Future<MockResponse> markAllAdminNotificationsRead() async {
+    if (_mockConfig.useMockData) {
+      return MockResponse.success({'message': 'All notifications marked as read'});
+    }
+    try {
+      final response = await dio.put('/admin/notifications/read-all');
       return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
     } catch (e) {
       throw _handleError(e);
@@ -1739,14 +1831,12 @@ class ApiService {
     String? search,
   }) async {
     if (_mockConfig.useMockData) {
-      print('📦 [MOCK] Get admin users');
-      return MockResponse.success({
-        'message': 'Users fetched',
-        'data': {
-          'users': [],
-          'pagination': {'page': page, 'limit': limit, 'total': 0, 'totalPages': 0},
-        },
-      });
+      return AdminMockHandler.getUsers(
+        page: page,
+        limit: limit,
+        role: role,
+        search: search,
+      );
     }
 
     print('🌐 [API] GET /admin/users');
@@ -1776,11 +1866,11 @@ class ApiService {
     String? reason,
   }) async {
     if (_mockConfig.useMockData) {
-      print('📦 [MOCK] Manage user: $userId, action: $action');
-      return MockResponse.success({
-        'message': 'User $action successfully',
-        'data': {'userId': userId, 'reason': reason},
-      });
+      return AdminMockHandler.manageUser(
+        userId: userId,
+        action: action,
+        reason: reason,
+      );
     }
 
     print('🌐 [API] PUT /admin/users/$userId: $action');
@@ -1789,6 +1879,27 @@ class ApiService {
       if (reason != null) data['reason'] = reason;
 
       final response = await dio.put('/admin/users/$userId', data: data);
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Reset User Password (Admin)
+  /// POST /api/admin/users/:id/reset-password
+  Future<MockResponse> resetUserPassword({
+    required String userId,
+  }) async {
+    if (_mockConfig.useMockData) {
+      return AdminMockHandler.resetUserPassword(userId: userId);
+    }
+
+    print('🌐 [API] POST /admin/users/$userId/reset-password');
+    try {
+      final response = await dio.post('/admin/users/$userId/reset-password');
       return MockResponse(
         statusCode: response.statusCode ?? 200,
         data: response.data,
@@ -2274,11 +2385,9 @@ class ApiService {
   Future<MockResponse> createAsset({
     required String kode,
     required String nama,
-    String? kategori,
     int jumlah = 0,
     String? satuan,
     String? keterangan,
-    String kondisi = 'BAIK',
   }) async {
     if (_mockConfig.useMockData) {
       return MockResponse.success({'message': 'Asset created', 'data': {}});
@@ -2288,11 +2397,9 @@ class ApiService {
       final response = await dio.post('/assets', data: {
         'kode': kode,
         'nama': nama,
-        if (kategori != null) 'kategori': kategori,
         'jumlah': jumlah,
         if (satuan != null) 'satuan': satuan,
         if (keterangan != null) 'keterangan': keterangan,
-        'kondisi': kondisi,
       });
       return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
     } catch (e) {

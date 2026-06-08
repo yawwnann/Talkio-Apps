@@ -142,7 +142,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Perkembangan\nAnak',
+                'Data Anak',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -388,7 +388,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
 
   Widget _buildNearestTherapy() {
     final scheduleState = ref.watch(parentScheduleProvider);
-    
+
     // Find nearest active schedule
     final now = DateTime.now();
     final activeSchedules = scheduleState.scheduleList.where((s) {
@@ -400,12 +400,17 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         return false;
       }
     }).toList();
-    
+
     // Sort ascending
-    activeSchedules.sort((a, b) => 
-        DateTime.parse(a['schedule']).compareTo(DateTime.parse(b['schedule'])));
-        
-    final nearestSchedule = activeSchedules.isNotEmpty ? activeSchedules.first : null;
+    activeSchedules.sort(
+      (a, b) => DateTime.parse(
+        a['schedule'],
+      ).compareTo(DateTime.parse(b['schedule'])),
+    );
+
+    final nearestSchedule = activeSchedules.isNotEmpty
+        ? activeSchedules.first
+        : null;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -445,7 +450,11 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.event_busy_outlined, size: 40, color: Colors.grey[400]),
+                    Icon(
+                      Icons.event_busy_outlined,
+                      size: 40,
+                      color: Colors.grey[400],
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'Belum ada jadwal booking',
@@ -477,7 +486,11 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.calendar_today, color: Colors.white, size: 20),
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         const SizedBox(height: 2),
                         Text(
                           '${DateTime.parse(nearestSchedule['schedule']).toLocal().day}',
@@ -520,7 +533,11 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.person_outline, size: 16, color: Color(0xFF64748B)),
+                const Icon(
+                  Icons.person_outline,
+                  size: 16,
+                  color: Color(0xFF64748B),
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -538,7 +555,11 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.child_care, size: 16, color: Color(0xFF64748B)),
+                const Icon(
+                  Icons.child_care,
+                  size: 16,
+                  color: Color(0xFF64748B),
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -676,9 +697,9 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
           ),
           const SizedBox(height: 16),
           _buildQuickAccessItem(
-            Icons.chat_bubble_outline,
-            'Mulai Konsultasi',
-            'Chat langsung dengan ahli',
+            Icons.psychology_outlined,
+            'Deteksi Speech Delay',
+            'Cek perkembangan bicara anak',
             const Color(0xFFE3F2FD),
             const Color(0xFF2196F3),
             () => context.push('/konsultasi'),
@@ -686,8 +707,8 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
           const SizedBox(height: 12),
           _buildQuickAccessItem(
             Icons.assignment_outlined,
-            'Hasil Diagnosa',
-            'Laporan medis & evaluasi',
+            'Riwayat Deteksi',
+            'Lihat hasil deteksi sebelumnya',
             const Color(0xFFE8F5E9),
             const Color(0xFF4CAF50),
             () => context.push('/diagnosa'),

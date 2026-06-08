@@ -104,10 +104,50 @@ class JadwalNotifier extends StateNotifier<JadwalState> {
           }
           return schedule;
         }).toList();
-        
+
         state = state.copyWith(isLoading: false, jadwalList: updatedList);
       } else {
         throw Exception(response.data['message'] ?? 'Failed to complete schedule');
+      }
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      rethrow;
+    }
+  }
+
+  /// Start a session (change status from SCHEDULED to ONGOING)
+  Future<void> startSession(String id) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await _apiService.startSession(id);
+
+      if (response.statusCode == 200) {
+        // Optimistic update: Update the status locally
+        final List<JadwalModel> updatedList = state.jadwalList.map<JadwalModel>((schedule) {
+          if (schedule.id == id) {
+            return JadwalModel(
+              id: schedule.id,
+              anakId: schedule.anakId,
+              terapisId: schedule.terapisId,
+              parentId: schedule.parentId,
+              childName: schedule.childName,
+              therapistName: schedule.therapistName,
+              scheduledDate: schedule.scheduledDate,
+              timeSlot: schedule.timeSlot,
+              status: 'ONGOING',
+              notes: schedule.notes,
+              sessionType: schedule.sessionType,
+              meetingLink: schedule.meetingLink,
+              createdAt: schedule.createdAt,
+              updatedAt: DateTime.now(),
+            );
+          }
+          return schedule;
+        }).toList();
+
+        state = state.copyWith(isLoading: false, jadwalList: updatedList);
+      } else {
+        throw Exception(response.data['message'] ?? 'Failed to start session');
       }
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());

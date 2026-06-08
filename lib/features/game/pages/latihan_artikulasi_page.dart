@@ -383,28 +383,6 @@ class _LatihanArtikulasiPageState extends ConsumerState<LatihanArtikulasiPage>
     return Scaffold(
       appBar: SimpleAppBar(
         title: 'Latihan Artikulasi',
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7).withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '✅ $_correctCount/${widget.totalRounds}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF16A34A),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: Container(
         decoration: BoxDecoration(

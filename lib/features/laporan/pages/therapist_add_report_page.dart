@@ -10,8 +10,13 @@ import '../providers/laporan_provider_real.dart';
 
 class TherapistAddReportPage extends ConsumerStatefulWidget {
   final String? initialPatientId;
+  final String? initialLaporanId;
 
-  const TherapistAddReportPage({super.key, this.initialPatientId});
+  const TherapistAddReportPage({
+    super.key,
+    this.initialPatientId,
+    this.initialLaporanId,
+  });
 
   @override
   ConsumerState<TherapistAddReportPage> createState() =>
@@ -29,13 +34,43 @@ class _TherapistAddReportPageState
   final TextEditingController _barriersController = TextEditingController();
   List<String> _parentExercises = [];
   bool _isSubmitting = false;
+  bool _isEditing = false;
+  String? _editingLaporanId;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(anakProvider.notifier).fetchAllAnak();
+      if (widget.initialLaporanId != null) {
+        // Ensure laporan list is loaded first
+        await ref.read(laporanProvider.notifier).fetchLaporan();
+        if (!mounted) return;
+        _loadExistingLaporan();
+      }
     });
+  }
+
+  void _loadExistingLaporan() {
+    final laporanState = ref.read(laporanProvider);
+    final anakState = ref.read(anakProvider);
+    try {
+      final laporan = laporanState.laporanList.firstWhere(
+        (l) => l.id == widget.initialLaporanId,
+      );
+      final match = anakState.anakList.where((p) => p.id == laporan.patientId);
+      setState(() {
+        _isEditing = true;
+        _editingLaporanId = laporan.id;
+        _sessionDate = DateTime.tryParse(laporan.date) ?? DateTime.now();
+        _progressNotesController.text = laporan.summary;
+        if (match.isNotEmpty) {
+          _selectedPatient = match.first;
+        }
+      });
+    } catch (_) {
+      // Not found, ignore
+    }
   }
 
   void _onAnakLoaded(List<AnakModel> allAnak) {
@@ -111,7 +146,7 @@ class _TherapistAddReportPageState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Tambah Laporan',
+            _isEditing ? 'Edit Laporan' : 'Tambah Laporan',
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.w600,
               color: const Color(0xFF111827),
@@ -1043,32 +1078,51 @@ class _TherapistAddReportPageState
       // DIRECT API CALL - NO MOCK!
       final notifier = ref.read(laporanProvider.notifier);
 
-      final reportStatus = isDraft ? "DRAFT" : "SENT";
-
-      final success = await notifier.createLaporan(
-        childId: _selectedPatient!.id,
-        title: isDraft ? 'Draft Report' : 'Laporan Perkembangan',
-        progressNotes: _progressNotesController.text.trim(),
-        sessionDate: _sessionDate.toIso8601String(),
-        speechClarity: _speechClarity,
-        vocabulary: _vocabulary,
-        socialInteraction: _socialInteraction,
-        barriers: _barriersController.text.trim(),
-        parentExercises: _parentExercises,
-        status: reportStatus, // Send DRAFT or SENT
-      );
+      bool success;
+      if (_isEditing && _editingLaporanId != null) {
+        final reportStatus = isDraft ? "DRAFT" : "SENT";
+        success = await notifier.updateLaporan(
+          laporanId: _editingLaporanId!,
+          childId: _selectedPatient!.id,
+          title: isDraft ? 'Draft Report' : 'Laporan Perkembangan',
+          progressNotes: _progressNotesController.text.trim(),
+          sessionDate: _sessionDate.toIso8601String(),
+          speechClarity: _speechClarity,
+          vocabulary: _vocabulary,
+          socialInteraction: _socialInteraction,
+          barriers: _barriersController.text.trim(),
+          parentExercises: _parentExercises,
+          status: reportStatus,
+        );
+      } else {
+        final reportStatus = isDraft ? "DRAFT" : "SENT";
+        success = await notifier.createLaporan(
+          childId: _selectedPatient!.id,
+          title: isDraft ? 'Draft Report' : 'Laporan Perkembangan',
+          progressNotes: _progressNotesController.text.trim(),
+          sessionDate: _sessionDate.toIso8601String(),
+          speechClarity: _speechClarity,
+          vocabulary: _vocabulary,
+          socialInteraction: _socialInteraction,
+          barriers: _barriersController.text.trim(),
+          parentExercises: _parentExercises,
+          status: reportStatus, // Send DRAFT or SENT
+        );
+      }
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isDraft ? 'Draft berhasil disimpan!' : 'Laporan berhasil dikirim!',
+              _isEditing
+                  ? 'Laporan berhasil diperbarui!'
+                  : (isDraft ? 'Draft berhasil disimpan!' : 'Laporan berhasil dikirim!'),
             ),
             backgroundColor: Colors.green,
           ),
         );
         if (mounted) {
-          context.pop();
+          context.pop(); // back to previous screen (detail or list)
         }
       } else {
         final error = notifier.state.error ?? 'Gagal menyimpan laporan';

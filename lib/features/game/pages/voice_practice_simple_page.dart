@@ -219,20 +219,6 @@ class _VoicePracticeSimplePageState extends ConsumerState<VoicePracticeSimplePag
     return Scaffold(
       appBar: SimpleAppBar(
         title: 'Latihan Suara (Demo)',
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: Text(
-                'Skor: $_score',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

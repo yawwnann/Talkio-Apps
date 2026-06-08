@@ -306,7 +306,13 @@ class _TherapistReportDetailPageState
           height: 52,
           child: OutlinedButton(
             onPressed: () {
-              // Edit Action placeholder
+              context.pushNamed(
+                'therapist-laporan-add',
+                extra: {
+                  'patientId': _selectedLaporan!.patientId,
+                  'laporanId': _selectedLaporan!.id,
+                },
+              );
             },
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: AppConstants.primaryBlue, width: 2),

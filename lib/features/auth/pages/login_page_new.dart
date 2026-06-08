@@ -425,16 +425,6 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                         color: Color(0xFF0284C7),
                         size: 16,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Mode Testing: Kosongkan form untuk login otomatis',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            color: const Color(0xFF0284C7),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),

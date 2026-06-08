@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/models/notification_model.dart';
+import '../../../core/providers/admin_notification_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../shared/widgets/admin_bottom_nav.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -18,7 +20,6 @@ class AdminDashboardPage extends ConsumerStatefulWidget {
 class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   bool _isLoading = true;
   Map<String, dynamic> _stats = {};
-  List<Map<String, dynamic>> _recentActivities = [];
 
   @override
   void initState() {
@@ -31,10 +32,8 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
 
     try {
       final apiService = ApiService();
-      
-      // Fetch dashboard stats
       final statsResponse = await apiService.getAdminDashboard();
-      
+
       if (statsResponse.statusCode == 200) {
         final data = statsResponse.data;
         if (data is Map<String, dynamic> && data['status'] == 'success') {
@@ -44,41 +43,17 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           });
         }
       }
-
-      // Mock recent activities (backend doesn't have this endpoint yet)
-      setState(() {
-        _recentActivities = [
-          {
-            'icon': Icons.person_add,
-            'color': const Color(0xFF10B981),
-            'bgColor': const Color(0xFF10B981).withValues(alpha: 0.1),
-            'title': 'Therapist baru terdaftar',
-            'subtitle': 'Dr. Sarah W. - 2 menit lalu',
-          },
-          {
-            'icon': Icons.payment,
-            'color': const Color(0xFF3B82F6),
-            'bgColor': const Color(0xFF3B82F6).withValues(alpha: 0.1),
-            'title': 'Pembayaran berhasil',
-            'subtitle': 'TRX-2026-001 - 15 menit lalu',
-          },
-          {
-            'icon': Icons.assignment,
-            'color': const Color(0xFFF59E0B),
-            'bgColor': const Color(0xFFF59E0B).withValues(alpha: 0.1),
-            'title': 'Laporan baru dikirim',
-            'subtitle': 'Dr. Ahmad - 1 jam lalu',
-          },
-        ];
-      });
     } catch (e) {
-      debugPrint('❌ Error fetching admin dashboard: $e');
+      debugPrint('Error fetching admin dashboard: $e');
       setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final notifState = ref.watch(adminNotificationProvider);
+    final recentNotifs = notifState.notifications.take(5).toList();
+
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFFF5F7FA),
@@ -88,7 +63,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(notifState.summary),
       body: RefreshIndicator(
         onRefresh: _fetchDashboardData,
         child: SingleChildScrollView(
@@ -101,9 +76,15 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               const SizedBox(height: 16),
               _buildStatsGrid(),
               const SizedBox(height: 16),
+              _buildSectionTitle('Notifikasi Penting'),
+              const SizedBox(height: 12),
+              _buildPrioritySummary(notifState.summary),
+              const SizedBox(height: 12),
               _buildSectionTitle('Aktivitas Terbaru'),
               const SizedBox(height: 12),
-              _buildRecentActivity(),
+              recentNotifs.isEmpty
+                  ? _buildEmptyActivity()
+                  : _buildRecentNotifications(context, recentNotifs, notifState.summary.totalUnread),
             ],
           ),
         ),
@@ -112,7 +93,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(AdminNotificationSummary summary) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -121,7 +102,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Admin Dashboard',
+            'Beranda Admin',
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.w600,
               color: const Color(0xFF111827),
@@ -138,13 +119,88 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         ],
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined, size: 22),
-          onPressed: () {},
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined, size: 22),
+              onPressed: () => context.push('/admin/notifikasi'),
+            ),
+            if (summary.totalUnread > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEF4444),
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text(
+                    '${summary.totalUnread > 99 ? '99+' : summary.totalUnread}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(width: 8),
       ],
     );
+  }
+
+  Widget _buildPrioritySummary(AdminNotificationSummary summary) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Row(
+        children: [
+          _buildPriorityItem('HIGH', summary.highCount, const Color(0xFFEF4444), Icons.priority_high),
+          _buildDivider(),
+          _buildPriorityItem('MEDIUM', summary.mediumCount, const Color(0xFFF59E0B), Icons.remove),
+          _buildDivider(),
+          _buildPriorityItem('LOW', summary.lowCount, const Color(0xFF6B7280), Icons.arrow_downward),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriorityItem(String label, int count, Color color, IconData icon) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            '$count',
+            style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w700, color: color),
+          ),
+          const SizedBox(height: 2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 10, color: color),
+              const SizedBox(width: 2),
+              Text(
+                label,
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600, color: color),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(width: 1, height: 40, color: const Color(0xFFE2E8F0));
   }
 
   Widget _buildWelcomeCard() {
@@ -232,7 +288,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           childAspectRatio: 1.3,
           children: [
             _buildStatCard(
-              'Total Parent',
+              'Orang Tua',
               '${_stats['parentCount'] ?? 0}',
               Icons.people,
               const Color(0xFF3B82F6),
@@ -240,7 +296,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               () => context.go('/admin/users'),
             ),
             _buildStatCard(
-              'Total Therapist',
+              'Terapis',
               '${_stats['therapistCount'] ?? 0}',
               Icons.medical_services,
               const Color(0xFF10B981),
@@ -256,7 +312,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               () {},
             ),
             _buildStatCard(
-              'Total Anak',
+              'Anak',
               '${_stats['childrenCount'] ?? 0}',
               Icons.child_care,
               const Color(0xFF8B5CF6),
@@ -264,17 +320,16 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               () {},
             ),
             _buildStatCard(
-              'Asset Server',
+              'Aset Server',
               'Manajemen',
               Icons.folder_shared,
-              const Color(0xFFEC4899), // Pink
+              const Color(0xFFEC4899),
               const Color(0xFFEC4899).withValues(alpha: 0.1),
               () => context.push('/admin/assets'),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        // Revenue Card
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -302,18 +357,11 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                   children: [
                     Text(
                       'Total Pendapatan',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
+                      style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withValues(alpha: 0.8)),
                     ),
                     Text(
                       _stats['revenueFormatted'] ?? 'Rp 0',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
                     ),
                   ],
                 ),
@@ -353,12 +401,8 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
+              width: 36, height: 36,
+              decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
               child: Icon(icon, size: 18, color: color),
             ),
             Column(
@@ -366,19 +410,9 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               children: [
                 Text(
                   value,
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF111827),
-                  ),
+                  style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: const Color(0xFF111827)),
                 ),
-                Text(
-                  label,
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    color: const Color(0xFF6B7280),
-                  ),
-                ),
+                Text(label, style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFF6B7280))),
               ],
             ),
           ],
@@ -390,15 +424,38 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: GoogleFonts.poppins(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: const Color(0xFF111827),
+      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF111827)),
+    );
+  }
+
+  Widget _buildEmptyActivity() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(Icons.notifications_none_rounded, size: 48, color: Colors.grey[300]),
+            const SizedBox(height: 8),
+            Text(
+              'Belum ada aktivitas terbaru',
+              style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF6B7280)),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildRecentActivity() {
+  Widget _buildRecentNotifications(
+    BuildContext context,
+    List<NotificationModel> notifications,
+    int totalUnread,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -412,53 +469,112 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         ],
       ),
       child: Column(
-        children: _recentActivities.asMap().entries.map((entry) {
-          final index = entry.key;
-          final activity = entry.value;
-          final isLast = index == _recentActivities.length - 1;
-
-          return Column(
-            children: [
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: activity['bgColor'],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    activity['icon'],
-                    size: 20,
-                    color: activity['color'],
-                  ),
-                ),
-                title: Text(
-                  activity['title'],
+        children: [
+          ...notifications.asMap().entries.map((entry) {
+            final index = entry.key;
+            final n = entry.value;
+            final isLast = index == notifications.length - 1;
+            return _buildNotificationTile(n, isLast);
+          }),
+          if (totalUnread > 5)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: InkWell(
+                onTap: () => context.push('/admin/notifikasi'),
+                child: Text(
+                  'Lihat semua notifikasi ($totalUnread belum dibaca)',
                   style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF111827),
-                  ),
-                ),
-                subtitle: Text(
-                  activity['subtitle'],
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: const Color(0xFF6B7280),
+                    fontSize: 12, fontWeight: FontWeight.w600,
+                    color: AppConstants.primaryBlue,
                   ),
                 ),
               ),
-              if (!isLast)
-                const Divider(height: 1, indent: 64, color: Color(0xFFF3F4F6)),
-            ],
-          );
-        }).toList(),
+            ),
+        ],
       ),
     );
+  }
+
+  Widget _buildNotificationTile(NotificationModel n, bool isLast) {
+    return Column(
+      children: [
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          leading: Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: _getIconColor(n.type).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(_getIcon(n.type), size: 20, color: _getIconColor(n.type)),
+          ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  n.title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF111827),
+                  ),
+                ),
+              ),
+              if (!n.isRead)
+                Container(
+                  width: 6, height: 6,
+                  decoration: const BoxDecoration(color: AppConstants.primaryBlue, shape: BoxShape.circle),
+                ),
+            ],
+          ),
+          subtitle: Text(
+            n.body,
+            style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF6B7280)),
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (!isLast) const Divider(height: 1, indent: 64, color: Color(0xFFF3F4F6)),
+      ],
+    );
+  }
+
+  IconData _getIcon(String type) {
+    switch (type.toUpperCase()) {
+      case 'ADMIN_THERAPIST_REGISTRATION':
+        return Icons.person_add_alt_1_rounded;
+      case 'ADMIN_PAYMENT_SUCCESS':
+        return Icons.check_circle_rounded;
+      case 'ADMIN_PAYMENT_FAILED':
+        return Icons.cancel_rounded;
+      case 'ADMIN_NEW_REPORT':
+        return Icons.description_rounded;
+      case 'ADMIN_HIGH_RISK_DIAGNOSIS':
+        return Icons.warning_amber_rounded;
+      case 'ADMIN_NEW_BOOKING':
+        return Icons.calendar_month_rounded;
+      case 'ADMIN_SESSION_COMPLETED':
+        return Icons.task_alt_rounded;
+      default:
+        return Icons.notifications_rounded;
+    }
+  }
+
+  Color _getIconColor(String type) {
+    switch (type.toUpperCase()) {
+      case 'ADMIN_THERAPIST_REGISTRATION':
+        return const Color(0xFF10B981);
+      case 'ADMIN_PAYMENT_SUCCESS':
+        return const Color(0xFF10B981);
+      case 'ADMIN_PAYMENT_FAILED':
+        return const Color(0xFFEF4444);
+      case 'ADMIN_NEW_REPORT':
+        return const Color(0xFFF59E0B);
+      case 'ADMIN_HIGH_RISK_DIAGNOSIS':
+        return const Color(0xFFEF4444);
+      case 'ADMIN_NEW_BOOKING':
+        return const Color(0xFF3B82F6);
+      case 'ADMIN_SESSION_COMPLETED':
+        return const Color(0xFF8B5CF6);
+      default:
+        return const Color(0xFF6B7280);
+    }
   }
 }

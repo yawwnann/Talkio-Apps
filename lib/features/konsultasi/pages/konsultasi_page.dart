@@ -38,31 +38,31 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
   Widget build(BuildContext context) {
     final konsultasiState = ref.watch(fcKonsultasiProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FE),
-      appBar: SimpleAppBar(
-        title: 'Konsultasi Speech Delay',
-        onBackPress: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/dashboard');
-          }
-        },
-      ),
-      body: Column(
-        children: [
-          // Progress Indicator
-          _buildProgressIndicator(),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/dashboard');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FE),
+        appBar: SimpleAppBar(
+          title: 'Deteksi Speech Delay',
+          onBackPress: () => context.go('/dashboard'),
+        ),
+        body: Column(
+          children: [
+            // Progress Indicator
+            _buildProgressIndicator(),
 
-          // Content
-          Expanded(
-            child: _buildStepContent(konsultasiState),
-          ),
+            // Content
+            Expanded(child: _buildStepContent(konsultasiState)),
 
-          // Navigation Buttons
-          _buildNavigationButtons(konsultasiState),
-        ],
+            // Navigation Buttons
+            _buildNavigationButtons(konsultasiState),
+          ],
+        ),
       ),
     );
   }
@@ -94,13 +94,17 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
                           ),
                           child: Center(
                             child: isActive && index < _currentStep
-                                ? const Icon(Icons.check,
-                                    color: Colors.white, size: 16)
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  )
                                 : Text(
                                     '${index + 1}',
                                     style: TextStyle(
-                                      color:
-                                          isActive ? Colors.white : Colors.grey,
+                                      color: isActive
+                                          ? Colors.white
+                                          : Colors.grey,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -112,10 +116,12 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
                           steps[index],
                           style: GoogleFonts.poppins(
                             fontSize: 10,
-                            color:
-                                isCurrent ? AppConstants.primaryBlue : Colors.grey,
-                            fontWeight:
-                                isCurrent ? FontWeight.w600 : FontWeight.normal,
+                            color: isCurrent
+                                ? AppConstants.primaryBlue
+                                : Colors.grey,
+                            fontWeight: isCurrent
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -286,10 +292,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
           const SizedBox(height: 8),
           Text(
             'Tambahkan data anak terlebih dahulu',
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: Colors.grey[500],
-            ),
+            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[500]),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -490,7 +493,9 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getCategoryColor(question.category).withValues(alpha: 0.1),
+                  color: _getCategoryColor(
+                    question.category,
+                  ).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -555,8 +560,11 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
                         ),
                       ),
                       child: isSelected
-                          ? const Icon(Icons.check,
-                              color: Colors.white, size: 12)
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 12,
+                            )
                           : null,
                     ),
                     const SizedBox(width: 12),
@@ -689,11 +697,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
       ),
       child: Column(
         children: [
-          Icon(
-            _getRiskIcon(result.riskLevel),
-            color: Colors.white,
-            size: 64,
-          ),
+          Icon(_getRiskIcon(result.riskLevel), color: Colors.white, size: 64),
           const SizedBox(height: 16),
           Text(
             result.riskLevelDisplay,
@@ -781,10 +785,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
         children: [
           Text(
             label,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: Colors.grey[600],
-            ),
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
           ),
           Text(
             value,
@@ -832,10 +833,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
           if (result.findings.isEmpty)
             Text(
               'Tidak ada temuan khusus',
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: Colors.grey[600],
-              ),
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
             )
           else
             ...result.findings.entries.map((entry) {
@@ -858,23 +856,28 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    ...entry.value.map((finding) => Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(Icons.circle,
-                                  size: 6, color: Colors.grey),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  finding,
-                                  style: GoogleFonts.poppins(fontSize: 12),
-                                ),
+                    ...entry.value.map(
+                      (finding) => Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.circle,
+                              size: 6,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                finding,
+                                style: GoogleFonts.poppins(fontSize: 12),
                               ),
-                            ],
-                          ),
-                        )),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -915,32 +918,31 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
             ],
           ),
           const SizedBox(height: 16),
-          ...result.recommendations.map((rec) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      child: Icon(
-                        Icons.check_circle,
-                        size: 18,
-                        color: AppConstants.primaryBlue,
-                      ),
+          ...result.recommendations.map(
+            (rec) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    child: Icon(
+                      Icons.check_circle,
+                      size: 18,
+                      color: AppConstants.primaryBlue,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        rec,
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      rec,
+                      style: GoogleFonts.poppins(fontSize: 13, height: 1.4),
                     ),
-                  ],
-                ),
-              )),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -973,31 +975,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
             ),
           ),
         const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () {
-              // Reset and go to home
-              ref.read(fcKonsultasiProvider.notifier).reset();
-              context.go('/dashboard');
-            },
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              side: BorderSide(color: Colors.grey[400]!),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              'Kembali ke Beranda',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
-              ),
-            ),
-          ),
-        ),
+
         const SizedBox(height: 12),
         TextButton(
           onPressed: () {
@@ -1051,13 +1029,13 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
               text: _currentStep == 0
                   ? (state.childId != null ? 'Lanjut' : 'Pilih Anak')
                   : _currentStep == 1
-                      ? 'Analisis'
-                      : 'Selesai',
+                  ? 'Analisis'
+                  : 'Selesai',
               onPressed: _currentStep == 0
                   ? _handleNextFromStep0
                   : _currentStep == 1
-                      ? _handleNextFromStep1
-                      : () => context.pop(),
+                  ? _handleNextFromStep1
+                  : () => context.pop(),
             ),
           ),
         ],
@@ -1067,7 +1045,9 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
 
   void _handleNextFromStep0() {
     if (_selectedAnak != null) {
-      ref.read(fcKonsultasiProvider.notifier).initializeWithChild(
+      ref
+          .read(fcKonsultasiProvider.notifier)
+          .initializeWithChild(
             childId: _selectedAnak!.id,
             childName: _selectedAnak!.name,
             ageInMonths: _selectedAnak!.ageInMonths,
@@ -1079,7 +1059,9 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
           content: const Text('Pilih anak terlebih dahulu'),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     }
@@ -1095,7 +1077,9 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
           content: const Text('Jawab minimal 1 pertanyaan'),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
       return;
@@ -1119,7 +1103,9 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
           konsultasiNotifier.setResult(diagnosis);
           setState(() => _currentStep = 2);
         } else {
-          konsultasiNotifier.setError(data['message'] ?? 'Gagal memproses diagnosis');
+          konsultasiNotifier.setError(
+            data['message'] ?? 'Gagal memproses diagnosis',
+          );
         }
       } else {
         konsultasiNotifier.setError('Gagal memproses diagnosis');

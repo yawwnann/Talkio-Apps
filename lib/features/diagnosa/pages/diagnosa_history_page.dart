@@ -16,13 +16,28 @@ class DiagnosaHistoryPage extends ConsumerStatefulWidget {
   ConsumerState<DiagnosaHistoryPage> createState() => _DiagnosaHistoryPageState();
 }
 
-class _DiagnosaHistoryPageState extends ConsumerState<DiagnosaHistoryPage> {
+class _DiagnosaHistoryPageState extends ConsumerState<DiagnosaHistoryPage> with WidgetsBindingObserver {
   String? _selectedChildId;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectedChildId = widget.childId;
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh data when app resumes (user comes back to this page)
+    if (state == AppLifecycleState.resumed && _selectedChildId != null) {
+      ref.invalidate(diagnosisByChildProvider(_selectedChildId!));
+    }
   }
 
   @override
@@ -40,13 +55,22 @@ class _DiagnosaHistoryPageState extends ConsumerState<DiagnosaHistoryPage> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppConstants.primaryBlue),
         title: Text(
-          'Riwayat Diagnosa',
+          'Riwayat Deteksi',
           style: GoogleFonts.poppins(
             color: AppConstants.primaryBlue,
             fontWeight: FontWeight.w600,
             fontSize: 18,
           ),
         ),
+        actions: [
+          if (_selectedChildId != null)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                ref.invalidate(diagnosisByChildProvider(_selectedChildId!));
+              },
+            ),
+        ],
       ),
       body: _selectedChildId == null
           ? _buildChildSelector(anakState)
@@ -116,7 +140,7 @@ class _DiagnosaHistoryPageState extends ConsumerState<DiagnosaHistoryPage> {
             ),
           ),
         Expanded(
-          child: state.isLoading
+          child: state.isLoading && state.diagnoses.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : state.diagnoses.isEmpty
                   ? Center(
@@ -126,18 +150,30 @@ class _DiagnosaHistoryPageState extends ConsumerState<DiagnosaHistoryPage> {
                           Icon(Icons.search_off, size: 64, color: Colors.grey[300]),
                           const SizedBox(height: 16),
                           Text('Belum ada riwayat diagnosa', style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF94A3B8))),
-                          const SizedBox(height: 8),
-                          TextButton(
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
                             onPressed: () => context.push('/konsultasi'),
-                            child: Text('Mulai Konsultasi', style: GoogleFonts.poppins(color: AppConstants.primaryBlue)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppConstants.primaryBlue,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
+                            icon: const Icon(Icons.psychology, color: Colors.white, size: 20),
+                            label: Text('Mulai Deteksi Sekarang', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: state.diagnoses.length,
-                      itemBuilder: (context, index) => _buildDiagnosisCard(state.diagnoses[index]),
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        ref.invalidate(diagnosisByChildProvider(_selectedChildId!));
+                        await Future.delayed(const Duration(milliseconds: 500));
+                      },
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(16),
+                        itemCount: state.diagnoses.length,
+                        itemBuilder: (context, index) => _buildDiagnosisCard(state.diagnoses[index]),
+                      ),
                     ),
         ),
       ],

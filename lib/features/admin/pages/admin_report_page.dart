@@ -126,7 +126,7 @@ class _AdminReportPageState extends ConsumerState<AdminReportPage> {
           controller: _searchController,
           onChanged: (value) => setState(() => _searchQuery = value),
           decoration: InputDecoration(
-            hintText: 'Cari nama pasien atau therapist...',
+            hintText: 'Cari nama pasien atau terapis...',
             hintStyle: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF9CA3AF)),
             prefixIcon: const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 20),
             border: InputBorder.none,
@@ -341,7 +341,7 @@ class _AdminReportPageState extends ConsumerState<AdminReportPage> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Therapist: ${report['therapistName'] ?? '-'}',
+                    'Terapis: ${report['therapistName'] ?? '-'}',
                     style: GoogleFonts.poppins(
                       fontSize: 10,
                       color: const Color(0xFF6B7280),
@@ -417,7 +417,7 @@ class _AdminReportPageState extends ConsumerState<AdminReportPage> {
               _buildDetailRow('Status', statusLabel, color: statusColor),
               const Divider(),
               _buildDetailRow('Pasien', report['childName']),
-              _buildDetailRow('Therapist', report['therapistName']),
+              _buildDetailRow('Terapis', report['therapistName']),
               const Divider(),
               _buildDetailRow('Judul', report['title']),
               _buildDetailRow('Tanggal', report['date']),
