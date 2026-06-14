@@ -21,7 +21,7 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
   bool _isLoading = true;
   String _searchQuery = '';
 
-  static const _satuanOptions = ['Pcs', 'Unit', 'Set', 'Buah', 'Lembar', 'Pasang', 'Kotak'];
+
 
   @override
   void initState() {
@@ -72,7 +72,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
     final namaCtrl = TextEditingController(text: existing?['nama'] ?? '');
     final jumlahCtrl = TextEditingController(text: '${existing?['jumlah'] ?? 0}');
     final keteranganCtrl = TextEditingController(text: existing?['keterangan'] ?? '');
-    String selectedSatuan = existing?['satuan'] ?? 'Pcs';
     final formKey = GlobalKey<FormState>();
 
     // Auto-generate kode if adding new
@@ -142,44 +141,14 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Jumlah + Satuan row
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: _buildFormField(
-                          controller: jumlahCtrl,
-                          label: 'Jumlah',
-                          hint: '0',
-                          icon: Icons.numbers,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Satuan',
-                              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 6),
-                            DropdownButtonFormField<String>(
-                              value: selectedSatuan,
-                              decoration: _inputDecoration('cth: Pcs', Icons.straighten),
-                              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
-                              items: _satuanOptions
-                                  .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                                  .toList(),
-                              onChanged: (v) => setModalState(() => selectedSatuan = v!),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  // Jumlah
+                  _buildFormField(
+                    controller: jumlahCtrl,
+                    label: 'Jumlah',
+                    hint: '0',
+                    icon: Icons.numbers,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   ),
                   const SizedBox(height: 14),
 
@@ -212,7 +181,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
                           kode: kodeCtrl.text.trim(),
                           nama: namaCtrl.text.trim(),
                           jumlah: int.tryParse(jumlahCtrl.text) ?? 0,
-                          satuan: selectedSatuan,
                           keterangan: keteranganCtrl.text.trim(),
                         );
                       },
@@ -241,7 +209,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
     required String kode,
     required String nama,
     required int jumlah,
-    required String satuan,
     required String keterangan,
   }) async {
     try {
@@ -250,7 +217,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
           'kode': kode,
           'nama': nama,
           'jumlah': jumlah,
-          'satuan': satuan,
           'keterangan': keterangan.isEmpty ? null : keterangan,
         });
         _showSnackBar('Asset berhasil diperbarui');
@@ -259,7 +225,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
           kode: kode,
           nama: nama,
           jumlah: jumlah,
-          satuan: satuan,
           keterangan: keterangan.isEmpty ? null : keterangan,
         );
         _showSnackBar('Asset berhasil ditambahkan');
@@ -490,7 +455,6 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
                           final String kode = asset['kode'] ?? '';
                           final String nama = asset['nama'] ?? '';
                           final int jumlah = int.tryParse(asset['jumlah']?.toString() ?? '0') ?? 0;
-                          final String satuan = asset['satuan'] ?? '';
                           final String keterangan = asset['keterangan'] ?? '';
 
                           return Card(
@@ -582,7 +546,7 @@ class _AdminAssetManagementPageState extends State<AdminAssetManagementPage> {
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
-                                        '$jumlah $satuan',
+                                        '$jumlah',
                                         style: GoogleFonts.poppins(
                                           fontSize: 15,
                                           fontWeight: FontWeight.bold,

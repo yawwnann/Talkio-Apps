@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -286,25 +286,11 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
                   },
                 );
                 break;
-              case 'Kata Bergambar':
-                context.pushNamed(
-                  'kata-bergambar',
-                  extra: {
-                    'childId': childId,
-                    'choicesCount': params['choicesCount'] ?? 3,
-                    'rounds': params['rounds'] ?? 8,
-                    'hintMode': params['hintMode'] ?? 'none',
-                  },
-                );
-                break;
               case 'Tebak Suara':
                 context.pushNamed('tebak-suara', extra: {'childId': childId});
                 break;
               case 'Latihan Artikulasi':
                 context.pushNamed('latihan-artikulasi', extra: {'childId': childId});
-                break;
-              case 'Cerita Interaktif':
-                context.pushNamed('cerita-interaktif', extra: {'childId': childId});
                 break;
               default:
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -332,25 +318,11 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
                 },
               );
               break;
-            case 'Kata Bergambar':
-              context.pushNamed(
-                'kata-bergambar',
-                extra: {
-                  'childId': childId,
-                  'choicesCount': params['choicesCount'] ?? 3,
-                  'rounds': params['rounds'] ?? 8,
-                  'hintMode': params['hintMode'] ?? 'none',
-                },
-              );
-              break;
             case 'Tebak Suara':
               context.pushNamed('tebak-suara', extra: {'childId': childId});
               break;
             case 'Latihan Artikulasi':
               context.pushNamed('latihan-artikulasi', extra: {'childId': childId});
-              break;
-            case 'Cerita Interaktif':
-              context.pushNamed('cerita-interaktif', extra: {'childId': childId});
               break;
           }
         },

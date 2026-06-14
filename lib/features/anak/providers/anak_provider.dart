@@ -139,7 +139,7 @@ class AnakNotifier extends StateNotifier<AnakState> {
     }
   }
 
-  /// Update anak (not supported by backend - mock only)
+  /// Update anak
   Future<bool> updateAnak(AnakModel anak) async {
     state = state.copyWith(isLoading: true, error: null);
 
@@ -148,7 +148,6 @@ class AnakNotifier extends StateNotifier<AnakState> {
 
       if (response.statusCode == 200) {
         final data = response.data;
-        // Backend doesn't support update, so this will likely fail
         if (data is Map<String, dynamic> && data['status'] == 'success') {
           final updatedAnakData = data['data'] as Map<String, dynamic>;
           final updatedAnak = AnakModel.fromJson(updatedAnakData);
@@ -169,9 +168,9 @@ class AnakNotifier extends StateNotifier<AnakState> {
         }
       }
       
-      final message = response.data is Map<String, dynamic> 
-          ? response.data['message'] ?? 'Update tidak didukung oleh backend'
-          : 'Update tidak didukung oleh backend';
+      final message = response.data is Map<String, dynamic>
+          ? response.data['message'] ?? 'Gagal mengupdate data anak'
+          : 'Gagal mengupdate data anak';
       state = state.copyWith(error: message, isLoading: false);
       return false;
     } catch (e) {
@@ -180,7 +179,7 @@ class AnakNotifier extends StateNotifier<AnakState> {
     }
   }
 
-  /// Delete anak (not supported by backend - mock only)
+  /// Delete anak
   Future<bool> deleteAnak(String anakId) async {
     state = state.copyWith(isLoading: true, error: null);
 
@@ -189,7 +188,6 @@ class AnakNotifier extends StateNotifier<AnakState> {
 
       if (response.statusCode == 200) {
         final data = response.data;
-        // Backend doesn't support delete, so this will likely fail
         if (data is Map<String, dynamic> && data['status'] == 'success') {
           final updatedList = state.anakList
               .where((item) => item.id != anakId)
@@ -208,8 +206,8 @@ class AnakNotifier extends StateNotifier<AnakState> {
       }
 
       final message = response.data is Map<String, dynamic>
-          ? response.data['message'] ?? 'Delete tidak didukung oleh backend'
-          : 'Delete tidak didukung oleh backend';
+          ? response.data['message'] ?? 'Gagal menghapus data anak'
+          : 'Gagal menghapus data anak';
       state = state.copyWith(error: message, isLoading: false);
       return false;
     } catch (e) {

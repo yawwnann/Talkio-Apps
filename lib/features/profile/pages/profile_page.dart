@@ -36,8 +36,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         children: [
           _buildProfileHeader(user),
           const SizedBox(height: 16),
-          _buildQuickStats(user),
-          const SizedBox(height: 16),
           _buildMenuSection(user),
           const SizedBox(height: 16),
           _buildLogoutButton(ref),
@@ -123,59 +121,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildQuickStats(dynamic user) {
-    final role = user?.role ?? '';
-    final icons = <Widget>[];
 
-    if (role == 'THERAPIST') {
-      icons.addAll([
-        _buildQuickIcon(Icons.people, 'Pasien', () => context.go('/therapist/pasien')),
-        _buildQuickIcon(Icons.calendar_today, 'Jadwal', () => context.go('/jadwal')),
-        _buildQuickIcon(Icons.assignment, 'Laporan', () => context.go('/therapist/laporan')),
-        _buildQuickIcon(Icons.dashboard, 'Dashboard', () => context.go('/terapis-dashboard')),
-      ]);
-    } else if (role == 'ADMIN') {
-      icons.addAll([
-        _buildQuickIcon(Icons.people, 'Users', () => context.go('/admin/users')),
-        _buildQuickIcon(Icons.payments, 'Pembayaran', () => context.go('/admin/pembayaran')),
-        _buildQuickIcon(Icons.assessment, 'Laporan', () => context.go('/admin/laporan')),
-        _buildQuickIcon(Icons.dashboard, 'Dashboard', () => context.go('/admin-dashboard')),
-      ]);
-    } else {
-      icons.addAll([
-        _buildQuickIcon(Icons.calendar_today, 'Jadwal', () => context.go('/jadwal')),
-        _buildQuickIcon(Icons.games, 'Game', () => context.go('/game')),
-        _buildQuickIcon(Icons.chat_bubble, 'Konsultasi', () => context.go('/konsultasi')),
-      ]);
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: icons),
-    );
-  }
-
-  Widget _buildQuickIcon(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        children: [
-          Container(
-            width: 48, height: 48,
-            decoration: BoxDecoration(color: AppConstants.lightBlue, borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, size: 22, color: AppConstants.primaryBlue),
-          ),
-          const SizedBox(height: 6),
-          Text(label, style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFF64748B))),
-        ],
-      ),
-    );
-  }
 
   Widget _buildMenuSection(dynamic user) {
     final isTherapist = user?.role == 'THERAPIST';

@@ -2340,14 +2340,22 @@ class ApiService {
     }
   }
 
-  /// Delete anak (legacy - backend doesn't have this endpoint)
+  /// Delete anak
+  /// DELETE /api/children/:id
   Future<MockResponse> deleteAnak(String anakId) async {
     if (_mockConfig.useMockData) {
       print('📦 [MOCK] Delete anak: $anakId');
       return AnakMockHandler.delete(anakId);
     }
-    print('🌐 [API] Delete anak (not directly supported by backend)');
-    return MockResponse(statusCode: 501, data: {'message': 'Not implemented in backend'});
+    print('🌐 [API] DELETE /children/$anakId');
+    try {
+      final response = await dio.delete('/children/$anakId');
+      print('🌐 [API] Delete anak: ${response.statusCode}');
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } catch (e) {
+      print('❌ [API] Delete anak error: $e');
+      throw _handleError(e);
+    }
   }
 
   /// Get laporan by terapis ID (legacy)

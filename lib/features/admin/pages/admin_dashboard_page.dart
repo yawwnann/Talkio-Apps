@@ -76,10 +76,6 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               const SizedBox(height: 16),
               _buildStatsGrid(),
               const SizedBox(height: 16),
-              _buildSectionTitle('Notifikasi Penting'),
-              const SizedBox(height: 12),
-              _buildPrioritySummary(notifState.summary),
-              const SizedBox(height: 12),
               _buildSectionTitle('Aktivitas Terbaru'),
               const SizedBox(height: 12),
               recentNotifs.isEmpty
@@ -122,7 +118,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         Stack(
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications_outlined, size: 22),
+              icon: const Icon(Icons.notifications_outlined, size: 22, color: Color(0xFF111827)),
               onPressed: () => context.push('/admin/notifikasi'),
             ),
             if (summary.totalUnread > 0)
@@ -154,54 +150,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
     );
   }
 
-  Widget _buildPrioritySummary(AdminNotificationSummary summary) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: Row(
-        children: [
-          _buildPriorityItem('HIGH', summary.highCount, const Color(0xFFEF4444), Icons.priority_high),
-          _buildDivider(),
-          _buildPriorityItem('MEDIUM', summary.mediumCount, const Color(0xFFF59E0B), Icons.remove),
-          _buildDivider(),
-          _buildPriorityItem('LOW', summary.lowCount, const Color(0xFF6B7280), Icons.arrow_downward),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildPriorityItem(String label, int count, Color color, IconData icon) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            '$count',
-            style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w700, color: color),
-          ),
-          const SizedBox(height: 2),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 10, color: color),
-              const SizedBox(width: 2),
-              Text(
-                label,
-                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600, color: color),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Container(width: 1, height: 40, color: const Color(0xFFE2E8F0));
-  }
 
   Widget _buildWelcomeCard() {
     return Container(
@@ -241,28 +190,6 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     color: Colors.white.withValues(alpha: 0.8),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.verified_user, size: 14, color: Colors.white),
-                const SizedBox(width: 4),
-                Text(
-                  'Super Admin',
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
                   ),
                 ),
               ],

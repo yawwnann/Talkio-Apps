@@ -165,9 +165,9 @@ void main() {
     final service = FCService();
 
     test('returns question for existing key', () {
-      final question = service.getQuestionByKey('first_word', 24);
+      final question = service.getQuestionByKey('vocabulary_count', 24);
       expect(question, isNotNull);
-      expect(question!.key, 'first_word');
+      expect(question!.key, 'vocabulary_count');
     });
 
     test('returns null for non-existent key', () {

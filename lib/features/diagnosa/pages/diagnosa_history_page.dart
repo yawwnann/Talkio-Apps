@@ -6,6 +6,7 @@ import '../providers/diagnosis_provider.dart';
 import '../../anak/providers/anak_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/diagnosis_model.dart';
+import '../../../shared/widgets/parent_bottom_nav.dart';
 
 class DiagnosaHistoryPage extends ConsumerStatefulWidget {
   final String? childId;
@@ -54,6 +55,16 @@ class _DiagnosaHistoryPageState extends ConsumerState<DiagnosaHistoryPage> with 
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppConstants.primaryBlue),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
+        ),
         title: Text(
           'Riwayat Deteksi',
           style: GoogleFonts.poppins(
@@ -75,6 +86,7 @@ class _DiagnosaHistoryPageState extends ConsumerState<DiagnosaHistoryPage> with 
       body: _selectedChildId == null
           ? _buildChildSelector(anakState)
           : _buildDiagnosisList(diagnosisState, anakState),
+      bottomNavigationBar: const ParentBottomNav(currentIndex: -1),
     );
   }
 

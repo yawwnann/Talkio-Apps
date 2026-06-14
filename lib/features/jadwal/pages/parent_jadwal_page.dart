@@ -30,7 +30,7 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
 
   List<DateTime> _getWeekDates() {
     final today = DateTime.now();
-    return List.generate(7, (index) => today.add(Duration(days: index)));
+    return List.generate(30, (index) => today.add(Duration(days: index)));
   }
 
   /// Get sessions for the selected day
@@ -71,7 +71,8 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
     final allSessions = scheduleState.scheduleList;
 
     // Filter sessions by selected day AND status filter
-    List<Map<String, dynamic>> filteredSessions = _getFilteredSessions(allSessions);
+    List<Map<String, dynamic>> daySessions = _getSelectedDaySessions(allSessions);
+    List<Map<String, dynamic>> filteredSessions = _getFilteredSessions(daySessions);
 
     // Calculate stats from ALL sessions (not just selected day)
     final activeCount = allSessions.where((s) => s['isActive'] == true && s['paymentStatus'] == 'SUCCESS').length;
@@ -173,7 +174,7 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: 7,
+        itemCount: weekDates.length,
         itemBuilder: (context, index) {
           final date = weekDates[index];
           final isToday = date.day == today.day && date.month == today.month;

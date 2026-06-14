@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../anak/providers/anak_provider.dart';
 import '../providers/progress_upload_provider.dart';
@@ -39,14 +40,36 @@ class _ProgressUploadPageState extends ConsumerState<ProgressUploadPage> {
     try {
       final XFile? pickedFile = await _picker.pickVideo(source: ImageSource.gallery);
       if (pickedFile != null) {
+        final file = File(pickedFile.path);
+        final videoPlayerController = VideoPlayerController.file(file);
+        
+        // Cek durasi video
+        await videoPlayerController.initialize();
+        final duration = videoPlayerController.value.duration;
+        await videoPlayerController.dispose();
+
+        if (duration.inSeconds < 5) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Durasi video terlalu pendek. Minimal harus 5 detik.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
         setState(() {
-          _selectedFile = File(pickedFile.path);
+          _selectedFile = file;
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memilih video: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memilih video: $e')),
+        );
+      }
     }
   }
 

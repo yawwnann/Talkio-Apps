@@ -92,10 +92,10 @@ class FCInferenceEngine {
     int delayCount = 0;
     List<String> delaySymptoms = [];
 
-    for (var indicator in delayIndicators) {
-      if (derivedFacts.contains(indicator)) {
+    for (var fact in derivedFacts) {
+      if (fact.endsWith('_kurang') || fact.endsWith('_delayed') || delayIndicators.contains(fact)) {
         delayCount++;
-        delaySymptoms.add(indicator);
+        delaySymptoms.add(fact);
       }
     }
 
@@ -198,6 +198,7 @@ class FCInferenceEngine {
     required String riskLevel,
   }) {
     final recommendations = <String>[];
+
 
     if (riskLevel == 'HIGH') {
       recommendations.addAll([

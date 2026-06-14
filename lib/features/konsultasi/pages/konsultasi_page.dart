@@ -25,6 +25,13 @@ class KonsultasiPage extends ConsumerStatefulWidget {
 class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
   int _currentStep = 0;
   AnakModel? _selectedAnak;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -391,6 +398,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
 
   Widget _buildQuestionsStep(FCKonsultasiState state) {
     return SingleChildScrollView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,7 +443,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
           const SizedBox(height: 24),
 
           // Questions
-          ...state.questions.map((q) => _buildQuestionCard(q, state)),
+          ...state.questions.asMap().entries.map((e) => _buildQuestionCard(e.value, e.key + 1, state)),
 
           const SizedBox(height: 16),
 
@@ -468,7 +476,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
     );
   }
 
-  Widget _buildQuestionCard(FCQuestionModel question, FCKonsultasiState state) {
+  Widget _buildQuestionCard(FCQuestionModel question, int number, FCKonsultasiState state) {
     final selectedAnswer = state.answers[question.key];
 
     return Container(
@@ -499,7 +507,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  question.category.toUpperCase(),
+                  '$number',
                   style: GoogleFonts.poppins(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -650,6 +658,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
     final result = state.result!;
 
     return SingleChildScrollView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,6 +808,112 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
     );
   }
 
+  String _formatFinding(String finding) {
+    if (!finding.contains(' - ')) return finding;
+    
+    final parts = finding.split(' - ');
+    String variable = parts[0].trim();
+    String status = parts[1].trim();
+
+    if (status.endsWith('_baik')) {
+      status = 'Baik';
+    } else if (status.endsWith('_cukup')) {
+      status = 'Cukup';
+    } else if (status.endsWith('_kurang')) {
+      status = 'Kurang';
+    } else if (status.endsWith('_terlambat')) {
+      status = 'Terlambat';
+    } else if (status == 'tidak_ada_risiko_genetik') {
+      status = 'Tidak ada risiko';
+    } else if (status == 'ada_risiko_genetik') {
+      status = 'Ada risiko';
+    } else if (status == 'pantau_ringan') {
+      status = 'Pantau ringan';
+    } else if (status == 'perlu_evaluasi') {
+      status = 'Perlu evaluasi';
+    } else if (status == 'tidak_ada_masalah_pendengaran') {
+      status = 'Tidak ada masalah';
+    } else if (status == 'ada_indikasi_masalah_pendengaran') {
+      status = 'Ada indikasi masalah';
+    } else {
+      status = status.replaceAll(variable, '');
+      status = status.replaceAll(RegExp(r'^_\d+_'), ''); 
+      status = status.replaceAll(RegExp(r'^_'), ''); 
+      status = status.replaceAll('_', ' ');
+    }
+
+    final Map<String, String> mapping = {
+      "first_word": "kata pertama",
+      "imitate_sounds": "meniru suara",
+      "vocabulary_count_12": "jumlah kosa kata",
+      "vocabulary_count_24": "jumlah kosa kata",
+      "vocabulary_count_36": "jumlah kosa kata",
+      "vocabulary_count_48": "jumlah kosa kata",
+      "vocabulary_count_60": "kosa kata",
+      "vocabulary_count": "kosa kata",
+      "name_response": "respon panggilan",
+      "gesture_comm": "komunikasi dengan gerakan",
+      "understand_simple": "pemahaman perintah sederhana",
+      "babbling": "mengoceh",
+      "attention_sounds": "perhatian pada suara",
+      "two_word_phrase": "frasa dua kata",
+      "speech_clarity_24": "kejelasan bicara",
+      "speech_clarity_36": "kejelasan bicara",
+      "speech_clarity_48": "kejelasan bicara",
+      "speech_clarity_60": "kejelasan bicara",
+      "speech_clarity": "kejelasan bicara",
+      "asking_what": "bertanya 'apa'",
+      "follow_commands_two": "mengikuti dua perintah",
+      "point_body_parts": "menunjuk bagian tubuh",
+      "uses_i_me": "penggunaan 'saya'/'aku'",
+      "enjoy_stories": "ketertarikan cerita",
+      "three_word_sentence": "kalimat tiga kata",
+      "asking_why_how": "bertanya 'mengapa/bagaimana'",
+      "follow_commands_three": "mengikuti tiga perintah",
+      "understand_prepositions": "pemahaman kata depan",
+      "uses_plurals_past": "penggunaan bentuk kata",
+      "tells_simple_story": "bercerita sederhana",
+      "complex_sentences": "kalimat kompleks",
+      "articulation_difficulty_48": "artikulasi",
+      "articulation_difficulty_60": "artikulasi",
+      "articulation_difficulty": "artikulasi",
+      "understand_concept": "pemahaman konsep dasar",
+      "answer_w_questions": "menjawab pertanyaan",
+      "tell_experiences": "menceritakan pengalaman",
+      "rhyming_words": "pemahaman kata berima",
+      "story_structure": "struktur cerita",
+      "follow_rules": "mengikuti aturan",
+      "complex_questions": "menjawab pertanyaan kompleks",
+      "speech_comparison": "kemampuan bicara vs sebaya",
+      "express_feelings": "mengekspresikan perasaan",
+      "narrative_skill": "kemampuan naratif",
+      "asking_why": "bertanya 'mengapa'",
+      "color_recognition": "mengenal warna",
+      "family_history": "riwayat keluarga",
+      "parent_concern": "kekhawatiran orangtua",
+      "eye_contact": "kontak mata",
+      "pointing": "menunjuk",
+      "show_objects": "menunjukkan objek",
+      "joint_attention": "perhatian bersama",
+      "play_skills": "keterampilan bermain",
+      "hearing_test": "tes pendengaran",
+      "ear_infection": "infeksi telinga",
+      "pretend_play": "bermain pura-pura",
+      "hearing_issues": "masalah pendengaran",
+      "social_smile": "senyum sosial"
+    };
+
+    String translatedVariable = mapping[variable] ?? variable;
+    if (translatedVariable.isNotEmpty) {
+      translatedVariable = translatedVariable[0].toUpperCase() + translatedVariable.substring(1);
+    }
+    if (status.isNotEmpty) {
+      status = status[0].toUpperCase() + status.substring(1);
+    }
+
+    return '$translatedVariable: $status';
+  }
+
   Widget _buildSummaryCard(DiagnosisModel result) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -870,7 +985,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                finding,
+                                _formatFinding(finding),
                                 style: GoogleFonts.poppins(fontSize: 12),
                               ),
                             ),
@@ -885,6 +1000,60 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
         ],
       ),
     );
+  }
+
+  String _translateRecommendation(String text) {
+    final Map<String, String> mapping = {
+      "first_word": "kata pertama",
+      "imitate_sounds": "meniru suara",
+      "vocabulary_count_12": "jumlah kosa kata",
+      "name_response": "respon terhadap panggilan nama",
+      "gesture_comm": "komunikasi dengan gerakan",
+      "understand_simple": "pemahaman perintah sederhana",
+      "babbling": "mengoceh",
+      "attention_sounds": "perhatian pada suara",
+      "vocabulary_count_24": "jumlah kosa kata",
+      "two_word_phrase": "penggunaan frasa dua kata",
+      "speech_clarity_24": "kejelasan bicara",
+      "asking_what": "bertanya menggunakan kata 'apa'",
+      "follow_commands_two": "mengikuti dua perintah sekaligus",
+      "point_body_parts": "menunjuk bagian tubuh",
+      "uses_i_me": "penggunaan kata 'saya' atau 'aku'",
+      "enjoy_stories": "ketertarikan pada cerita",
+      "vocabulary_count_36": "jumlah kosa kata",
+      "three_word_sentence": "penggunaan kalimat tiga kata",
+      "speech_clarity_36": "kejelasan bicara",
+      "asking_why_how": "bertanya menggunakan kata 'mengapa' atau 'bagaimana'",
+      "follow_commands_three": "mengikuti tiga perintah sekaligus",
+      "understand_prepositions": "pemahaman kata depan",
+      "uses_plurals_past": "penggunaan bentuk kata yang sesuai",
+      "tells_simple_story": "bercerita sederhana",
+      "vocabulary_count_48": "jumlah kosa kata",
+      "complex_sentences": "penggunaan kalimat kompleks",
+      "speech_clarity_48": "kejelasan bicara",
+      "articulation_difficulty_48": "artikulasi",
+      "understand_concept": "pemahaman konsep dasar",
+      "answer_w_questions": "menjawab pertanyaan sederhana",
+      "tell_experiences": "menceritakan pengalaman",
+      "rhyming_words": "pemahaman kata-kata berima",
+      "vocabulary_count_60": "kosa kata",
+      "story_structure": "menyusun struktur cerita",
+      "speech_clarity_60": "kejelasan bicara",
+      "articulation_difficulty_60": "artikulasi",
+      "follow_rules": "mengikuti aturan",
+      "complex_questions": "menjawab pertanyaan kompleks",
+      "speech_comparison": "kemampuan bicara dibandingkan sebaya",
+      "express_feelings": "mengekspresikan perasaan",
+      "narrative_skill": "kemampuan naratif",
+      "asking_why": "bertanya menggunakan kata 'mengapa'",
+      "color_recognition": "mengenal warna"
+    };
+
+    String result = text;
+    mapping.forEach((key, value) {
+      result = result.replaceAll(key, value);
+    });
+    return result;
   }
 
   Widget _buildRecommendationsCard(DiagnosisModel result) {
@@ -935,7 +1104,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      rec,
+                      _translateRecommendation(rec),
                       style: GoogleFonts.poppins(fontSize: 13, height: 1.4),
                     ),
                   ),
@@ -977,23 +1146,6 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
         const SizedBox(height: 12),
 
         const SizedBox(height: 12),
-        TextButton(
-          onPressed: () {
-            // Restart consultation
-            setState(() {
-              _currentStep = 0;
-              _selectedAnak = null;
-            });
-            ref.read(fcKonsultasiProvider.notifier).reset();
-          },
-          child: Text(
-            'Konsultasi Ulang',
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: AppConstants.primaryBlue,
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -1013,7 +1165,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
       ),
       child: Row(
         children: [
-          if (_currentStep > 0)
+          if (_currentStep > 0 && _currentStep != 2)
             Expanded(
               child: CustomButton(
                 text: 'Sebelumnya',
@@ -1023,7 +1175,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
                 isOutlined: true,
               ),
             ),
-          if (_currentStep > 0) const SizedBox(width: 16),
+          if (_currentStep > 0 && _currentStep != 2) const SizedBox(width: 16),
           Expanded(
             child: CustomButton(
               text: _currentStep == 0
@@ -1035,7 +1187,7 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
                   ? _handleNextFromStep0
                   : _currentStep == 1
                   ? _handleNextFromStep1
-                  : () => context.pop(),
+                  : () => context.go('/diagnosa'),
             ),
           ),
         ],
@@ -1097,14 +1249,19 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = response.data;
-        if (data is Map && data['status'] == 'success') {
-          final diagnosis = DiagnosisModel.fromJson(data['data']);
+        final responseData = response.data;
+        if (responseData is Map && responseData['status'] == 'success') {
+          final diagnosis = DiagnosisModel.fromJson(responseData['data']);
           konsultasiNotifier.setResult(diagnosis);
           setState(() => _currentStep = 2);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.jumpTo(0.0);
+            }
+          });
         } else {
           konsultasiNotifier.setError(
-            data['message'] ?? 'Gagal memproses diagnosis',
+            responseData['message'] ?? 'Gagal memproses diagnosis',
           );
         }
       } else {

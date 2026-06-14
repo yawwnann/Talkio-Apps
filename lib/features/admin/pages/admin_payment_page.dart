@@ -18,6 +18,12 @@ class _AdminPaymentPageState extends ConsumerState<AdminPaymentPage> {
   final List<String> _tabs = ['Semua', 'Sukses', 'Pending', 'Gagal'];
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  int _selectedMonth = 0; // 0 = Semua Bulan, 1 = Jan, 2 = Feb, dll.
+  final List<String> _months = [
+    'Semua Bulan',
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
 
   List<Map<String, dynamic>> get _filteredTransactions {
     final transactions = ref.watch(adminPaymentProvider).transactions;
@@ -32,7 +38,20 @@ class _AdminPaymentPageState extends ConsumerState<AdminPaymentPage> {
           (_selectedTab == 1 && trx['status'] == 'SUCCESS') ||
           (_selectedTab == 2 && trx['status'] == 'PENDING') ||
           (_selectedTab == 3 && trx['status'] == 'FAILED');
-      return matchesSearch && matchesTab;
+          
+      bool matchesMonth = true;
+      if (_selectedMonth > 0) {
+        try {
+          final dateStr = trx['date']?.toString() ?? '';
+          final date = DateTime.parse(dateStr);
+          matchesMonth = date.month == _selectedMonth;
+        } catch (_) {
+          // If parsing fails, we might just show it or hide it. Let's hide it if a specific month is selected.
+          matchesMonth = false;
+        }
+      }
+      
+      return matchesSearch && matchesTab && matchesMonth;
     }).toList();
   }
 
@@ -119,31 +138,63 @@ class _AdminPaymentPageState extends ConsumerState<AdminPaymentPage> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       color: Colors.white,
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF3F4F6),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: TextField(
-          controller: _searchController,
-          onChanged: (value) => setState(() => _searchQuery = value),
-          decoration: InputDecoration(
-            hintText: 'Cari ID transaksi atau nama pasien...',
-            hintStyle: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF9CA3AF)),
-            prefixIcon: const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 20),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            suffixIcon: _searchQuery.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear, size: 18, color: Color(0xFF9CA3AF)),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() => _searchQuery = '');
-                    },
-                  )
-                : null,
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) => setState(() => _searchQuery = value),
+                decoration: InputDecoration(
+                  hintText: 'Cari transaksi...',
+                  hintStyle: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF9CA3AF)),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 20),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18, color: Color(0xFF9CA3AF)),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                ),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: _selectedMonth,
+                icon: const Icon(Icons.calendar_month, size: 18, color: Color(0xFF6B7280)),
+                style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF111827)),
+                onChanged: (int? newValue) {
+                  if (newValue != null) {
+                    setState(() => _selectedMonth = newValue);
+                  }
+                },
+                items: List.generate(_months.length, (index) {
+                  return DropdownMenuItem<int>(
+                    value: index,
+                    child: Text(_months[index]),
+                  );
+                }),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

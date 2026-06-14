@@ -58,8 +58,6 @@ class _TherapistDashboardPageState
                   children: [
                     _buildHeader(user?.name ?? 'Terapis'),
                     const SizedBox(height: 20),
-                    _buildSummaryStats(dashboardState.stats),
-                    const SizedBox(height: 20),
                     _buildTodaySchedule(dashboardState.stats),
                     const SizedBox(height: 20),
                     _buildRecentBookings(dashboardState.stats),
@@ -118,100 +116,7 @@ class _TherapistDashboardPageState
     return 'Selamat Malam 👋';
   }
 
-  /// Summary stats (3 kartu statistik)
-  Widget _buildSummaryStats(Map<String, dynamic>? stats) {
-    final todayCount = stats?['todaySchedule']?['count'] ?? 0;
-    final activeCount = stats?['activePatients']?['count'] ?? 0;
-    final pendingCount = stats?['summary']?['pendingReports'] ?? 0;
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.calendar_today_rounded,
-            iconColor: const Color(0xFF3B82F6),
-            label: 'Sesi Hari Ini',
-            value: todayCount.toString(),
-            bgColor: const Color(0xFFEFF6FF),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.people_outline_rounded,
-            iconColor: const Color(0xFF10B981),
-            label: 'Pasien Aktif',
-            value: activeCount.toString(),
-            bgColor: const Color(0xFFECFDF5),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.pending_actions_rounded,
-            iconColor: const Color(0xFFF59E0B),
-            label: 'Menunggu',
-            value: pendingCount.toString(),
-            bgColor: const Color(0xFFFFFBEB),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String value,
-    required Color bgColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 20, color: iconColor),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF1E293B),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              color: const Color(0xFF64748B),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 
   /// Jadwal terapi hari ini
   Widget _buildTodaySchedule(Map<String, dynamic>? stats) {

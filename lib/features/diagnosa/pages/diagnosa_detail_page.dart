@@ -288,6 +288,112 @@ class _DiagnosaDetailPageState extends ConsumerState<DiagnosaDetailPage> {
         .join(' ');
   }
 
+  String _formatFinding(String finding) {
+    if (!finding.contains(' - ')) return finding;
+    
+    final parts = finding.split(' - ');
+    String variable = parts[0].trim();
+    String status = parts[1].trim();
+
+    if (status.endsWith('_baik')) {
+      status = 'Baik';
+    } else if (status.endsWith('_cukup')) {
+      status = 'Cukup';
+    } else if (status.endsWith('_kurang')) {
+      status = 'Kurang';
+    } else if (status.endsWith('_terlambat')) {
+      status = 'Terlambat';
+    } else if (status == 'tidak_ada_risiko_genetik') {
+      status = 'Tidak ada risiko';
+    } else if (status == 'ada_risiko_genetik') {
+      status = 'Ada risiko';
+    } else if (status == 'pantau_ringan') {
+      status = 'Pantau ringan';
+    } else if (status == 'perlu_evaluasi') {
+      status = 'Perlu evaluasi';
+    } else if (status == 'tidak_ada_masalah_pendengaran') {
+      status = 'Tidak ada masalah';
+    } else if (status == 'ada_indikasi_masalah_pendengaran') {
+      status = 'Ada indikasi masalah';
+    } else {
+      status = status.replaceAll(variable, '');
+      status = status.replaceAll(RegExp(r'^_\d+_'), ''); 
+      status = status.replaceAll(RegExp(r'^_'), ''); 
+      status = status.replaceAll('_', ' ');
+    }
+
+    final Map<String, String> mapping = {
+      "first_word": "kata pertama",
+      "imitate_sounds": "meniru suara",
+      "vocabulary_count_12": "jumlah kosa kata",
+      "vocabulary_count_24": "jumlah kosa kata",
+      "vocabulary_count_36": "jumlah kosa kata",
+      "vocabulary_count_48": "jumlah kosa kata",
+      "vocabulary_count_60": "kosa kata",
+      "vocabulary_count": "kosa kata",
+      "name_response": "respon panggilan",
+      "gesture_comm": "komunikasi dengan gerakan",
+      "understand_simple": "pemahaman perintah sederhana",
+      "babbling": "mengoceh",
+      "attention_sounds": "perhatian pada suara",
+      "two_word_phrase": "frasa dua kata",
+      "speech_clarity_24": "kejelasan bicara",
+      "speech_clarity_36": "kejelasan bicara",
+      "speech_clarity_48": "kejelasan bicara",
+      "speech_clarity_60": "kejelasan bicara",
+      "speech_clarity": "kejelasan bicara",
+      "asking_what": "bertanya 'apa'",
+      "follow_commands_two": "mengikuti dua perintah",
+      "point_body_parts": "menunjuk bagian tubuh",
+      "uses_i_me": "penggunaan 'saya'/'aku'",
+      "enjoy_stories": "ketertarikan cerita",
+      "three_word_sentence": "kalimat tiga kata",
+      "asking_why_how": "bertanya 'mengapa/bagaimana'",
+      "follow_commands_three": "mengikuti tiga perintah",
+      "understand_prepositions": "pemahaman kata depan",
+      "uses_plurals_past": "penggunaan bentuk kata",
+      "tells_simple_story": "bercerita sederhana",
+      "complex_sentences": "kalimat kompleks",
+      "articulation_difficulty_48": "artikulasi",
+      "articulation_difficulty_60": "artikulasi",
+      "articulation_difficulty": "artikulasi",
+      "understand_concept": "pemahaman konsep dasar",
+      "answer_w_questions": "menjawab pertanyaan",
+      "tell_experiences": "menceritakan pengalaman",
+      "rhyming_words": "pemahaman kata berima",
+      "story_structure": "struktur cerita",
+      "follow_rules": "mengikuti aturan",
+      "complex_questions": "menjawab pertanyaan kompleks",
+      "speech_comparison": "kemampuan bicara vs sebaya",
+      "express_feelings": "mengekspresikan perasaan",
+      "narrative_skill": "kemampuan naratif",
+      "asking_why": "bertanya 'mengapa'",
+      "color_recognition": "mengenal warna",
+      "family_history": "riwayat keluarga",
+      "parent_concern": "kekhawatiran orangtua",
+      "eye_contact": "kontak mata",
+      "pointing": "menunjuk",
+      "show_objects": "menunjukkan objek",
+      "joint_attention": "perhatian bersama",
+      "play_skills": "keterampilan bermain",
+      "hearing_test": "tes pendengaran",
+      "ear_infection": "infeksi telinga",
+      "pretend_play": "bermain pura-pura",
+      "hearing_issues": "masalah pendengaran",
+      "social_smile": "senyum sosial"
+    };
+
+    String translatedVariable = mapping[variable] ?? variable;
+    if (translatedVariable.isNotEmpty) {
+      translatedVariable = translatedVariable[0].toUpperCase() + translatedVariable.substring(1);
+    }
+    if (status.isNotEmpty) {
+      status = status[0].toUpperCase() + status.substring(1);
+    }
+
+    return '$translatedVariable: $status';
+  }
+
   Widget _buildFindingsCard() {
     final d = _diagnosis!;
     return _card(
@@ -312,7 +418,7 @@ class _DiagnosaDetailPageState extends ConsumerState<DiagnosaDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('• ', style: GoogleFonts.poppins(color: const Color(0xFF64748B))),
-                      Expanded(child: Text(finding, style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF64748B)))),
+                      Expanded(child: Text(_formatFinding(finding), style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF64748B)))),
                     ],
                   ),
                 )),
@@ -322,6 +428,60 @@ class _DiagnosaDetailPageState extends ConsumerState<DiagnosaDetailPage> {
         ],
       ),
     );
+  }
+
+  String _translateRecommendation(String text) {
+    final Map<String, String> mapping = {
+      "first_word": "kata pertama",
+      "imitate_sounds": "meniru suara",
+      "vocabulary_count_12": "jumlah kosa kata",
+      "name_response": "respon terhadap panggilan nama",
+      "gesture_comm": "komunikasi dengan gerakan",
+      "understand_simple": "pemahaman perintah sederhana",
+      "babbling": "mengoceh",
+      "attention_sounds": "perhatian pada suara",
+      "vocabulary_count_24": "jumlah kosa kata",
+      "two_word_phrase": "penggunaan frasa dua kata",
+      "speech_clarity_24": "kejelasan bicara",
+      "asking_what": "bertanya menggunakan kata 'apa'",
+      "follow_commands_two": "mengikuti dua perintah sekaligus",
+      "point_body_parts": "menunjuk bagian tubuh",
+      "uses_i_me": "penggunaan kata 'saya' atau 'aku'",
+      "enjoy_stories": "ketertarikan pada cerita",
+      "vocabulary_count_36": "jumlah kosa kata",
+      "three_word_sentence": "penggunaan kalimat tiga kata",
+      "speech_clarity_36": "kejelasan bicara",
+      "asking_why_how": "bertanya menggunakan kata 'mengapa' atau 'bagaimana'",
+      "follow_commands_three": "mengikuti tiga perintah sekaligus",
+      "understand_prepositions": "pemahaman kata depan",
+      "uses_plurals_past": "penggunaan bentuk kata yang sesuai",
+      "tells_simple_story": "bercerita sederhana",
+      "vocabulary_count_48": "jumlah kosa kata",
+      "complex_sentences": "penggunaan kalimat kompleks",
+      "speech_clarity_48": "kejelasan bicara",
+      "articulation_difficulty_48": "artikulasi",
+      "understand_concept": "pemahaman konsep dasar",
+      "answer_w_questions": "menjawab pertanyaan sederhana",
+      "tell_experiences": "menceritakan pengalaman",
+      "rhyming_words": "pemahaman kata-kata berima",
+      "vocabulary_count_60": "kosa kata",
+      "story_structure": "menyusun struktur cerita",
+      "speech_clarity_60": "kejelasan bicara",
+      "articulation_difficulty_60": "artikulasi",
+      "follow_rules": "mengikuti aturan",
+      "complex_questions": "menjawab pertanyaan kompleks",
+      "speech_comparison": "kemampuan bicara dibandingkan sebaya",
+      "express_feelings": "mengekspresikan perasaan",
+      "narrative_skill": "kemampuan naratif",
+      "asking_why": "bertanya menggunakan kata 'mengapa'",
+      "color_recognition": "mengenal warna"
+    };
+
+    String result = text;
+    mapping.forEach((key, value) {
+      result = result.replaceAll(key, value);
+    });
+    return result;
   }
 
   Widget _buildRecommendationsCard() {
@@ -346,7 +506,7 @@ class _DiagnosaDetailPageState extends ConsumerState<DiagnosaDetailPage> {
                     child: Center(child: Text('${e.key + 1}', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: AppConstants.successColor))),
                   ),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(e.value, style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF475569)))),
+                  Expanded(child: Text(_translateRecommendation(e.value), style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF475569)))),
                 ],
               ),
             )),

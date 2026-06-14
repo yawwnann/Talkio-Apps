@@ -30,7 +30,7 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
 
   List<DateTime> _weekDates() {
     final today = DateTime.now();
-    return List.generate(7, (i) => today.add(Duration(days: i)));
+    return List.generate(30, (i) => today.add(Duration(days: i)));
   }
 
   @override
@@ -135,7 +135,7 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: 7,
+        itemCount: dates.length,
         itemBuilder: (ctx, i) {
           final d = dates[i];
           final sel = _selectedDay == i;
