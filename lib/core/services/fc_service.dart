@@ -76,7 +76,7 @@ class FCService {
         ],
         'warningSigns': [
           'Kosakata terbatas',
-          'Struktur kalimat tidak правильний',
+          'Struktur kalimat tidak benar',
           'Masalah sosial',
         ],
       };

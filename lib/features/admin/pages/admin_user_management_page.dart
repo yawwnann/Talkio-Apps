@@ -291,20 +291,20 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
                 ),
               ),
               PopupMenuItem(
-                value: isBlocked ? 'unblock' : 'block',
+                value: 'delete',
                 child: Row(
                   children: [
                     Icon(
-                      isBlocked ? Icons.lock_open_outlined : Icons.block_outlined,
+                      Icons.delete_forever_outlined,
                       size: 18,
-                      color: isBlocked ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                      color: const Color(0xFFEF4444),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      isBlocked ? 'Buka Blokir' : 'Blokir',
+                      'Hapus Akun',
                       style: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: isBlocked ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                        color: const Color(0xFFEF4444),
                       ),
                     ),
                   ],
@@ -370,11 +370,8 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
       case 'detail':
         _showUserDetailDialog(user);
         break;
-      case 'block':
-        _showBlockConfirmDialog(user, true);
-        break;
-      case 'unblock':
-        _showBlockConfirmDialog(user, false);
+      case 'delete':
+        _showDeleteConfirmDialog(user);
         break;
       case 'reset_password':
         _showResetPasswordDialog(user);
@@ -441,17 +438,33 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
     );
   }
 
-  void _showBlockConfirmDialog(Map<String, dynamic> user, bool block) {
+  void _showDeleteConfirmDialog(Map<String, dynamic> user) {
+    final role = user['role'] == 'THERAPIST' ? 'Terapis' : 'Orang Tua';
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(block ? 'Blokir Pengguna?' : 'Buka Blokir Pengguna?', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        content: Text(
-          block
-              ? 'Pengguna ${user['name']} akan diblokir dan tidak dapat login.'
-              : 'Pengguna ${user['name']} akan diaktifkan kembali.',
-          style: GoogleFonts.poppins(fontSize: 13),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 24),
+            const SizedBox(width: 8),
+            Text('Hapus Akun?', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: const Color(0xFFEF4444))),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Akun $role "${user['name']}" akan dihapus secara permanen.',
+              style: GoogleFonts.poppins(fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Semua data terkait akun ini tidak dapat dikembalikan.',
+              style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFFEF4444), fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -463,24 +476,34 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
               Navigator.pop(context);
               final success = await ref.read(adminUsersProvider.notifier).manageUser(
                 userId: user['id'],
-                action: block ? 'block' : 'unblock',
-                reason: 'Diblokir oleh admin',
+                action: 'delete',
               );
               if (success) {
                 ref.read(adminUsersProvider.notifier).fetchUsers();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(block ? 'Pengguna diblokir' : 'Pengguna diaktifkan'),
-                    backgroundColor: block ? Colors.red : Colors.green,
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Akun ${user['name']} berhasil dihapus'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Gagal menghapus akun'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: block ? Colors.red : Colors.green,
+              backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text(block ? 'Blokir' : 'Aktifkan', style: GoogleFonts.poppins(color: Colors.white)),
+            child: Text('Hapus Permanen', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
       ),

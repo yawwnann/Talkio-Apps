@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/storage_service.dart';
 import '../../../shared/widgets/profile_avatar.dart';
 import '../../../shared/widgets/loading_widget.dart';
 
@@ -13,11 +17,14 @@ class ParentReportDetailPage extends ConsumerStatefulWidget {
   const ParentReportDetailPage({super.key, required this.reportId});
 
   @override
-  ConsumerState<ParentReportDetailPage> createState() => _ParentReportDetailPageState();
+  ConsumerState<ParentReportDetailPage> createState() =>
+      _ParentReportDetailPageState();
 }
 
-class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage> {
+class _ParentReportDetailPageState
+    extends ConsumerState<ParentReportDetailPage> {
   bool _isLoading = true;
+  bool _isDownloading = false;
   Map<String, dynamic> _report = {};
 
   @override
@@ -31,7 +38,9 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
 
     try {
       final apiService = ApiService();
-      final response = await apiService.dio.get('/parent/reports/${widget.reportId}');
+      final response = await apiService.dio.get(
+        '/parent/reports/${widget.reportId}',
+      );
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -66,6 +75,8 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
                   const SizedBox(height: 16),
                   _buildTherapistInfo(),
                   const SizedBox(height: 16),
+                  _buildDownloadPdfButton(),
+                  const SizedBox(height: 16),
                   _buildReportContent(),
                 ],
               ),
@@ -79,7 +90,11 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
       elevation: 0,
       centerTitle: false,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Color(0xFF111827)),
+        icon: const Icon(
+          Icons.arrow_back_ios_new,
+          size: 18,
+          color: AppConstants.primaryBlue,
+        ),
         onPressed: () => context.pop(),
       ),
       title: Text(
@@ -131,7 +146,10 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
@@ -224,7 +242,9 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
                     Row(
                       children: [
                         Text(
-                          _report['child']?['gender'] == 'MALE' ? 'Laki-laki' : 'Perempuan',
+                          _report['child']?['gender'] == 'MALE'
+                              ? 'Laki-laki'
+                              : 'Perempuan',
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             color: const Color(0xFF6B7280),
@@ -270,7 +290,11 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
         children: [
           Row(
             children: [
-              Icon(Icons.medical_services, size: 20, color: const Color(0xFF10B981)),
+              Icon(
+                Icons.medical_services,
+                size: 20,
+                color: const Color(0xFF10B981),
+              ),
               const SizedBox(width: 10),
               Text(
                 'Therapist',
@@ -304,7 +328,9 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _report['therapist']?['name'] ?? _report['therapistName'] ?? '-',
+                      _report['therapist']?['name'] ??
+                          _report['therapistName'] ??
+                          '-',
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -313,7 +339,9 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _report['therapist']?['email'] ?? _report['therapistEmail'] ?? '',
+                      _report['therapist']?['email'] ??
+                          _report['therapistEmail'] ??
+                          '',
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: const Color(0xFF6B7280),
@@ -350,7 +378,11 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
         children: [
           Row(
             children: [
-              Icon(Icons.description, size: 20, color: AppConstants.primaryBlue),
+              Icon(
+                Icons.description,
+                size: 20,
+                color: AppConstants.primaryBlue,
+              ),
               const SizedBox(width: 10),
               Text(
                 'Isi Laporan',
@@ -376,9 +408,105 @@ class _ParentReportDetailPageState extends ConsumerState<ParentReportDetailPage>
     );
   }
 
+  Widget _buildDownloadPdfButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: _isDownloading
+            ? null
+            : () async {
+                final reportId = widget.reportId;
+
+                final token = StorageService.getString(AppConstants.tokenKey);
+                if (token == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Sesi login telah habis')),
+                  );
+                  return;
+                }
+
+                setState(() => _isDownloading = true);
+
+                try {
+                  final dio = Dio();
+                  final url =
+                      '${AppConstants.baseUrl}/parent/report/pdf/$reportId';
+
+                  // Get temp directory
+                  final dir = await getTemporaryDirectory();
+                  final childName = _report['childName'] ?? _report['child']?['name'] ?? 'anak';
+                  final timestamp = DateTime.now().millisecondsSinceEpoch;
+                  final filePath = '${dir.path}/Laporan-Perkembangan-$childName-$timestamp.pdf';
+
+                  // Download PDF with auth header
+                  await dio.download(
+                    url,
+                    filePath,
+                    options: Options(
+                      headers: {'Authorization': 'Bearer $token'},
+                      responseType: ResponseType.bytes,
+                    ),
+                  );
+
+                  if (!mounted) return;
+
+                  // Open the file
+                  final result = await OpenFile.open(filePath);
+                  if (result.type != ResultType.done) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Gagal membuka PDF: ${result.message}'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Gagal mengunduh PDF: ${e.toString().replaceAll('Exception: ', '')}',
+                        ),
+                      ),
+                    );
+                  }
+                } finally {
+                  if (mounted) {
+                    setState(() => _isDownloading = false);
+                  }
+                }
+              },
+        icon: _isDownloading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppConstants.primaryBlue,
+                ),
+              )
+            : const Icon(Icons.picture_as_pdf, size: 20),
+        label: Text(
+          _isDownloading ? 'Mengunduh...' : 'Download PDF',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppConstants.primaryBlue,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppConstants.primaryBlue, width: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
   String _calculateAge(dynamic dob) {
     if (dob == null) return '-';
-    
+
     DateTime birthDate;
     if (dob is String) {
       birthDate = DateTime.parse(dob);

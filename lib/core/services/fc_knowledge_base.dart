@@ -157,7 +157,7 @@ class FCKnowledgeBase {
     ),
     const FCQuestionModel(
       id: 'age12_005',
-      question: 'Apakah anak menggunakan gesture движения untuk berkomunikasi?',
+      question: 'Apakah anak menggunakan gesture/gerakan untuk berkomunikasi?',
       options: ['Ya, sering', 'Kadang-kadang', 'Jarang', 'Tidak'],
       key: 'gesture_comm',
       minAge: 10,

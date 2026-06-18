@@ -8,7 +8,7 @@ class CeritaInteraktifData {
   static int get scorePerRound => 20;
 
   /// Struktur cerita: id, judul, emoji, halaman[]
-  /// Masing-masing halaman: teks, pilihan[] (label +下一步)
+  /// Masing-masing halaman: teks, pilihan[] (label + halaman berikutnya)
   static const List<Map<String, dynamic>> stories = [
     {
       'id': 'mau_makan',

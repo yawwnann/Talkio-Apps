@@ -227,24 +227,6 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                         color: const Color(0xFF334155),
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        context.push('/forgot-password');
-                      },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Lupa Password?',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: AppConstants.primaryBlue,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -409,25 +391,6 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                 ),
 
                 const SizedBox(height: 16),
-
-                // Testing Mode Info
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F9FF),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFBAE6FD)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: Color(0xFF0284C7),
-                        size: 16,
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),

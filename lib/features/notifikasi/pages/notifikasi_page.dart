@@ -27,7 +27,41 @@ class NotificationPage extends ConsumerWidget {
           ? const Center(child: CircularProgressIndicator())
           : notificationState.notifications.isEmpty
               ? _buildEmptyState()
-              : _buildNotificationList(context, ref, notificationState.notifications),
+              : Column(
+                  children: [
+                    // Baca Semua button
+                    if (notificationState.unreadCount > 0)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: TextButton.icon(
+                          onPressed: () {
+                            ref.read(notificationProvider.notifier).markAllAsRead();
+                          },
+                          icon: const Icon(Icons.done_all_rounded, size: 18),
+                          label: Text(
+                            'Baca Semua (${notificationState.unreadCount})',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppConstants.primaryBlue,
+                            backgroundColor: AppConstants.primaryBlue.withValues(alpha: 0.08),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // Notification list
+                    Expanded(
+                      child: _buildNotificationList(context, ref, notificationState.notifications),
+                    ),
+                  ],
+                ),
     );
   }
 

@@ -292,10 +292,16 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
               case 'Latihan Artikulasi':
                 context.pushNamed('latihan-artikulasi', extra: {'childId': childId});
                 break;
+              case 'Kata Bergambar':
+                context.pushNamed('kata-bergambar', extra: {'childId': childId});
+                break;
+              case 'Cerita Interaktif':
+                context.pushNamed('cerita-interaktif', extra: {'childId': childId});
+                break;
               default:
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Game "$title" sedang dalam pengembangan'),
+                    content: Text('Game "${title}" sedang dalam pengembangan'),
                     duration: const Duration(seconds: 2),
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -323,6 +329,12 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
               break;
             case 'Latihan Artikulasi':
               context.pushNamed('latihan-artikulasi', extra: {'childId': childId});
+              break;
+            case 'Kata Bergambar':
+              context.pushNamed('kata-bergambar', extra: {'childId': childId});
+              break;
+            case 'Cerita Interaktif':
+              context.pushNamed('cerita-interaktif', extra: {'childId': childId});
               break;
           }
         },

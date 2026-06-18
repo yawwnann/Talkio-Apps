@@ -1423,6 +1423,20 @@ class ApiService {
     }
   }
 
+  /// Mark All Notifications as Read
+  /// PUT /api/notifications/read-all
+  Future<MockResponse> markAllNotificationsAsRead() async {
+    if (_mockConfig.useMockData) {
+      return MockResponse.success({'data': {}});
+    }
+    try {
+      final response = await dio.put('/notifications/read-all');
+      return MockResponse(statusCode: response.statusCode ?? 200, data: response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   /// Get Admin Notifications
   /// GET /api/admin/notifications
   Future<MockResponse> getAdminNotifications({
@@ -2574,7 +2588,7 @@ class ApiService {
     required String therapistId,
     required int rating,
     required String developmentTime,
-    required String comment,
+    String comment = '',
   }) async {
     if (_mockConfig.useMockData) {
       print('📦 [MOCK] Submit review for: $therapistId');

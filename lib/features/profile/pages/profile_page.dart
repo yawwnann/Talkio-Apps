@@ -124,15 +124,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
 
   Widget _buildMenuSection(dynamic user) {
-    final isTherapist = user?.role == 'THERAPIST';
-
     return Container(
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
           _buildMenuItem(Icons.person_outline, 'Edit Profil', () => context.push('/profile/edit')),
           _buildMenuItem(Icons.shield_outlined, 'PIN Pemulihan', () => _showRecoveryPinDialog()),
-          if (isTherapist) _buildMenuItem(Icons.calendar_today_outlined, 'Jadwal Terapi', () => context.go('/jadwal')),
           _buildMenuItem(Icons.notifications_outlined, 'Notifikasi', () => context.push('/notifikasi')),
           _buildMenuItem(Icons.info_outline, 'Tentang Aplikasi', () => _showAboutDialog()),
         ],

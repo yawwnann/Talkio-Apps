@@ -116,8 +116,6 @@ class _TherapistAddReportPageState
                   const SizedBox(height: 16),
                   _buildSessionInfo(),
                   const SizedBox(height: 16),
-                  _buildSkillEvaluation(),
-                  const SizedBox(height: 16),
                   _buildProgressNotes(),
                   const SizedBox(height: 16),
                   _buildBarriersChallenges(),
@@ -139,7 +137,7 @@ class _TherapistAddReportPageState
       elevation: 0.5,
       centerTitle: false,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Color(0xFF1F2937)),
+        icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: AppConstants.primaryBlue),
         onPressed: () => context.pop(),
       ),
       title: Column(
@@ -1065,7 +1063,7 @@ class _TherapistAddReportPageState
     print('========================================');
     print('📤 SUBMITTING REPORT (REAL API)');
     print('  Patient ID: ${_selectedPatient!.id}');
-    print('  Title: ${isDraft ? 'Draft Report' : 'Laporan Perkembangan'}');
+    print('  Title: ${isDraft ? 'Draft Laporan' : 'Laporan Perkembangan'}');
     print('  Notes: $safePreview');
     print('  Date: ${_sessionDate.toIso8601String()}');
     print('========================================');
@@ -1084,7 +1082,7 @@ class _TherapistAddReportPageState
         success = await notifier.updateLaporan(
           laporanId: _editingLaporanId!,
           childId: _selectedPatient!.id,
-          title: isDraft ? 'Draft Report' : 'Laporan Perkembangan',
+          title: isDraft ? 'Draft Laporan' : 'Laporan Perkembangan',
           progressNotes: _progressNotesController.text.trim(),
           sessionDate: _sessionDate.toIso8601String(),
           speechClarity: _speechClarity,
@@ -1098,7 +1096,7 @@ class _TherapistAddReportPageState
         final reportStatus = isDraft ? "DRAFT" : "SENT";
         success = await notifier.createLaporan(
           childId: _selectedPatient!.id,
-          title: isDraft ? 'Draft Report' : 'Laporan Perkembangan',
+          title: isDraft ? 'Draft Laporan' : 'Laporan Perkembangan',
           progressNotes: _progressNotesController.text.trim(),
           sessionDate: _sessionDate.toIso8601String(),
           speechClarity: _speechClarity,

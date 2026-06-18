@@ -54,10 +54,10 @@ class LatihanArtikulasiData {
 
   static String targetLabel(String target) {
     const labels = {
-      'R': 'Bunyi R —舌头卷起来!',
-      'S': 'Bunyi S —舌尖放上面!',
-      'L': 'Bunyi L —舌头顶上面!',
-      'N': 'Bunyi N —从鼻子出声!',
+      'R': 'Bunyi R — Gulungkan lidah!',
+      'S': 'Bunyi S — Ujung lidah di atas!',
+      'L': 'Bunyi L — Ujung lidah ke atas!',
+      'N': 'Bunyi N — Dari hidung!',
     };
     return labels[target] ?? 'Bunyi $target';
   }

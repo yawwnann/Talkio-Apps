@@ -224,23 +224,13 @@ class _LatihanArtikulasiPageState extends ConsumerState<LatihanArtikulasiPage>
     }
   }
 
-  /// Rate the practice (thumbs up/down)
-  void _ratePractice(bool liked) {
-    setState(() {
-      _liked = liked;
-      // Only increment correct count if thumbs up
-      if (liked) {
-        _correctCount++;
-        _score += LatihanArtikulasiData.scorePerRound;
-      }
-    });
-  }
-
   /// Submit sesi + forward ke next round atau finish
   Future<void> _submitAndNext() async {
-    if (_liked != true) return;
-
     setState(() => _isUploading = true);
+
+    // Auto-score: setiap ronde yang berhasil direkam dapat poin
+    _correctCount++;
+    _score += LatihanArtikulasiData.scorePerRound;
 
     try {
       // Pakai ApiService (sudah ada di project)
@@ -264,7 +254,7 @@ class _LatihanArtikulasiPageState extends ConsumerState<LatihanArtikulasiPage>
         childId: widget.childId,
         targetWord: _rounds[_currentRound]['word']!,
         targetSound: _rounds[_currentRound]['target']!,
-        parentRating: _liked ?? false,
+        parentRating: true,
         parentNotes: null,
         audioFile: audioFile,
       );
@@ -338,7 +328,7 @@ class _LatihanArtikulasiPageState extends ConsumerState<LatihanArtikulasiPage>
 
   void _showResult() {
     final elapsed = DateTime.now().difference(_startTime).inSeconds;
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GameResultScreen(
           gameName: LatihanArtikulasiData.gameType,
@@ -517,11 +507,6 @@ class _LatihanArtikulasiPageState extends ConsumerState<LatihanArtikulasiPage>
 
               // Recording section
               _buildRecordingSection(),
-
-              const SizedBox(height: 24),
-
-                      // Rating section (after recorded)
-              if (_hasRecorded) _buildRatingSection(),
             ],
           ),
         ),
@@ -633,16 +618,20 @@ class _LatihanArtikulasiPageState extends ConsumerState<LatihanArtikulasiPage>
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _buildNextOnPressed(),
+                onPressed: _isUploading ? null : _submitAndNext,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _liked == true ? AppConstants.primaryBlue : const Color(0xFF94A3B8),
+                  backgroundColor: AppConstants.primaryBlue,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: Text(
-                  _buildNextLabel(),
+                  _isUploading
+                      ? 'Menyimpan...'
+                      : _currentRound + 1 >= _rounds.length
+                          ? 'Lihat Hasil'
+                          : 'Simpan & Lanjut',
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -657,138 +646,11 @@ class _LatihanArtikulasiPageState extends ConsumerState<LatihanArtikulasiPage>
     }
   }
 
-  VoidCallback? _buildNextOnPressed() {
-    if (_isUploading) return null;
-    if (_liked == true) return _submitAndNext;
-    if (_liked == false) return _startRecording;
-    return null;
-  }
-
-  String _buildNextLabel() {
-    if (_isUploading) return 'Menyimpan...';
-    if (_liked == true) {
-      return _currentRound + 1 >= _rounds.length ? 'Lihat Hasil' : 'Simpan & Lanjut';
-    }
-    if (_liked == false) return 'Coba Rekam Lagi';
-    return 'Nilai dulu dengan 👍';
-  }
-
-  Widget _buildRatingSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppConstants.borderColor),
-      ),
-      child: Column(
-        children: [
-          Text(
-            'Bagaimana pengucapan anak?',
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppConstants.textDark,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Thumbs down
-              GestureDetector(
-                onTap: () => _ratePractice(false),
-                child: Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: _liked == false
-                        ? const Color(0xFFFEE2E2)
-                        : const Color(0xFFF1F5F9),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _liked == false
-                          ? const Color(0xFFDC2626)
-                          : AppConstants.borderColor,
-                      width: 2,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.thumb_down,
-                    size: 32,
-                    color: _liked == false
-                        ? const Color(0xFFDC2626)
-                        : AppConstants.textLight,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 24),
-              // Thumbs up
-              GestureDetector(
-                onTap: () => _ratePractice(true),
-                child: Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: _liked == true
-                        ? const Color(0xFFDCFCE7)
-                        : const Color(0xFFF1F5F9),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _liked == true
-                          ? const Color(0xFF16A34A)
-                          : AppConstants.borderColor,
-                      width: 2,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.thumb_up,
-                    size: 32,
-                    color: _liked == true
-                        ? const Color(0xFF16A34A)
-                        : AppConstants.textLight,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          if (_liked == true) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFDCFCE7),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.celebration, color: Color(0xFF16A34A), size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Bagus! Terus berlatih! 🌟',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF16A34A),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   String _getSoundLabel(String target) {
     const labels = {
       'R': 'Bunyi R — Gulungkan lidah!',
       'S': 'Bunyi S — Ujung lidah atas!',
-      'L': 'Bunyi L — Ujung舌头!',
+      'L': 'Bunyi L — Ujung lidah ke atas!',
       'N': 'Bunyi N — Dari hidung!',
     };
     return labels[target] ?? 'Bunyi $target';

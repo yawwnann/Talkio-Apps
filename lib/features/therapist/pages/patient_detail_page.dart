@@ -494,36 +494,6 @@ class _TherapistPatientDetailPageState
             ],
           ),
           const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.medical_services_outlined,
-                  color: Colors.white70,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    diagnosisLabel,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -1104,19 +1074,7 @@ class _TherapistPatientDetailPageState
       title: 'Catatan & Laporan',
       icon: Icons.edit_note_rounded,
       iconColor: const Color(0xFF10B981),
-      trailing: IconButton(
-        icon: Container(
-          width: 28,
-          height: 28,
-          decoration: const BoxDecoration(
-            color: Color(0xFF10B981),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.add, color: Colors.white, size: 20),
-        ),
-        onPressed: () =>
-            context.push('/therapist/laporan/add', extra: widget.patientId),
-      ),
+
       child: _buildCatatanLaporanBody(merged),
       isEmpty: false,
       emptyMessage: '',

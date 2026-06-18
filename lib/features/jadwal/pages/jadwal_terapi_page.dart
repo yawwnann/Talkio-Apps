@@ -161,7 +161,7 @@ class _JadwalTerapiPageState extends ConsumerState<JadwalTerapiPage> {
           final date = weekDates[index];
           final isToday = date.day == today.day && date.month == today.month;
           final isSelected = index == _selectedWeekDay;
-          // Gunakan weekday dari date объекта (1=Sen...7=Min)
+          // Gunakan weekday dari date object (1=Sen...7=Min)
           final dayName = dayNames[date.weekday];
 
           return GestureDetector(

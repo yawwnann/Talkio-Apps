@@ -149,7 +149,7 @@ class _SuaraBinatangPageState extends ConsumerState<SuaraBinatangPage>
 
   void _showResult() {
     final elapsed = DateTime.now().difference(_startTime).inSeconds;
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GameResultScreen(
           gameName: SuaraBinatangData.gameType,

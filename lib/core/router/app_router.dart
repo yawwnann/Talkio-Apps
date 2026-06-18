@@ -22,6 +22,8 @@ import '../../features/game/pages/voice_practice_simple_page.dart';
 import '../../features/game/pages/suara_binatang_page.dart';
 import '../../features/game/pages/tebak_suara_page.dart';
 import '../../features/game/pages/latihan_artikulasi_page.dart';
+import '../../features/game/pages/kata_bergambar_page.dart';
+import '../../features/game/pages/cerita_interaktif_page.dart';
 import '../../features/pembayaran/pages/pembayaran_list_page.dart';
 import '../../features/pembayaran/pages/parent_pembayaran_page.dart';
 import '../../features/pembayaran/pages/payment_webview_page.dart';
@@ -299,6 +301,30 @@ class AppRouter {
                   childId: extra['childId']?.toString() ?? '',
                   totalRounds: extra['rounds'] ?? 6,
                   targetSound: extra['targetSound']?.toString(),
+                );
+              },
+            ),
+            GoRoute(
+              path: 'kata-bergambar',
+              name: 'kata-bergambar',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return KataBergambarPage(
+                  childId: extra['childId']?.toString() ?? '',
+                  choicesCount: extra['choicesCount'] ?? 3,
+                  totalRounds: extra['rounds'] ?? 6,
+                  hintMode: extra['hintMode']?.toString() ?? 'none',
+                );
+              },
+            ),
+            GoRoute(
+              path: 'cerita-interaktif',
+              name: 'cerita-interaktif',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return CeritaInteraktifPage(
+                  childId: extra['childId']?.toString() ?? '',
+                  storyIndex: extra['storyIndex'] ?? 0,
                 );
               },
             ),

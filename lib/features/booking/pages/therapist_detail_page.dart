@@ -317,9 +317,10 @@ class _TherapistDetailPageState extends ConsumerState<TherapistDetailPage> {
   }
 
   void _showWriteReviewDialog() {
-    final ratingController = TextEditingController();
     final commentController = TextEditingController();
+    final devTimeController = TextEditingController();
     int selectedRating = 5;
+    bool isSubmitting = false;
 
     showDialog(
       context: context,
@@ -359,6 +360,18 @@ class _TherapistDetailPageState extends ConsumerState<TherapistDetailPage> {
                     ),
                       ),
                     const SizedBox(height: 16),
+                    Text('Lama Terapi', style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: devTimeController,
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: 3 Bulan',
+                        hintStyle: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF94A3B8)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: commentController,
                       maxLines: 4,
@@ -374,15 +387,62 @@ class _TherapistDetailPageState extends ConsumerState<TherapistDetailPage> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
+                  onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext),
                   child: Text('Batal', style: GoogleFonts.poppins(color: const Color(0xFF64748B))),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
+                  onPressed: isSubmitting ? null : () async {
+                    final devTime = devTimeController.text.trim();
+                    final comment = commentController.text.trim();
+
+                    if (devTime.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Lama terapi harus diisi')),
+                      );
+                      return;
+                    }
+
+                    setDialogState(() => isSubmitting = true);
+
+                    try {
+                      final response = await _apiService.submitTherapistReview(
+                        therapistId: widget.therapistId,
+                        rating: selectedRating,
+                        developmentTime: devTime,
+                        comment: comment,
+                      );
+
+                      Navigator.pop(dialogContext);
+
+                      if (response.statusCode == 201 || response.statusCode == 200) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Testimoni berhasil dikirim!'),
+                            backgroundColor: const Color(0xFF10B981),
+                          ),
+                        );
+                        // Refresh halaman untuk update rating
+                        _loadTherapistDetail();
+                      } else {
+                        final msg = response.data?['message'] ?? 'Gagal mengirim testimoni';
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(msg), backgroundColor: const Color(0xFFEF4444)),
+                        );
+                      }
+                    } catch (e) {
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(e.toString().replaceAll('Exception: ', '')),
+                          backgroundColor: const Color(0xFFEF4444),
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: AppConstants.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                  child: Text('Kirim', style: GoogleFonts.poppins(color: Colors.white)),
+                  child: isSubmitting
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text('Kirim', style: GoogleFonts.poppins(color: Colors.white)),
                 ),
               ],
             );

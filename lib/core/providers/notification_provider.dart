@@ -88,6 +88,20 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       print('Failed to mark notification as read: $e');
     }
   }
+
+  Future<void> markAllAsRead() async {
+    try {
+      final response = await _apiService.markAllNotificationsAsRead();
+      if (response.statusCode == 200) {
+        final updatedNotifications = state.notifications.map((n) {
+          return n.copyWith(isRead: true);
+        }).toList();
+        state = state.copyWith(notifications: updatedNotifications);
+      }
+    } catch (e) {
+      print('Failed to mark all notifications as read: $e');
+    }
+  }
 }
 
 final notificationProvider = StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {

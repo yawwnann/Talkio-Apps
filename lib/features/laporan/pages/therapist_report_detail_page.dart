@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/storage_service.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/therapist_bottom_nav.dart';
 import '../../../shared/widgets/profile_avatar.dart';
@@ -23,6 +27,7 @@ class _TherapistReportDetailPageState
     extends ConsumerState<TherapistReportDetailPage> {
   LaporanModel? _selectedLaporan;
   bool _isPublishing = false;
+  bool _isDownloading = false;
 
   @override
   void initState() {
@@ -87,6 +92,8 @@ class _TherapistReportDetailPageState
             _buildPatientHeader(laporan, isDraft),
             const SizedBox(height: 24),
             _buildReportContent(laporan),
+            const SizedBox(height: 24),
+            _buildDownloadPdfButton(laporan),
             const SizedBox(height: 40),
             if (isDraft) _buildDraftActions(),
           ],
@@ -259,6 +266,96 @@ class _TherapistReportDetailPageState
     );
   }
 
+  Widget _buildDownloadPdfButton(LaporanModel laporan) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: _isDownloading
+            ? null
+            : () async {
+                final reportId = laporan.id;
+                final token = StorageService.getString(AppConstants.tokenKey);
+                if (token == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Sesi login telah habis')),
+                  );
+                  return;
+                }
+
+                setState(() => _isDownloading = true);
+
+                try {
+                  final dio = Dio();
+                  final url = '${AppConstants.baseUrl}/therapist/report/$reportId';
+
+                  final dir = await getTemporaryDirectory();
+                  final timestamp = DateTime.now().millisecondsSinceEpoch;
+                  final filePath = '${dir.path}/Laporan-Perkembangan-${laporan.patientName}-$timestamp.pdf';
+
+                  await dio.download(
+                    url,
+                    filePath,
+                    options: Options(
+                      headers: {'Authorization': 'Bearer $token'},
+                      responseType: ResponseType.bytes,
+                    ),
+                  );
+
+                  if (!mounted) return;
+
+                  final result = await OpenFile.open(filePath);
+                  if (result.type != ResultType.done) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Gagal membuka PDF: ${result.message}'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Gagal mengunduh PDF: ${e.toString().replaceAll('Exception: ', '')}',
+                        ),
+                      ),
+                    );
+                  }
+                } finally {
+                  if (mounted) {
+                    setState(() => _isDownloading = false);
+                  }
+                }
+              },
+        icon: _isDownloading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppConstants.primaryBlue,
+                ),
+              )
+            : const Icon(Icons.picture_as_pdf, size: 20),
+        label: Text(
+          _isDownloading ? 'Mengunduh...' : 'Download PDF',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppConstants.primaryBlue,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppConstants.primaryBlue, width: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDraftActions() {
     return Column(
       children: [
@@ -381,10 +478,10 @@ class _TherapistReportDetailPageState
 
     try {
       print('📤 Attempting to publish report: ${widget.laporanId}');
-      
-      final success = await ref.read(laporanProvider.notifier).publishLaporan(
-        laporanId: widget.laporanId,
-      );
+
+      final success = await ref
+          .read(laporanProvider.notifier)
+          .publishLaporan(laporanId: widget.laporanId);
 
       if (!mounted) return;
 
@@ -403,14 +500,16 @@ class _TherapistReportDetailPageState
             duration: const Duration(seconds: 3),
           ),
         );
-        
+
         // Navigate back after short delay
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) {
           context.pop();
         }
       } else {
-        final error = ref.read(laporanProvider.notifier).state.error ?? 'Gagal mengirim laporan';
+        final error =
+            ref.read(laporanProvider.notifier).state.error ??
+            'Gagal mengirim laporan';
         print('❌ Failed to publish report: $error');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
