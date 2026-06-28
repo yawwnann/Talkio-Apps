@@ -204,15 +204,15 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
                           ),
                           const SizedBox(width: 12),
                           Icon(
-                            anak.gender == 'L' ? Icons.male : Icons.female,
+                            anak.gender == 'MALE' ? Icons.male : Icons.female,
                             size: 14,
-                            color: anak.gender == 'L'
+                            color: anak.gender == 'MALE'
                                 ? AppConstants.primaryBlue
                                 : const Color(0xFFFF6584),
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            anak.gender == 'L' ? 'Laki-laki' : 'Perempuan',
+                            anak.gender == 'MALE' ? 'Laki-laki' : 'Perempuan',
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               color: Colors.grey[600],

@@ -67,9 +67,11 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
           historyRes.data['status'] == 'success') {
         final sessions = historyRes.data['data'] as List? ?? [];
         _therapySessions = sessions
-            .where((s) =>
-                s['childId'] == _anak!.id ||
-                (s['child'] is Map && s['child']['id'] == _anak!.id))
+            .where(
+              (s) =>
+                  s['childId'] == _anak!.id ||
+                  (s['child'] is Map && s['child']['id'] == _anak!.id),
+            )
             .toList();
       }
 
@@ -169,10 +171,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildDataTab(_anak!),
-                _buildRiwayatTab(_anak!),
-              ],
+              children: [_buildDataTab(_anak!), _buildRiwayatTab(_anak!)],
             ),
           ),
         ],
@@ -279,8 +278,14 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             iconColor: AppConstants.primaryBlue,
             children: [
               _buildDataRow('Tanggal Lahir', _formatDate(anak.dateOfBirth)),
-              _buildDataRow('Usia', '${anak.age} tahun (${anak.ageInMonths} bulan)'),
-              _buildDataRow('Jenis Kelamin', anak.gender == 'MALE' ? 'Laki-laki' : 'Perempuan'),
+              _buildDataRow(
+                'Usia',
+                '${anak.age} tahun (${anak.ageInMonths} bulan)',
+              ),
+              _buildDataRow(
+                'Jenis Kelamin',
+                anak.gender == 'MALE' ? 'Laki-laki' : 'Perempuan',
+              ),
             ],
           ),
 
@@ -293,7 +298,6 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             iconColor: AppConstants.infoCyan,
             children: [
               _buildDataRow('Terdaftar Sejak', _formatDate(anak.createdAt)),
-              _buildDataRow('Terakhir Diupdate', _formatDate(anak.updatedAt)),
             ],
           ),
 
@@ -318,20 +322,42 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             iconColor: AppConstants.primaryBlue,
             trailing: TextButton(
               onPressed: () => context.push('/diagnosa/${anak.id}'),
-              child: Text('Lihat Semua', style: GoogleFonts.poppins(fontSize: 12, color: AppConstants.primaryBlue)),
+              child: Text(
+                'Lihat Semua',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: AppConstants.primaryBlue,
+                ),
+              ),
             ),
             items: diagnosisState.isLoading
-                ? [const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))]
+                ? [
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  ]
                 : diagnosisState.diagnoses.isEmpty
-                    ? [
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Center(
-                            child: Text('Belum ada riwayat diagnosa', style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF94A3B8))),
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: Text(
+                          'Belum ada riwayat diagnosa',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: const Color(0xFF94A3B8),
                           ),
                         ),
-                      ]
-                    : diagnosisState.diagnoses.take(5).map((d) => _buildDiagnosaItem(d)).toList(),
+                      ),
+                    ),
+                  ]
+                : diagnosisState.diagnoses
+                      .take(5)
+                      .map((d) => _buildDiagnosaItem(d))
+                      .toList(),
           ),
 
           const SizedBox(height: 16),
@@ -342,27 +368,42 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             icon: Icons.medical_services_outlined,
             iconColor: AppConstants.successColor,
             items: _isLoadingRiwayat
-                ? [const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))]
+                ? [
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  ]
                 : _therapySessions.isEmpty
-                    ? [
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Center(
-                            child: Text('Belum ada riwayat terapi', style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF94A3B8))),
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: Text(
+                          'Belum ada riwayat terapi',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: const Color(0xFF94A3B8),
                           ),
                         ),
-                      ]
-                    : _therapySessions.take(10).map((s) {
-                        final schedule = s['schedule'] != null ? DateTime.parse(s['schedule']) : DateTime.now();
-                        final therapistName = s['therapist']?['name'] ?? 'Terapis';
-                        final status = s['status'] ?? 'completed';
-                        return _buildRiwayatItem(
-                          date: schedule,
-                          title: 'Terapi Wicara - ${therapistName}',
-                          subtitle: status == 'completed' ? 'Selesai' : status,
-                          status: status == 'completed' ? 'completed' : 'pending',
-                        );
-                      }).toList(),
+                      ),
+                    ),
+                  ]
+                : _therapySessions.take(10).map((s) {
+                    final schedule = s['schedule'] != null
+                        ? DateTime.parse(s['schedule'])
+                        : DateTime.now();
+                    final therapistName = s['therapist']?['name'] ?? 'Terapis';
+                    final status = s['status'] ?? 'completed';
+                    return _buildRiwayatItem(
+                      date: schedule,
+                      title: 'Terapi Wicara - ${therapistName}',
+                      subtitle: status == 'completed' ? 'Selesai' : status,
+                      status: status == 'completed' ? 'completed' : 'pending',
+                    );
+                  }).toList(),
           ),
 
           const SizedBox(height: 16),
@@ -373,22 +414,40 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             icon: Icons.games_outlined,
             iconColor: AppConstants.warningOrange,
             items: _isLoadingRiwayat
-                ? [const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))]
+                ? [
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  ]
                 : _gameLogs.isEmpty
-                    ? [
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Center(
-                            child: Text('Belum ada aktivitas game', style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF94A3B8))),
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: Text(
+                          'Belum ada aktivitas game',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: const Color(0xFF94A3B8),
                           ),
                         ),
-                      ]
-                    : _gameLogs.take(10).map((g) => _buildRiwayatItem(
-                        date: g.playedAt,
-                        title: g.gameType,
-                        subtitle: 'Skor: ${g.gameScore}/100',
-                        status: 'completed',
-                      )).toList(),
+                      ),
+                    ),
+                  ]
+                : _gameLogs
+                      .take(10)
+                      .map(
+                        (g) => _buildRiwayatItem(
+                          date: g.playedAt,
+                          title: g.gameType,
+                          subtitle: 'Skor: ${g.gameScore}/100',
+                          status: 'completed',
+                        ),
+                      )
+                      .toList(),
           ),
 
           const SizedBox(height: 80),
@@ -412,11 +471,20 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
         child: Row(
           children: [
             Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: Icon(
-                d.riskLevel == 'HIGH' ? Icons.warning : d.riskLevel == 'MEDIUM' ? Icons.info_outline : Icons.check_circle,
-                color: color, size: 18,
+                d.riskLevel == 'HIGH'
+                    ? Icons.warning
+                    : d.riskLevel == 'MEDIUM'
+                    ? Icons.info_outline
+                    : Icons.check_circle,
+                color: color,
+                size: 18,
               ),
             ),
             const SizedBox(width: 12),
@@ -424,9 +492,21 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(d.riskLevelDisplay, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(
+                    d.riskLevelDisplay,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('Skor: ${d.score}%  |  ${d.ageCategory}', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[600])),
+                  Text(
+                    'Skor: ${d.score}%  |  ${d.ageCategory}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -542,10 +622,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
           ),
           Text(
             _formatRelativeDate(date),
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              color: Colors.grey[500],
-            ),
+            style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -687,19 +764,14 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             width: 120,
             child: Text(
               label,
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: Colors.grey[600],
-              ),
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
             ),
           ),
           const Text(':', style: TextStyle(color: Colors.grey)),
           const SizedBox(width: 8),
           Expanded(
             child: Container(
-              padding: isHighlight
-                  ? const EdgeInsets.all(12)
-                  : EdgeInsets.zero,
+              padding: isHighlight ? const EdgeInsets.all(12) : EdgeInsets.zero,
               decoration: isHighlight
                   ? BoxDecoration(
                       color: const Color(0xFFF8FAFC),
@@ -725,8 +797,18 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
   String _formatDate(DateTime? date) {
     if (date == null) return 'Tidak tersedia';
     const months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }

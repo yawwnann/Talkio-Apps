@@ -442,7 +442,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
 
   Widget _buildGenderOption(String value, String label, IconData icon) {
     final isSelected = _selectedGender == value;
-    final color = value == 'L'
+    final color = value == 'MALE'
         ? const Color(0xFF2563EB)
         : const Color(0xFFFF6584);
 
