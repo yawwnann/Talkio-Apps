@@ -291,6 +291,26 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
                 ),
               ),
               PopupMenuItem(
+                value: 'reset_password',
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.lock_reset,
+                      size: 18,
+                      color: Color(0xFFD97706),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Reset Password',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: const Color(0xFFD97706),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   children: [
@@ -350,6 +370,9 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
       case 'detail':
         _showUserDetailDialog(user);
         break;
+      case 'reset_password':
+        _showResetPasswordDialog(user);
+        break;
       case 'delete':
         _showDeleteConfirmDialog(user);
         break;
@@ -406,6 +429,153 @@ class _AdminUserManagementPageState extends ConsumerState<AdminUserManagementPag
               value,
               style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showResetPasswordDialog(Map<String, dynamic> user) {
+    final role = user['role'] == 'THERAPIST' ? 'Terapis' : 'Orang Tua';
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Row(
+          children: [
+            const Icon(Icons.lock_reset, color: Color(0xFFD97706), size: 24),
+            const SizedBox(width: 8),
+            Text('Reset Password?', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: const Color(0xFFD97706))),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Password akun $role "${user['name']}" akan direset ke password default.',
+              style: GoogleFonts.poppins(fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 16, color: Color(0xFFD97706)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Password default adalah: terapi123',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFD97706),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Batal', style: GoogleFonts.poppins(color: const Color(0xFF6B7280))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext); // Tutup dialog konfirmasi
+              
+              if (mounted) {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Mereset password...'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              }
+
+              // Panggil API
+              final newPassword = await ref.read(adminUsersProvider.notifier).resetUserPassword(user['id']);
+              
+              if (!mounted) return;
+
+              if (newPassword != null) {
+                // Tampilkan dialog berhasil dengan password baru
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    title: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.green, size: 24),
+                        const SizedBox(width: 8),
+                        Text('Berhasil', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.green)),
+                      ],
+                    ),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Password berhasil direset.', style: GoogleFonts.poppins(fontSize: 13)),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Password Baru:', style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF6B7280))),
+                              const SizedBox(height: 4),
+                              Text(
+                                newPassword,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                  color: const Color(0xFF111827),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text('Silakan beritahukan password ini kepada pengguna.', style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF6B7280))),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text('Tutup', style: GoogleFonts.poppins(color: AppConstants.primaryBlue)),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Gagal mereset password'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD97706),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text('Reset', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
       ),

@@ -35,6 +35,7 @@ import '../../features/laporan/pages/therapist_report_detail_page.dart';
 import '../../features/laporan/pages/therapist_add_report_page.dart';
 import '../../features/profile/pages/profile_page.dart';
 import '../../features/profile/pages/edit_profile_page.dart';
+import '../../features/profile/pages/change_password_page.dart';
 import '../../features/therapist/pages/patient_list_page.dart';
 import '../../features/therapist/pages/patient_detail_page.dart';
 import '../../features/admin/pages/admin_dashboard_page.dart';
@@ -553,6 +554,13 @@ class AppRouter {
           path: '/profile/edit',
           name: 'edit-profile',
           builder: (context, state) => const EditProfilePage(),
+        ),
+
+        // Change Password Route
+        GoRoute(
+          path: '/profile/change-password',
+          name: 'change-password',
+          builder: (context, state) => const ChangePasswordPage(),
         ),
       ],
       errorBuilder: (context, state) => _buildErrorPage(state.error.toString()),

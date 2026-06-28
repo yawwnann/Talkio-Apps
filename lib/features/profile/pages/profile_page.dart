@@ -128,6 +128,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Column(
         children: [
           _buildMenuItem(Icons.person_outline, 'Edit Profil', () => context.push('/profile/edit')),
+          _buildMenuItem(Icons.lock_outline, 'Ganti Password', () => context.push('/profile/change-password')),
           _buildMenuItem(Icons.notifications_outlined, 'Notifikasi', () => context.push('/notifikasi')),
           _buildMenuItem(Icons.info_outline, 'Tentang Aplikasi', () => _showAboutDialog()),
         ],

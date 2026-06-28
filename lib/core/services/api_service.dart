@@ -218,11 +218,11 @@ class ApiService {
     required String newPassword,
   }) async {
     if (_mockConfig.useMockData) {
-      print('📦 [MOCK] Reset password');
+      print('?? [MOCK] Reset password');
       return AuthMockHandler.resetPassword(token: token, newPassword: newPassword);
     }
 
-    print('🌐 [API] POST /auth/reset-password');
+    print('?? [API] POST /auth/reset-password');
     try {
       final response = await dio.post('/auth/reset-password', data: {
         'token': token,
@@ -233,6 +233,38 @@ class ApiService {
         data: response.data,
       );
     } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Change Password
+  /// PUT /api/auth/change-password
+  Future<MockResponse> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    if (_mockConfig.useMockData) {
+      print('?? [MOCK] Change password');
+      return MockResponse.success({'message': 'Password berhasil diubah'});
+    }
+
+    print('?? [API] PUT /auth/change-password');
+    try {
+      final response = await dio.put('/auth/change-password', data: {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      });
+      return MockResponse(
+        statusCode: response.statusCode ?? 200,
+        data: response.data,
+      );
+    } catch (e) {
+      if (e is DioException) {
+        return MockResponse(
+          statusCode: e.response?.statusCode ?? 500,
+          data: e.response?.data,
+        );
+      }
       throw _handleError(e);
     }
   }
@@ -1919,6 +1951,12 @@ class ApiService {
         data: response.data,
       );
     } catch (e) {
+      if (e is DioException) {
+        return MockResponse(
+          statusCode: e.response?.statusCode ?? 500,
+          data: e.response?.data,
+        );
+      }
       throw _handleError(e);
     }
   }

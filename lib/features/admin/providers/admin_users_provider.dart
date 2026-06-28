@@ -113,13 +113,20 @@ class AdminUsersNotifier extends StateNotifier<AdminUsersState> {
     }
   }
 
-  Future<bool> resetUserPassword(String userId) async {
+  Future<String?> resetUserPassword(String userId) async {
     try {
       final response = await _apiService.resetUserPassword(userId: userId);
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map && data['data'] is Map) {
+          return data['data']['defaultPassword']?.toString() ?? 'terapi123';
+        }
+        return 'terapi123';
+      }
+      return null;
     } catch (e) {
       state = state.copyWith(error: e.toString());
-      return false;
+      return null;
     }
   }
 }
