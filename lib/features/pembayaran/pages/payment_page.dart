@@ -253,7 +253,7 @@ class PaymentSummaryPage extends StatelessWidget {
                                 'Sesi terapi speech delay',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: theme.colorScheme.onSurface
-                                      .withOpacity(0.6),
+                                      .withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -349,7 +349,7 @@ class PaymentSummaryPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.primaryColor.withOpacity(0.1),
+                color: theme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -402,7 +402,7 @@ class PaymentSummaryPage extends StatelessWidget {
             child: Text(
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ),
@@ -434,7 +434,7 @@ class PaymentSummaryPage extends StatelessWidget {
           Icon(
             icon,
             size: 16,
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
           const SizedBox(width: 8),
           Text(name, style: theme.textTheme.bodySmall),
@@ -457,6 +457,7 @@ class PaymentSummaryPage extends StatelessWidget {
           ),
         )
         .then((result) {
+          if (!context.mounted) return;
           if (result != null) {
             // Handle payment result
             Navigator.of(context).pop(result);

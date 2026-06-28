@@ -35,12 +35,36 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
     final loginEmail = email.isEmpty ? 'demo@example.com' : email;
     final loginPassword = password.isEmpty ? '123456' : password;
 
+    print('🔐 [LOGIN] Starting login for: $loginEmail');
+    print('🔐 [LOGIN] Calling authProvider.notifier.login()');
+
     final success = await ref
         .read(authProvider.notifier)
         .login(loginEmail, loginPassword);
 
+    print('🔐 [LOGIN] Login success: $success');
+
+    // Use replace instead of go to prevent splash screen from appearing
     if (success && mounted) {
-      context.go('/dashboard');
+      // Navigate langsung berdasarkan role, jangan lewat /dashboard dulu
+      // (karena GoRouter redirect bisa gagal lihat perubahan Riverpod state)
+      final user = ref.read(currentUserProvider);
+      final role = user?.role ?? '';
+      String destination;
+      switch (role) {
+        case 'THERAPIST':
+          destination = '/terapis-dashboard';
+          break;
+        case 'ADMIN':
+          destination = '/admin-dashboard';
+          break;
+        default:
+          destination = '/dashboard';
+      }
+      print('🔐 [LOGIN] Navigating to $destination');
+      context.replace(destination);
+    } else if (!success) {
+      print('🔐 [LOGIN] Login failed, staying on login page');
     }
   }
 
@@ -81,7 +105,7 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                   child: Column(
                     children: [
                       // Logo
-                      Container(
+                      SizedBox(
                         width: 100,
                         height: 100,
 
@@ -96,12 +120,14 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                       const SizedBox(height: 16),
                       // App Name
                       Text(
-                        'Talkio',
+                        'Pondok Terapi Wicara',
                         style: GoogleFonts.poppins(
-                          fontSize: 28,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: AppConstants.primaryBlue,
+                          height: 1.2,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
@@ -127,7 +153,7 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                 // Subtitle
                 Center(
                   child: Text(
-                    'Silakan masuk untuk melanjutkan perjalanan terapi bicara Si Kecil.',
+                    'Silakan masuk untuk melanjutkan perjalanan terapi wicara Si Kecil.',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: const Color(0xFF64748B),
@@ -199,34 +225,6 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFF334155),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                              'Fitur lupa password akan segera hadir',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Lupa Password?',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: AppConstants.primaryBlue,
-                        ),
                       ),
                     ),
                   ],
@@ -393,35 +391,6 @@ class _LoginPageNewState extends ConsumerState<LoginPageNew> {
                 ),
 
                 const SizedBox(height: 16),
-
-                // Testing Mode Info
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F9FF),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFBAE6FD)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: Color(0xFF0284C7),
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Mode Testing: Kosongkan form untuk login otomatis',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            color: const Color(0xFF0284C7),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),

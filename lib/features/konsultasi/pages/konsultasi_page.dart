@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_button.dart';
-import '../../../shared/widgets/custom_text_field.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../shared/widgets/loading_widget.dart';
+import '../../anak/providers/anak_provider.dart';
+import '../../../core/models/anak_model.dart';
+import '../providers/fc_konsultasi_provider.dart';
+import '../../../core/models/fc_question_model.dart';
+import '../../../core/models/diagnosis_model.dart';
+import '../../../core/services/api_service.dart';
 
-/// Konsultasi Page
-/// Halaman konsultasi dengan terapis
+/// Konsultasi Page dengan Forward Chaining
+/// Halaman konsultasi menggunakan sistem pakar forward chaining
 class KonsultasiPage extends ConsumerStatefulWidget {
   const KonsultasiPage({super.key});
 
@@ -15,278 +23,449 @@ class KonsultasiPage extends ConsumerStatefulWidget {
 }
 
 class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
-  final PageController _pageController = PageController();
   int _currentStep = 0;
-  
-  // Form controllers
-  final _childAgeController = TextEditingController();
-  final _concernsController = TextEditingController();
-  final _symptomsController = TextEditingController();
-  final _additionalInfoController = TextEditingController();
-  
-  // Assessment data
-  final Map<String, dynamic> _assessmentData = {};
-  final List<Map<String, dynamic>> _questions = [
-    {
-      'question': 'Apakah anak Anda sudah bisa mengucapkan kata pertama?',
-      'options': ['Ya', 'Tidak', 'Tidak yakin'],
-      'key': 'first_word',
-    },
-    {
-      'question': 'Berapa banyak kata yang bisa diucapkan anak Anda?',
-      'options': ['Kurang dari 10', '10-50', 'Lebih dari 50'],
-      'key': 'vocabulary_count',
-    },
-    {
-      'question': 'Apakah anak Anda bisa membuat kalimat sederhana?',
-      'options': ['Ya', 'Tidak', 'Kadang-kadang'],
-      'key': 'simple_sentences',
-    },
-    {
-      'question': 'Apakah orang lain bisa memahami ucapan anak Anda?',
-      'options': ['Selalu', 'Kadang-kadang', 'Jarang'],
-      'key': 'speech_clarity',
-    },
-    {
-      'question': 'Apakah anak Anda merespons ketika dipanggil namanya?',
-      'options': ['Selalu', 'Kadang-kadang', 'Jarang'],
-      'key': 'name_response',
-    },
-  ];
+  AnakModel? _selectedAnak;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void dispose() {
-    _pageController.dispose();
-    _childAgeController.dispose();
-    _concernsController.dispose();
-    _symptomsController.dispose();
-    _additionalInfoController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _nextStep() {
-    if (_currentStep < 3) {
-      setState(() {
-        _currentStep++;
-      });
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(fcKonsultasiProvider.notifier).reset();
+    });
   }
 
-  void _previousStep() {
-    if (_currentStep > 0) {
-      setState(() {
-        _currentStep--;
-      });
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
+  @override
+  Widget build(BuildContext context) {
+    final konsultasiState = ref.watch(fcKonsultasiProvider);
+
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/dashboard');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FE),
+        appBar: SimpleAppBar(
+          title: 'Deteksi Speech Delay',
+          onBackPress: () => context.go('/dashboard'),
+        ),
+        body: Column(
+          children: [
+            // Progress Indicator
+            _buildProgressIndicator(),
+
+            // Content
+            Expanded(child: _buildStepContent(konsultasiState)),
+
+            // Navigation Buttons
+            _buildNavigationButtons(konsultasiState),
+          ],
+        ),
+      ),
+    );
   }
 
-  void _submitConsultation() {
-    // Process consultation data
-    final consultationData = {
-      'child_age': _childAgeController.text,
-      'concerns': _concernsController.text,
-      'symptoms': _symptomsController.text,
-      'additional_info': _additionalInfoController.text,
-      'assessment': _assessmentData,
-      'timestamp': DateTime.now().toIso8601String(),
-    };
-
-    // Show result
-    _showConsultationResult(consultationData);
-  }
-
-  void _showConsultationResult(Map<String, dynamic> data) {
-    // Simple assessment logic
-    int score = 0;
-    
-    if (_assessmentData['first_word'] == 'Ya') score += 20;
-    if (_assessmentData['vocabulary_count'] == 'Lebih dari 50') score += 20;
-    else if (_assessmentData['vocabulary_count'] == '10-50') score += 10;
-    
-    if (_assessmentData['simple_sentences'] == 'Ya') score += 20;
-    else if (_assessmentData['simple_sentences'] == 'Kadang-kadang') score += 10;
-    
-    if (_assessmentData['speech_clarity'] == 'Selalu') score += 20;
-    else if (_assessmentData['speech_clarity'] == 'Kadang-kadang') score += 10;
-    
-    if (_assessmentData['name_response'] == 'Selalu') score += 20;
-    else if (_assessmentData['name_response'] == 'Kadang-kadang') score += 10;
-
-    String level;
-    String recommendation;
-    Color levelColor;
-
-    if (score >= 80) {
-      level = 'Normal';
-      recommendation = 'Perkembangan speech anak Anda terlihat normal. Tetap lakukan stimulasi rutin.';
-      levelColor = Colors.green;
-    } else if (score >= 50) {
-      level = 'Perlu Perhatian';
-      recommendation = 'Ada beberapa area yang perlu perhatian. Disarankan konsultasi dengan terapis.';
-      levelColor = Colors.orange;
-    } else {
-      level = 'Perlu Terapi';
-      recommendation = 'Anak Anda memerlukan evaluasi dan terapi speech delay segera.';
-      levelColor = Colors.red;
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Hasil Konsultasi'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: levelColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: levelColor),
+  Widget _buildProgressIndicator() {
+    final steps = ['Pilih Anak', 'Pertanyaan', 'Hasil'];
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: List.generate(steps.length, (index) {
+          final isActive = index <= _currentStep;
+          final isCurrent = index == _currentStep;
+          return Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    margin: EdgeInsets.only(right: index < 2 ? 8 : 0),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? AppConstants.primaryBlue
+                                : Colors.grey[300],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: isActive && index < _currentStep
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  )
+                                : Text(
+                                    '${index + 1}',
+                                    style: TextStyle(
+                                      color: isActive
+                                          ? Colors.white
+                                          : Colors.grey,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          steps[index],
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: isCurrent
+                                ? AppConstants.primaryBlue
+                                : Colors.grey,
+                            fontWeight: isCurrent
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                child: Row(
+                if (index < 2)
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: index < _currentStep
+                            ? AppConstants.primaryBlue
+                            : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildStepContent(FCKonsultasiState state) {
+    switch (_currentStep) {
+      case 0:
+        return _buildSelectChildStep();
+      case 1:
+        return _buildQuestionsStep(state);
+      case 2:
+        return _buildResultStep(state);
+      default:
+        return const SizedBox();
+    }
+  }
+
+  Widget _buildSelectChildStep() {
+    final anakList = ref.watch(anakProvider.select((s) => s.anakList));
+    final isLoading = ref.watch(anakProvider.select((s) => s.isLoading));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppConstants.primaryBlue, AppConstants.darkBlue],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Icon(Icons.assessment, color: levelColor),
-                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.child_care,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Status: $level',
-                            style: TextStyle(
+                            'Pilih Anak',
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: levelColor,
+                              color: Colors.white,
                             ),
                           ),
-                          Text('Skor: $score/100'),
+                          Text(
+                            'Pilih anak yang akan dikonsultasikan',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.white.withValues(alpha: 0.9),
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ],
                 ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              const Text(
-                'Rekomendasi:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(recommendation),
-              
-              const SizedBox(height: 16),
-              
-              const Text(
-                'Langkah Selanjutnya:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              if (score < 80) ...[
-                const Text('• Jadwalkan sesi terapi dengan terapis'),
-                const Text('• Lakukan latihan rutin di rumah'),
-                const Text('• Pantau perkembangan secara berkala'),
-              ] else ...[
-                const Text('• Lanjutkan stimulasi di rumah'),
-                const Text('• Evaluasi berkala setiap 6 bulan'),
               ],
-            ],
-          ),
-        ),
-        actions: [
-          if (score < 80)
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                context.push('/jadwal');
-              },
-              child: const Text('Jadwalkan Terapi'),
             ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('Selesai'),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Info Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE3F2FD),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBBDEFB)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, color: AppConstants.primaryBlue),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Pertanyaan akan disesuaikan dengan usia anak untuk hasil yang lebih akurat.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: const Color(0xFF1565C0),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Child List
+          if (isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (anakList.isEmpty)
+            _buildEmptyChildState()
+          else
+            ...anakList.map((anak) => _buildChildCard(anak)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyChildState() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.child_care, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'Belum ada data anak',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tambahkan data anak terlebih dahulu',
+            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[500]),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => context.push('/anak/add'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppConstants.primaryBlue,
+            ),
+            child: const Text('Tambah Anak'),
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget _buildChildCard(AnakModel anak) {
+    final isSelected = _selectedAnak?.id == anak.id;
+    final age = _calculateAge(anak.dateOfBirth);
 
-    return Scaffold(
-      appBar: const SimpleAppBar(title: 'Konsultasi Speech Delay'),
-      body: Column(
-        children: [
-          // Progress Indicator
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: List.generate(4, (index) {
-                return Expanded(
-                  child: Container(
-                    margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: index <= _currentStep 
-                          ? theme.primaryColor 
-                          : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedAnak = anak);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppConstants.primaryBlue : Colors.transparent,
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: anak.gender == 'L'
+                    ? const Color(0xFFE3F2FD)
+                    : const Color(0xFFFCE4EC),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.child_care,
+                color: anak.gender == 'L'
+                    ? const Color(0xFF1976D2)
+                    : const Color(0xFFC2185B),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    anak.name,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                );
-              }),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$age tahun (${anak.ageInMonths} bulan)',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          
-          // Content
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
+            if (isSelected)
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: AppConstants.primaryBlue,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 16),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuestionsStep(FCKonsultasiState state) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Info Card with Age
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFA5D6A7)),
+            ),
+            child: Row(
               children: [
-                _buildBasicInfoStep(),
-                _buildConcernsStep(),
-                _buildAssessmentStep(),
-                _buildSummaryStep(),
+                const Icon(Icons.calendar_today, color: Colors.green),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _selectedAnak?.name ?? 'Anak',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        '${state.ageInMonths} bulan',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          
-          // Navigation Buttons
+
+          const SizedBox(height: 24),
+
+          // Questions
+          ...state.questions.asMap().entries.map((e) => _buildQuestionCard(e.value, e.key + 1, state)),
+
+          const SizedBox(height: 16),
+
+          // Note
           Container(
             padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.amber.shade200),
+            ),
             child: Row(
               children: [
-                if (_currentStep > 0)
-                  Expanded(
-                    child: CustomButton(
-                      text: 'Sebelumnya',
-                      onPressed: _previousStep,
-                      isOutlined: true,
-                    ),
-                  ),
-                if (_currentStep > 0) const SizedBox(width: 16),
+                Icon(Icons.warning_amber, color: Colors.amber[700]),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: CustomButton(
-                    text: _currentStep == 3 ? 'Selesai' : 'Selanjutnya',
-                    onPressed: _currentStep == 3 ? _submitConsultation : _nextStep,
+                  child: Text(
+                    'Jawaban Anda akan diproses menggunakan sistem pakar forward chaining untuk hasil yang akurat.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.amber[900],
+                    ),
                   ),
                 ),
               ],
@@ -297,177 +476,117 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
     );
   }
 
-  Widget _buildBasicInfoStep() {
-    return SingleChildScrollView(
+  Widget _buildQuestionCard(FCQuestionModel question, int number, FCKonsultasiState state) {
+    final selectedAnswer = state.answers[question.key];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Informasi Dasar',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Berikan informasi dasar tentang anak Anda',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-          
-          const SizedBox(height: 32),
-          
-          CustomTextField(
-            label: 'Usia Anak (dalam bulan)',
-            hint: 'Contoh: 24',
-            controller: _childAgeController,
-            keyboardType: TextInputType.number,
-            prefixIcon: const Icon(Icons.child_care),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Milestone Speech Delay berdasarkan usia:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getCategoryColor(
+                    question.category,
+                  ).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$number',
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: _getCategoryColor(question.category),
                   ),
-                  const SizedBox(height: 12),
-                  _buildMilestoneItem('12-18 bulan', 'Kata pertama, meniru suara'),
-                  _buildMilestoneItem('18-24 bulan', '10-50 kata, kalimat 2 kata'),
-                  _buildMilestoneItem('2-3 tahun', '200+ kata, kalimat 3-4 kata'),
-                  _buildMilestoneItem('3-4 tahun', 'Cerita sederhana, tanya jawab'),
-                ],
+                ),
               ),
+              const Spacer(),
+              if (selectedAnswer != null)
+                const Icon(Icons.check_circle, color: Colors.green, size: 20),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            question.question,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMilestoneItem(String age, String milestone) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              age,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ),
-          const Text(': '),
-          Expanded(child: Text(milestone)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConcernsStep() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Kekhawatiran Anda',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Ceritakan kekhawatiran Anda tentang perkembangan speech anak',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-          
-          const SizedBox(height: 32),
-          
-          CustomTextField(
-            label: 'Apa yang membuat Anda khawatir?',
-            hint: 'Contoh: Anak belum bisa mengucapkan kata dengan jelas...',
-            controller: _concernsController,
-            maxLines: 4,
-            prefixIcon: const Icon(Icons.help_outline),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          CustomTextField(
-            label: 'Gejala yang Anda amati',
-            hint: 'Contoh: Sulit mengucapkan huruf R, sering menunjuk tanpa bicara...',
-            controller: _symptomsController,
-            maxLines: 4,
-            prefixIcon: const Icon(Icons.visibility_outlined),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          CustomTextField(
-            label: 'Informasi Tambahan (Opsional)',
-            hint: 'Riwayat keluarga, kondisi medis, dll...',
-            controller: _additionalInfoController,
-            maxLines: 3,
-            prefixIcon: const Icon(Icons.info_outline),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAssessmentStep() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Penilaian Cepat',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Jawab pertanyaan berikut untuk penilaian awal',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          ...List.generate(_questions.length, (index) {
-            final question = _questions[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 12),
+          ...question.options.map((option) {
+            final isSelected = selectedAnswer == option;
+            return GestureDetector(
+              onTap: () {
+                ref
+                    .read(fcKonsultasiProvider.notifier)
+                    .setAnswer(question.key, option);
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppConstants.primaryBlue.withValues(alpha: 0.1)
+                      : const Color(0xFFF8F9FE),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppConstants.primaryBlue
+                        : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Row(
                   children: [
-                    Text(
-                      '${index + 1}. ${question['question']}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppConstants.primaryBlue
+                            : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected
+                              ? AppConstants.primaryBlue
+                              : Colors.grey,
+                        ),
+                      ),
+                      child: isSelected
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 12,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        option,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: isSelected
+                              ? AppConstants.primaryBlue
+                              : Colors.grey[700],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    ...List.generate(question['options'].length, (optionIndex) {
-                      final option = question['options'][optionIndex];
-                      return RadioListTile<String>(
-                        title: Text(option),
-                        value: option,
-                        groupValue: _assessmentData[question['key']],
-                        onChanged: (value) {
-                          setState(() {
-                            _assessmentData[question['key']] = value;
-                          });
-                        },
-                        contentPadding: EdgeInsets.zero,
-                      );
-                    }),
                   ],
                 ),
               ),
@@ -478,114 +597,689 @@ class _KonsultasiPageState extends ConsumerState<KonsultasiPage> {
     );
   }
 
-  Widget _buildSummaryStep() {
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'speech':
+        return Colors.blue;
+      case 'vocabulary':
+        return Colors.purple;
+      case 'articulation':
+        return Colors.orange;
+      case 'response':
+        return Colors.green;
+      case 'communication':
+        return Colors.teal;
+      case 'comprehension':
+        return Colors.indigo;
+      case 'social':
+        return Colors.pink;
+      case 'history':
+        return Colors.brown;
+      case 'medical':
+        return Colors.red;
+      case 'concern':
+        return Colors.amber;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildResultStep(FCKonsultasiState state) {
+    if (state.isLoading) {
+      return const Center(child: LoadingWidget());
+    }
+
+    if (state.result == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              'Terjadi kesalahan',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                setState(() => _currentStep = 1);
+              },
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final result = state.result!;
+
     return SingleChildScrollView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Ringkasan Konsultasi',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          // Result Header
+          _buildResultHeader(result),
+
+          const SizedBox(height: 24),
+
+          // Risk Level Card
+          _buildRiskLevelCard(result),
+
+          const SizedBox(height: 24),
+
+          // Summary Card
+          _buildSummaryCard(result),
+
+          const SizedBox(height: 24),
+
+          // Recommendations Card
+          _buildRecommendationsCard(result),
+
+          const SizedBox(height: 24),
+
+          // Action Buttons
+          _buildActionButtons(result),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultHeader(DiagnosisModel result) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(result.riskLevelColorValue),
+            Color(result.riskLevelColorValue).withValues(alpha: 0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(_getRiskIcon(result.riskLevel), color: Colors.white, size: 64),
+          const SizedBox(height: 16),
+          Text(
+            result.riskLevelDisplay,
+            style: GoogleFonts.poppins(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Periksa kembali informasi yang Anda berikan',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Informasi Dasar',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Usia anak: ${_childAgeController.text} bulan'),
-                ],
-              ),
+          Text(
+            'Usia: ${result.ageInMonths} bulan (${result.ageCategory})',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
-          
-          const SizedBox(height: 12),
-          
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Kekhawatiran',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(_concernsController.text.isEmpty 
-                      ? 'Tidak ada kekhawatiran khusus' 
-                      : _concernsController.text),
-                ],
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Hasil Penilaian',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  ..._assessmentData.entries.map((entry) {
-                    final question = _questions.firstWhere(
-                      (q) => q['key'] == entry.key,
-                      orElse: () => {'question': entry.key},
-                    );
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text('• ${question['question']}: ${entry.value}'),
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.info, color: Colors.blue),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Hasil konsultasi ini hanya sebagai penilaian awal. Untuk diagnosis yang akurat, konsultasikan dengan terapis profesional.',
-                    style: TextStyle(color: Colors.blue),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 4),
+          Text(
+            'Skor: ${result.score}%',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
         ],
       ),
     );
+  }
+
+  IconData _getRiskIcon(String riskLevel) {
+    switch (riskLevel.toUpperCase()) {
+      case 'HIGH':
+        return Icons.warning_rounded;
+      case 'MEDIUM':
+        return Icons.info_rounded;
+      case 'LOW':
+        return Icons.check_circle_rounded;
+      default:
+        return Icons.help_rounded;
+    }
+  }
+
+  Widget _buildRiskLevelCard(DiagnosisModel result) {
+    final color = Color(result.riskLevelColorValue);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics, color: color),
+              const SizedBox(width: 8),
+              Text(
+                'Analisis Forward Chaining',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow('Fakta Ditemukan', '${result.derivedFacts.length}'),
+          _buildInfoRow('Rules Dipicu', '${result.triggeredRules.length}'),
+          _buildInfoRow('Confidence', '${(result.confidence * 100).toInt()}%'),
+          _buildInfoRow('Kategori Temuan', '${result.findings.length}'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatFinding(String finding) {
+    if (!finding.contains(' - ')) return finding;
+    
+    final parts = finding.split(' - ');
+    String variable = parts[0].trim();
+    String status = parts[1].trim();
+
+    if (status.endsWith('_baik')) {
+      status = 'Baik';
+    } else if (status.endsWith('_cukup')) {
+      status = 'Cukup';
+    } else if (status.endsWith('_kurang')) {
+      status = 'Kurang';
+    } else if (status.endsWith('_terlambat')) {
+      status = 'Terlambat';
+    } else if (status == 'tidak_ada_risiko_genetik') {
+      status = 'Tidak ada risiko';
+    } else if (status == 'ada_risiko_genetik') {
+      status = 'Ada risiko';
+    } else if (status == 'pantau_ringan') {
+      status = 'Pantau ringan';
+    } else if (status == 'perlu_evaluasi') {
+      status = 'Perlu evaluasi';
+    } else if (status == 'tidak_ada_masalah_pendengaran') {
+      status = 'Tidak ada masalah';
+    } else if (status == 'ada_indikasi_masalah_pendengaran') {
+      status = 'Ada indikasi masalah';
+    } else {
+      status = status.replaceAll(variable, '');
+      status = status.replaceAll(RegExp(r'^_\d+_'), ''); 
+      status = status.replaceAll(RegExp(r'^_'), ''); 
+      status = status.replaceAll('_', ' ');
+    }
+
+    final Map<String, String> mapping = {
+      "first_word": "kata pertama",
+      "imitate_sounds": "meniru suara",
+      "vocabulary_count_12": "jumlah kosa kata",
+      "vocabulary_count_24": "jumlah kosa kata",
+      "vocabulary_count_36": "jumlah kosa kata",
+      "vocabulary_count_48": "jumlah kosa kata",
+      "vocabulary_count_60": "kosa kata",
+      "vocabulary_count": "kosa kata",
+      "name_response": "respon panggilan",
+      "gesture_comm": "komunikasi dengan gerakan",
+      "understand_simple": "pemahaman perintah sederhana",
+      "babbling": "mengoceh",
+      "attention_sounds": "perhatian pada suara",
+      "two_word_phrase": "frasa dua kata",
+      "speech_clarity_24": "kejelasan bicara",
+      "speech_clarity_36": "kejelasan bicara",
+      "speech_clarity_48": "kejelasan bicara",
+      "speech_clarity_60": "kejelasan bicara",
+      "speech_clarity": "kejelasan bicara",
+      "asking_what": "bertanya 'apa'",
+      "follow_commands_two": "mengikuti dua perintah",
+      "point_body_parts": "menunjuk bagian tubuh",
+      "uses_i_me": "penggunaan 'saya'/'aku'",
+      "enjoy_stories": "ketertarikan cerita",
+      "three_word_sentence": "kalimat tiga kata",
+      "asking_why_how": "bertanya 'mengapa/bagaimana'",
+      "follow_commands_three": "mengikuti tiga perintah",
+      "understand_prepositions": "pemahaman kata depan",
+      "uses_plurals_past": "penggunaan bentuk kata",
+      "tells_simple_story": "bercerita sederhana",
+      "complex_sentences": "kalimat kompleks",
+      "articulation_difficulty_48": "artikulasi",
+      "articulation_difficulty_60": "artikulasi",
+      "articulation_difficulty": "artikulasi",
+      "understand_concept": "pemahaman konsep dasar",
+      "answer_w_questions": "menjawab pertanyaan",
+      "tell_experiences": "menceritakan pengalaman",
+      "rhyming_words": "pemahaman kata berima",
+      "story_structure": "struktur cerita",
+      "follow_rules": "mengikuti aturan",
+      "complex_questions": "menjawab pertanyaan kompleks",
+      "speech_comparison": "kemampuan bicara vs sebaya",
+      "express_feelings": "mengekspresikan perasaan",
+      "narrative_skill": "kemampuan naratif",
+      "asking_why": "bertanya 'mengapa'",
+      "color_recognition": "mengenal warna",
+      "family_history": "riwayat keluarga",
+      "parent_concern": "kekhawatiran orangtua",
+      "eye_contact": "kontak mata",
+      "pointing": "menunjuk",
+      "show_objects": "menunjukkan objek",
+      "joint_attention": "perhatian bersama",
+      "play_skills": "keterampilan bermain",
+      "hearing_test": "tes pendengaran",
+      "ear_infection": "infeksi telinga",
+      "pretend_play": "bermain pura-pura",
+      "hearing_issues": "masalah pendengaran",
+      "social_smile": "senyum sosial"
+    };
+
+    String translatedVariable = mapping[variable] ?? variable;
+    if (translatedVariable.isNotEmpty) {
+      translatedVariable = translatedVariable[0].toUpperCase() + translatedVariable.substring(1);
+    }
+    if (status.isNotEmpty) {
+      status = status[0].toUpperCase() + status.substring(1);
+    }
+
+    return '$translatedVariable: $status';
+  }
+
+  Widget _buildSummaryCard(DiagnosisModel result) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.list_alt, color: AppConstants.primaryBlue),
+              const SizedBox(width: 8),
+              Text(
+                'Ringkasan Temuan',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (result.findings.isEmpty)
+            Text(
+              'Tidak ada temuan khusus',
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
+            )
+          else
+            ...result.findings.entries.map((entry) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F9FE),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.key.toUpperCase(),
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _getCategoryColor(entry.key),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    ...entry.value.map(
+                      (finding) => Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.circle,
+                              size: 6,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _formatFinding(finding),
+                                style: GoogleFonts.poppins(fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  String _translateRecommendation(String text) {
+    final Map<String, String> mapping = {
+      "first_word": "kata pertama",
+      "imitate_sounds": "meniru suara",
+      "vocabulary_count_12": "jumlah kosa kata",
+      "name_response": "respon terhadap panggilan nama",
+      "gesture_comm": "komunikasi dengan gerakan",
+      "understand_simple": "pemahaman perintah sederhana",
+      "babbling": "mengoceh",
+      "attention_sounds": "perhatian pada suara",
+      "vocabulary_count_24": "jumlah kosa kata",
+      "two_word_phrase": "penggunaan frasa dua kata",
+      "speech_clarity_24": "kejelasan bicara",
+      "asking_what": "bertanya menggunakan kata 'apa'",
+      "follow_commands_two": "mengikuti dua perintah sekaligus",
+      "point_body_parts": "menunjuk bagian tubuh",
+      "uses_i_me": "penggunaan kata 'saya' atau 'aku'",
+      "enjoy_stories": "ketertarikan pada cerita",
+      "vocabulary_count_36": "jumlah kosa kata",
+      "three_word_sentence": "penggunaan kalimat tiga kata",
+      "speech_clarity_36": "kejelasan bicara",
+      "asking_why_how": "bertanya menggunakan kata 'mengapa' atau 'bagaimana'",
+      "follow_commands_three": "mengikuti tiga perintah sekaligus",
+      "understand_prepositions": "pemahaman kata depan",
+      "uses_plurals_past": "penggunaan bentuk kata yang sesuai",
+      "tells_simple_story": "bercerita sederhana",
+      "vocabulary_count_48": "jumlah kosa kata",
+      "complex_sentences": "penggunaan kalimat kompleks",
+      "speech_clarity_48": "kejelasan bicara",
+      "articulation_difficulty_48": "artikulasi",
+      "understand_concept": "pemahaman konsep dasar",
+      "answer_w_questions": "menjawab pertanyaan sederhana",
+      "tell_experiences": "menceritakan pengalaman",
+      "rhyming_words": "pemahaman kata-kata berima",
+      "vocabulary_count_60": "kosa kata",
+      "story_structure": "menyusun struktur cerita",
+      "speech_clarity_60": "kejelasan bicara",
+      "articulation_difficulty_60": "artikulasi",
+      "follow_rules": "mengikuti aturan",
+      "complex_questions": "menjawab pertanyaan kompleks",
+      "speech_comparison": "kemampuan bicara dibandingkan sebaya",
+      "express_feelings": "mengekspresikan perasaan",
+      "narrative_skill": "kemampuan naratif",
+      "asking_why": "bertanya menggunakan kata 'mengapa'",
+      "color_recognition": "mengenal warna"
+    };
+
+    String result = text;
+    mapping.forEach((key, value) {
+      result = result.replaceAll(key, value);
+    });
+    return result;
+  }
+
+  Widget _buildRecommendationsCard(DiagnosisModel result) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.lightbulb, color: Colors.amber),
+              const SizedBox(width: 8),
+              Text(
+                'Rekomendasi',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...result.recommendations.map(
+            (rec) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    child: Icon(
+                      Icons.check_circle,
+                      size: 18,
+                      color: AppConstants.primaryBlue,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _translateRecommendation(rec),
+                      style: GoogleFonts.poppins(fontSize: 13, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(DiagnosisModel result) {
+    return Column(
+      children: [
+        if (result.riskLevel != 'LOW')
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => context.push('/booking/therapist'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryBlue,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.calendar_today, color: Colors.white),
+              label: Text(
+                'Booking Terapi Sekarang',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        const SizedBox(height: 12),
+
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  Widget _buildNavigationButtons(FCKonsultasiState state) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          if (_currentStep > 0 && _currentStep != 2)
+            Expanded(
+              child: CustomButton(
+                text: 'Sebelumnya',
+                onPressed: () {
+                  setState(() => _currentStep--);
+                },
+                isOutlined: true,
+              ),
+            ),
+          if (_currentStep > 0 && _currentStep != 2) const SizedBox(width: 16),
+          Expanded(
+            child: CustomButton(
+              text: _currentStep == 0
+                  ? (state.childId != null ? 'Lanjut' : 'Pilih Anak')
+                  : _currentStep == 1
+                  ? 'Analisis'
+                  : 'Selesai',
+              onPressed: _currentStep == 0
+                  ? _handleNextFromStep0
+                  : _currentStep == 1
+                  ? _handleNextFromStep1
+                  : () => context.go('/diagnosa'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleNextFromStep0() {
+    if (_selectedAnak != null) {
+      ref
+          .read(fcKonsultasiProvider.notifier)
+          .initializeWithChild(
+            childId: _selectedAnak!.id,
+            childName: _selectedAnak!.name,
+            ageInMonths: _selectedAnak!.ageInMonths,
+          );
+      setState(() => _currentStep = 1);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Pilih anak terlebih dahulu'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _handleNextFromStep1() async {
+    final state = ref.read(fcKonsultasiProvider);
+    final konsultasiNotifier = ref.read(fcKonsultasiProvider.notifier);
+
+    if (state.answeredCount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Jawab minimal 1 pertanyaan'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Set loading state
+    konsultasiNotifier.setLoading(true);
+
+    try {
+      // Send diagnosis request to backend API
+      final apiService = ApiService();
+      final response = await apiService.createDiagnosis(
+        childId: state.childId!,
+        answers: state.answers,
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData is Map && responseData['status'] == 'success') {
+          final diagnosis = DiagnosisModel.fromJson(responseData['data']);
+          konsultasiNotifier.setResult(diagnosis);
+          setState(() => _currentStep = 2);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.jumpTo(0.0);
+            }
+          });
+        } else {
+          konsultasiNotifier.setError(
+            responseData['message'] ?? 'Gagal memproses diagnosis',
+          );
+        }
+      } else {
+        konsultasiNotifier.setError('Gagal memproses diagnosis');
+      }
+    } catch (e) {
+      debugPrint('Error creating diagnosis: $e');
+      konsultasiNotifier.setError('Terjadi kesalahan: ${e.toString()}');
+    }
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
   }
 }

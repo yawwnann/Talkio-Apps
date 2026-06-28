@@ -4,9 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../anak/providers/anak_provider.dart';
+import '../../../core/models/anak_model.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/parent_bottom_nav.dart';
+import '../../../shared/widgets/loading_widget.dart';
+import 'package:intl/intl.dart';
+import '../../jadwal/providers/parent_schedule_provider.dart';
 
 /// Parent Dashboard Page
 /// Halaman dashboard modern untuk orang tua dengan desain mirip therapist dashboard
@@ -26,6 +30,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
       final user = ref.read(currentUserProvider);
       if (user != null) {
         ref.read(anakProvider.notifier).getAnakList(user.id);
+        ref.read(parentScheduleProvider.notifier).fetchSchedule();
       }
     });
   }
@@ -33,12 +38,11 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
-    ref.watch(anakProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       appBar: const CustomAppBar(
-        title: 'Talkio',
+        title: 'Terapi Wicara',
         showBackButton: false,
         showLogo: true,
         centerTitle: false,
@@ -46,7 +50,10 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
       body: RefreshIndicator(
         onRefresh: () async {
           if (user != null) {
-            await ref.read(anakProvider.notifier).getAnakList(user.id);
+            await Future.wait([
+              ref.read(anakProvider.notifier).getAnakList(user.id),
+              ref.read(parentScheduleProvider.notifier).fetchSchedule(),
+            ]);
           }
         },
         child: SingleChildScrollView(
@@ -79,7 +86,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4A90E2).withOpacity(0.3),
+            color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -89,7 +96,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Halo, Bunda $name!',
+            'Halo,  $name !',
             style: GoogleFonts.poppins(
               fontSize: 26,
               fontWeight: FontWeight.bold,
@@ -102,7 +109,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             'Mari temani tumbuh kembang si kecil\ndengan penuh kasih hari ini.',
             style: GoogleFonts.poppins(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.95),
+              color: Colors.white.withValues(alpha: 0.95),
               height: 1.6,
               letterSpacing: 0.2,
             ),
@@ -113,6 +120,8 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
   }
 
   Widget _buildChildDevelopment() {
+    final anakList = ref.watch(anakProvider.select((state) => state.anakList));
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -120,7 +129,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -133,7 +142,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Perkembangan\nAnak',
+                'Data Anak',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -141,35 +150,201 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                   height: 1.3,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+              if (anakList.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppConstants.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${anakList.length} Anak',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppConstants.primaryBlue,
+                    ),
+                  ),
                 ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (ref.watch(anakProvider).isLoading && anakList.isEmpty)
+            ...List.generate(2, (index) => _buildChildSkeleton())
+          else if (anakList.isEmpty)
+            Center(
+              child: Column(
+                children: [
+                  Icon(Icons.people_outline, size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Belum ada data anak',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...anakList.map((anak) => _buildChildCard(anak)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChildCard(AnakModel anak) {
+    final age = _calculateAge(anak.dateOfBirth);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                anak.name,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppConstants.primaryBlue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: anak.gender == 'MALE'
+                      ? const Color(0xFFE3F2FD)
+                      : const Color(0xFFFCE4EC),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Bulan 24',
+                  anak.gender == 'MALE' ? 'Laki-laki' : 'Perempuan',
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppConstants.primaryBlue,
+                    color: anak.gender == 'MALE'
+                        ? const Color(0xFF1976D2)
+                        : const Color(0xFFC2185B),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          _buildProgressItem('Komunikasi', 0.75, const Color(0xFF8B7355)),
-          const SizedBox(height: 16),
-          _buildProgressItem('Motorik Halus', 0.80, const Color(0xFF6B9B6E)),
-          const SizedBox(height: 16),
-          _buildProgressItem('Sosialisasi', 0.88, const Color(0xFF5A8F5A)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+              const SizedBox(width: 6),
+              Text(
+                _formatDate(anak.dateOfBirth),
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Icon(Icons.cake, size: 14, color: Colors.grey[600]),
+              const SizedBox(width: 6),
+              Text(
+                '$age tahun',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          // medicalHistory field removed - backend doesn't support it
         ],
       ),
     );
+  }
+
+  Widget _buildChildSkeleton() {
+    return ShimmerLoading(
+      isLoading: true,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F9FE),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(width: 120, height: 20, color: Colors.white),
+                Container(
+                  width: 80,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(width: 14, height: 14, color: Colors.white),
+                const SizedBox(width: 6),
+                Container(width: 80, height: 16, color: Colors.white),
+                const SizedBox(width: 16),
+                Container(width: 14, height: 14, color: Colors.white),
+                const SizedBox(width: 6),
+                Container(width: 60, height: 16, color: Colors.white),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
   Widget _buildProgressItem(String label, double progress, Color color) {
@@ -212,6 +387,31 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
   }
 
   Widget _buildNearestTherapy() {
+    final scheduleState = ref.watch(parentScheduleProvider);
+
+    // Find nearest active schedule
+    final now = DateTime.now();
+    final activeSchedules = scheduleState.scheduleList.where((s) {
+      if (s['isActive'] != true) return false;
+      try {
+        final date = DateTime.parse(s['schedule']);
+        return date.isAfter(now);
+      } catch (e) {
+        return false;
+      }
+    }).toList();
+
+    // Sort ascending
+    activeSchedules.sort(
+      (a, b) => DateTime.parse(
+        a['schedule'],
+      ).compareTo(DateTime.parse(b['schedule'])),
+    );
+
+    final nearestSchedule = activeSchedules.isNotEmpty
+        ? activeSchedules.first
+        : null;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -219,7 +419,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -229,7 +429,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Jadwal Terapi Terdekat',
+            'Sesi Terapi Mendatang',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -237,10 +437,182 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
             ),
           ),
           const SizedBox(height: 16),
+          if (scheduleState.isLoading && activeSchedules.isEmpty)
+            _buildScheduleSkeleton()
+          else if (nearestSchedule == null)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FE),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.event_busy_outlined,
+                      size: 40,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Belum ada sesi terapi mendatang',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF9E6),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB8860B),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${DateTime.parse(nearestSchedule['schedule']).toLocal().day}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          nearestSchedule['therapyType'] ?? 'Terapi Bicara',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Pukul ${DateFormat('HH.mm').format(DateTime.parse(nearestSchedule['schedule']).toLocal())} WIB',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.person_outline,
+                  size: 16,
+                  color: Color(0xFF64748B),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Terapis: ${nearestSchedule['therapistName'] ?? 'Belum ditugaskan'}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: const Color(0xFF64748B),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(
+                  Icons.child_care,
+                  size: 16,
+                  color: Color(0xFF64748B),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Anak: ${nearestSchedule['childName'] ?? '-'}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: const Color(0xFF64748B),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  context.push('/jadwal');
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Lihat Jadwal',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleSkeleton() {
+    return ShimmerLoading(
+      isLoading: true,
+      child: Column(
+        children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF9E6),
+              color: const Color(0xFFF8F9FE),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -249,23 +621,8 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFB8860B),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.calendar_today, color: Colors.white, size: 20),
-                      const SizedBox(height: 2),
-                      Text(
-                        '12',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -273,22 +630,9 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Terapi Wicara',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Pukul 14.00 WIB',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
+                      Container(width: 120, height: 18, color: Colors.white),
+                      const SizedBox(height: 8),
+                      Container(width: 80, height: 14, color: Colors.white),
                     ],
                   ),
                 ),
@@ -298,37 +642,27 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.access_time, size: 16, color: const Color(0xFF64748B)),
+              Container(width: 16, height: 16, color: Colors.white),
               const SizedBox(width: 6),
-              Text(
-                'Klinik Permata Hati',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
+              Container(width: 140, height: 14, color: Colors.white),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Container(width: 16, height: 16, color: Colors.white),
+              const SizedBox(width: 6),
+              Container(width: 100, height: 14, color: Colors.white),
             ],
           ),
           const SizedBox(height: 16),
-          SizedBox(
+          Container(
             width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: const Color(0xFFE2E8F0)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Lihat Detail',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
           ),
         ],
@@ -344,7 +678,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -363,18 +697,9 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
           ),
           const SizedBox(height: 16),
           _buildQuickAccessItem(
-            Icons.games_outlined,
-            'Mulai Game Terapi',
-            'Aktivitas interaktif hari ini',
-            const Color(0xFFFFF9E6),
-            const Color(0xFFB8860B),
-            () => context.push('/game'),
-          ),
-          const SizedBox(height: 12),
-          _buildQuickAccessItem(
-            Icons.chat_bubble_outline,
-            'Konsultasi Terapis',
-            'Chat langsung dengan ahli',
+            Icons.psychology_outlined,
+            'Deteksi Speech Delay',
+            'Cek perkembangan bicara anak',
             const Color(0xFFE3F2FD),
             const Color(0xFF2196F3),
             () => context.push('/konsultasi'),
@@ -382,11 +707,47 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
           const SizedBox(height: 12),
           _buildQuickAccessItem(
             Icons.assignment_outlined,
-            'Hasil Diagnosa',
-            'Laporan medis & evaluasi',
+            'Riwayat Deteksi',
+            'Lihat hasil deteksi sebelumnya',
             const Color(0xFFE8F5E9),
             const Color(0xFF4CAF50),
             () => context.push('/diagnosa'),
+          ),
+          const SizedBox(height: 12),
+          _buildQuickAccessItem(
+            Icons.calendar_today_outlined,
+            'Booking Terapi',
+            'Pilih therapist & jadwal',
+            const Color(0xFFE3F2FD),
+            const Color(0xFF2196F3),
+            () => context.push('/booking/therapist'),
+          ),
+          const SizedBox(height: 12),
+          _buildQuickAccessItem(
+            Icons.upload_file_outlined,
+            'Unggah Progress',
+            'Bagikan media dengan terapis',
+            const Color(0xFFF3E5F5),
+            const Color(0xFF9C27B0),
+            () => context.push('/progress/upload'),
+          ),
+          const SizedBox(height: 12),
+          _buildQuickAccessItem(
+            Icons.description_outlined,
+            'Lihat Laporan',
+            'Laporan perkembangan anak',
+            const Color(0xFFFCE4EC),
+            const Color(0xFFDC2626),
+            () => context.push('/laporan'),
+          ),
+          const SizedBox(height: 12),
+          _buildQuickAccessItem(
+            Icons.games_outlined,
+            'Game',
+            'Aktivitas interaktif hari ini',
+            const Color(0xFFFFF9E6),
+            const Color(0xFFB8860B),
+            () => context.push('/game'),
           ),
         ],
       ),
@@ -416,7 +777,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.2),
+                color: iconColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, size: 24, color: iconColor),

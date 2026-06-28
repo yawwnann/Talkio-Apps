@@ -11,6 +11,8 @@ class JadwalModel {
   final String? notes;
   final String? sessionType; // online, offline
   final String? meetingLink;
+  final String? childName;
+  final String? therapistName;
   final DateTime createdAt;
   final DateTime updatedAt;
   
@@ -25,6 +27,8 @@ class JadwalModel {
     this.notes,
     this.sessionType,
     this.meetingLink,
+    this.childName,
+    this.therapistName,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -36,6 +40,8 @@ class JadwalModel {
         return '#2196F3'; // Blue
       case 'ongoing':
         return '#FF9800'; // Orange
+      case 'pending_confirmation':
+        return '#F59E0B'; // Amber
       case 'completed':
         return '#4CAF50'; // Green
       case 'cancelled':
@@ -52,6 +58,8 @@ class JadwalModel {
         return 'Terjadwal';
       case 'ongoing':
         return 'Sedang Berlangsung';
+      case 'pending_confirmation':
+        return 'Menunggu Konfirmasi';
       case 'completed':
         return 'Selesai';
       case 'cancelled':
@@ -86,19 +94,27 @@ class JadwalModel {
     return '${scheduledDate.day} ${months[scheduledDate.month]} ${scheduledDate.year}, $timeSlot';
   }
   
-  // Convert from JSON
   factory JadwalModel.fromJson(Map<String, dynamic> json) {
+    // Determine timeSlot from schedule if time_slot is not provided
+    String parsedTimeSlot = json['time_slot'] ?? '';
+    if (parsedTimeSlot.isEmpty && json['schedule'] != null) {
+      final date = DateTime.parse(json['schedule']).toLocal();
+      parsedTimeSlot = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')} - ${(date.hour + 1).toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    }
+
     return JadwalModel(
       id: json['id'] ?? '',
-      anakId: json['anak_id'] ?? '',
+      anakId: json['anak_id'] ?? json['childId'] ?? '',
       terapisId: json['terapis_id'] ?? '',
       parentId: json['parent_id'] ?? '',
-      scheduledDate: DateTime.parse(json['scheduled_date'] ?? DateTime.now().toIso8601String()),
-      timeSlot: json['time_slot'] ?? '',
+      scheduledDate: DateTime.parse(json['scheduled_date'] ?? json['schedule'] ?? DateTime.now().toIso8601String()).toLocal(),
+      timeSlot: parsedTimeSlot,
       status: json['status'] ?? '',
       notes: json['notes'],
-      sessionType: json['session_type'],
+      sessionType: json['session_type'] ?? json['therapyType'],
       meetingLink: json['meeting_link'],
+      childName: json['childName'],
+      therapistName: json['therapistName'],
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
     );
@@ -134,6 +150,8 @@ class JadwalModel {
     String? notes,
     String? sessionType,
     String? meetingLink,
+    String? childName,
+    String? therapistName,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -148,6 +166,8 @@ class JadwalModel {
       notes: notes ?? this.notes,
       sessionType: sessionType ?? this.sessionType,
       meetingLink: meetingLink ?? this.meetingLink,
+      childName: childName ?? this.childName,
+      therapistName: therapistName ?? this.therapistName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

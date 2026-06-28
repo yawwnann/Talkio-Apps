@@ -23,7 +23,7 @@ class TherapistNavRail extends StatelessWidget {
       NavigationRailDestination(
         icon: const Icon(Icons.home_outlined),
         selectedIcon: const Icon(Icons.home),
-        label: const Text('Home'),
+        label: const Text('Beranda'),
       ),
       NavigationRailDestination(
         icon: const Icon(Icons.people_outline),
@@ -76,7 +76,7 @@ class TherapistNavRail extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Talkio',
+                    'Terapi Wicara',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -89,23 +89,6 @@ class TherapistNavRail extends StatelessWidget {
       trailing: const Spacer(),
       destinations: destinations,
     );
-  }
-
-  IconData _getIconForIndex(int index, bool isSelected) {
-    switch (index) {
-      case 0:
-        return isSelected ? Icons.home : Icons.home_outlined;
-      case 1:
-        return isSelected ? Icons.people : Icons.people_outlined;
-      case 2:
-        return isSelected ? Icons.calendar_today : Icons.calendar_today_outlined;
-      case 3:
-        return isSelected ? Icons.assessment : Icons.assessment_outlined;
-      case 4:
-        return isSelected ? Icons.person : Icons.person_outlined;
-      default:
-        return Icons.home_outlined;
-    }
   }
 
   void _navigateToRoute(BuildContext context, int index) {
@@ -222,25 +205,6 @@ class AdminNavRail extends StatelessWidget {
     );
   }
 
-  IconData _getIconForIndex(int index, bool isSelected) {
-    switch (index) {
-      case 0:
-        return isSelected ? Icons.home : Icons.home_outlined;
-      case 1:
-        return isSelected ? Icons.people : Icons.people_outlined;
-      case 2:
-        return isSelected ? Icons.payment : Icons.payment_outlined;
-      case 3:
-        return isSelected ? Icons.calendar_today : Icons.calendar_today_outlined;
-      case 4:
-        return isSelected ? Icons.analytics : Icons.analytics_outlined;
-      case 5:
-        return isSelected ? Icons.settings : Icons.settings_outlined;
-      default:
-        return Icons.home_outlined;
-    }
-  }
-
   void _navigateToRoute(BuildContext context, int index) {
     switch (index) {
       case 0:
@@ -297,10 +261,7 @@ class ResponsiveNavLayout extends StatelessWidget {
         }
 
         // Show bottom navigation on mobile
-        return Scaffold(
-          body: body,
-          bottomNavigationBar: bottomNav,
-        );
+        return Scaffold(body: body, bottomNavigationBar: bottomNav);
       },
     );
   }

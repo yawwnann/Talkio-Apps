@@ -7,6 +7,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/parent_bottom_nav.dart';
+import '../../../shared/widgets/profile_avatar.dart';
 import '../../../core/constants/app_constants.dart';
 
 class AnakListPage extends ConsumerStatefulWidget {
@@ -51,8 +52,8 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
         child: anakState.isLoading
             ? const LoadingWidget(message: 'Memuat data anak...')
             : anakState.error != null
-                ? _buildErrorState(context, anakState.error)
-                : _buildContent(context, anakState),
+            ? _buildErrorState(context, anakState.error)
+            : _buildContent(context, anakState),
       ),
     );
   }
@@ -81,17 +82,14 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppConstants.primaryBlue,
-            AppConstants.lightBlue,
-          ],
+          colors: [AppConstants.primaryBlue, AppConstants.lightBlue],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppConstants.primaryBlue.withOpacity(0.3),
+            color: AppConstants.primaryBlue.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -116,7 +114,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
                   'Kelola informasi dan pantau tumbuh\nkembang setiap anak Anda',
                   style: GoogleFonts.poppins(
                     fontSize: 11,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     height: 1.4,
                   ),
                 ),
@@ -127,7 +125,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -142,203 +140,154 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
   }
 
   Widget _buildAnakCard(BuildContext context, anak) {
-    final mockProgress = ((anak.id.hashCode % 100) + 20).clamp(20, 95) / 100.0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppConstants.primaryBlue.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return InkWell(
+      onTap: () {
+        ref.read(anakProvider.notifier).selectAnak(anak);
+        context.push('/anak/detail/${anak.id}');
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppConstants.primaryBlue.withValues(alpha: 0.3),
+            width: 2,
+            style: BorderStyle.solid,
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              // Avatar
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppConstants.primaryBlue.withOpacity(0.2),
-                      AppConstants.lightBlue.withOpacity(0.1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: AppConstants.primaryBlue.withValues(
+                    alpha: 0.1,
+                  ),
+                  child: Icon(
+                    Icons.child_care,
+                    size: 30,
+                    color: AppConstants.primaryBlue,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        anak.name ?? 'Anak',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.cake_outlined,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${anak.age ?? '-'} Tahun',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(
+                            anak.gender == 'MALE' ? Icons.male : Icons.female,
+                            size: 14,
+                            color: anak.gender == 'MALE'
+                                ? AppConstants.primaryBlue
+                                : const Color(0xFFFF6584),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            anak.gender == 'MALE' ? 'Laki-laki' : 'Perempuan',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Text(
-                    anak.name[0].toUpperCase(),
-                    style: GoogleFonts.poppins(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppConstants.primaryBlue,
-                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      anak.name,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1E293B),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.cake_outlined,
-                          size: 14,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${anak.age} Tahun',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(
-                          anak.gender == 'L' ? Icons.male : Icons.female,
-                          size: 14,
-                          color: anak.gender == 'L'
-                              ? AppConstants.primaryBlue
-                              : const Color(0xFFFF6584),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          anak.gender == 'L' ? 'Laki-laki' : 'Perempuan',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Progress
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Progress Terapi',
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  color: Colors.grey[600],
-                ),
-              ),
-              Text(
-                '${(mockProgress * 100).toInt()}%',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppConstants.successColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: mockProgress,
-              backgroundColor: Colors.grey[200],
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                AppConstants.successColor,
-              ),
-              minHeight: 8,
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          // Actions
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () {
-                    ref.read(anakProvider.notifier).selectAnak(anak);
-                    context.push('/anak/detail/${anak.id}');
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppConstants.primaryBlue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppConstants.primaryBlue.withOpacity(0.2),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.visibility_outlined,
-                          size: 16,
-                          color: AppConstants.primaryBlue,
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      ref.read(anakProvider.notifier).selectAnak(anak);
+                      context.push('/anak/detail/${anak.id}');
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppConstants.primaryBlue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppConstants.primaryBlue.withValues(
+                            alpha: 0.2,
+                          ),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Detail',
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Lihat Detail',
                           style: GoogleFonts.poppins(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: AppConstants.primaryBlue,
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              InkWell(
-                onTap: () {
-                  ref.read(anakProvider.notifier).selectAnak(anak);
-                  context.push('/anak/edit/${anak.id}');
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppConstants.warningOrange.withOpacity(0.1),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => context.push('/anak/edit/${anak.id}'),
                     borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.edit_outlined,
-                    size: 16,
-                    color: AppConstants.warningOrange,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Edit',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -353,7 +302,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppConstants.primaryBlue.withOpacity(0.3),
+            color: AppConstants.primaryBlue.withValues(alpha: 0.3),
             width: 2,
             style: BorderStyle.solid,
           ),
@@ -364,7 +313,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppConstants.primaryBlue.withOpacity(0.1),
+                color: AppConstants.primaryBlue.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -408,7 +357,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppConstants.primaryBlue.withOpacity(0.1),
+                color: AppConstants.primaryBlue.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -455,7 +404,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
                   const Icon(Icons.add, size: 18, color: Colors.white),
                   const SizedBox(width: 8),
                   Text(
-                    'Tambah Anak Sekarang',
+                    'Tambah Data Anak',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -481,7 +430,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -502,10 +451,7 @@ class _AnakListPageState extends ConsumerState<AnakListPage> {
             const SizedBox(height: 8),
             Text(
               error ?? 'Gagal memuat data',
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: Colors.grey[600],
-              ),
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

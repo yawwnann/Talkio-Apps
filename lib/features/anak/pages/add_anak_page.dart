@@ -19,16 +19,12 @@ class AddAnakPage extends ConsumerStatefulWidget {
 class _AddAnakPageState extends ConsumerState<AddAnakPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _medicalHistoryController = TextEditingController();
-  final _currentConditionController = TextEditingController();
   DateTime? _selectedBirthDate;
-  String _selectedGender = 'L';
+  String _selectedGender = 'MALE';
   
   @override
   void dispose() {
     _nameController.dispose();
-    _medicalHistoryController.dispose();
-    _currentConditionController.dispose();
     super.dispose();
   }
   
@@ -59,12 +55,8 @@ class _AddAnakPageState extends ConsumerState<AddAnakPage> {
       id: '',
       parentId: user.id,
       name: _nameController.text.trim(),
-      birthDate: _selectedBirthDate!,
+      dateOfBirth: _selectedBirthDate!,
       gender: _selectedGender,
-      medicalHistory: _medicalHistoryController.text.trim().isEmpty ? null : _medicalHistoryController.text.trim(),
-      currentCondition: _currentConditionController.text.trim().isEmpty ? null : _currentConditionController.text.trim(),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
     );
     
     final success = await ref.read(anakProvider.notifier).addAnak(anak);
@@ -94,10 +86,10 @@ class _AddAnakPageState extends ConsumerState<AddAnakPage> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppConstants.primaryBlue.withOpacity(0.1), AppConstants.darkBlue.withOpacity(0.05)],
+                    colors: [AppConstants.primaryBlue.withValues(alpha: 0.1), AppConstants.darkBlue.withValues(alpha: 0.05)],
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppConstants.primaryBlue.withOpacity(0.2)),
+                  border: Border.all(color: AppConstants.primaryBlue.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
@@ -119,7 +111,7 @@ class _AddAnakPageState extends ConsumerState<AddAnakPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,26 +154,10 @@ class _AddAnakPageState extends ConsumerState<AddAnakPage> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildGenderOption('L', 'Laki-laki', Icons.male)),
+                        Expanded(child: _buildGenderOption('MALE', 'Laki-laki', Icons.male)),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildGenderOption('P', 'Perempuan', Icons.female)),
+                        Expanded(child: _buildGenderOption('FEMALE', 'Perempuan', Icons.female)),
                       ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text('Riwayat Medis (Opsional)', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _medicalHistoryController,
-                      maxLines: 3,
-                      decoration: _buildInputDecoration('Masukkan riwayat medis', Icons.medical_services_outlined),
-                    ),
-                    const SizedBox(height: 20),
-                    Text('Kondisi Saat Ini (Opsional)', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _currentConditionController,
-                      maxLines: 3,
-                      decoration: _buildInputDecoration('Deskripsikan kondisi anak', Icons.description_outlined),
                     ),
                   ],
                 ),
@@ -225,18 +201,30 @@ class _AddAnakPageState extends ConsumerState<AddAnakPage> {
     return InkWell(
       onTap: () => setState(() => _selectedGender = value),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : const Color(0xFFF8FAFC),
+          color: isSelected ? color.withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
           border: Border.all(color: isSelected ? color : const Color(0xFFE2E8F0), width: isSelected ? 2 : 1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 20, color: isSelected ? color : Colors.grey),
             const SizedBox(width: 8),
-            Text(label, style: GoogleFonts.poppins(fontSize: 14, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal, color: isSelected ? color : Colors.grey)),
+            Flexible(
+              child: Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? color : Colors.grey,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),

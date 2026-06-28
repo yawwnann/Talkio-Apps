@@ -5,9 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/anak_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/anak_model.dart';
+import '../../../core/models/diagnosis_model.dart';
+import '../../../core/models/game_log_model.dart';
+import '../../../core/services/api_service.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../diagnosa/providers/diagnosis_provider.dart';
 
-/// Halaman Detail Anak dengan Tabs (Data, Progress, Riwayat)
+/// Halaman Detail Anak dengan Tabs (Data, Riwayat)
 class AnakDetailPage extends ConsumerStatefulWidget {
   final String anakId;
 
@@ -21,11 +25,15 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   AnakModel? _anak;
+  final ApiService _apiService = ApiService();
+  List<dynamic> _therapySessions = [];
+  List<GameLogModel> _gameLogs = [];
+  bool _isLoadingRiwayat = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _loadAnakData();
   }
 
@@ -42,10 +50,44 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
     if (_anak == null || _anak!.id != widget.anakId) {
       try {
         _anak = anakState.anakList.firstWhere((a) => a.id == widget.anakId);
+        _fetchRiwayatData();
       } catch (e) {
         _anak = null;
       }
     }
+  }
+
+  Future<void> _fetchRiwayatData() async {
+    if (_anak == null) return;
+    setState(() => _isLoadingRiwayat = true);
+    try {
+      final historyRes = await _apiService.getTherapyHistory();
+      if (historyRes.statusCode == 200 &&
+          historyRes.data is Map &&
+          historyRes.data['status'] == 'success') {
+        final sessions = historyRes.data['data'] as List? ?? [];
+        _therapySessions = sessions
+            .where(
+              (s) =>
+                  s['childId'] == _anak!.id ||
+                  (s['child'] is Map && s['child']['id'] == _anak!.id),
+            )
+            .toList();
+      }
+
+      final gameRes = await _apiService.getGameHistory(_anak!.id);
+      if (gameRes.statusCode == 200 &&
+          gameRes.data is Map &&
+          gameRes.data['status'] == 'success') {
+        final rawLogs = gameRes.data['data'] as List? ?? [];
+        _gameLogs = rawLogs
+            .map((e) => GameLogModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+    } catch (e) {
+      // silently fail - show empty state
+    }
+    if (mounted) setState(() => _isLoadingRiwayat = false);
   }
 
   @override
@@ -90,6 +132,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
       backgroundColor: const Color(0xFFF8F9FE),
       appBar: CustomAppBar(
         title: 'Detail Anak',
+        showBackButton: true,
         showUserMenu: true,
         actions: [
           IconButton(
@@ -119,7 +162,6 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
               ),
               tabs: const [
                 Tab(icon: Icon(Icons.person_outline), text: 'Data'),
-                Tab(icon: Icon(Icons.trending_up), text: 'Progress'),
                 Tab(icon: Icon(Icons.history), text: 'Riwayat'),
               ],
             ),
@@ -129,11 +171,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildDataTab(_anak!),
-                _buildProgressTab(_anak!),
-                _buildRiwayatTab(_anak!),
-              ],
+              children: [_buildDataTab(_anak!), _buildRiwayatTab(_anak!)],
             ),
           ),
         ],
@@ -206,7 +244,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -239,29 +277,14 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             icon: Icons.person_outline,
             iconColor: AppConstants.primaryBlue,
             children: [
-              _buildDataRow('Tanggal Lahir', _formatDate(anak.birthDate)),
-              _buildDataRow('Usia', '${anak.age} tahun (${anak.ageInMonths} bulan)'),
-              _buildDataRow('Jenis Kelamin', anak.gender == 'L' ? 'Laki-laki' : 'Perempuan'),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Informasi Medis Card
-          _buildInfoCard(
-            title: 'Informasi Medis',
-            icon: Icons.medical_services_outlined,
-            iconColor: AppConstants.warningOrange,
-            children: [
+              _buildDataRow('Tanggal Lahir', _formatDate(anak.dateOfBirth)),
               _buildDataRow(
-                'Kondisi Saat Ini',
-                anak.currentCondition ?? 'Belum ada catatan',
-                isHighlight: true,
+                'Usia',
+                '${anak.age} tahun (${anak.ageInMonths} bulan)',
               ),
-              const SizedBox(height: 12),
               _buildDataRow(
-                'Riwayat Medis',
-                anak.medicalHistory ?? 'Tidak ada riwayat medis',
+                'Jenis Kelamin',
+                anak.gender == 'MALE' ? 'Laki-laki' : 'Perempuan',
               ),
             ],
           ),
@@ -275,7 +298,6 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             iconColor: AppConstants.infoCyan,
             children: [
               _buildDataRow('Terdaftar Sejak', _formatDate(anak.createdAt)),
-              _buildDataRow('Terakhir Diupdate', _formatDate(anak.updatedAt)),
             ],
           ),
 
@@ -285,278 +307,57 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
     );
   }
 
-  Widget _buildProgressTab(AnakModel anak) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Progress Overview Card
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppConstants.primaryBlue.withOpacity(0.1),
-                  AppConstants.lightBlue.withOpacity(0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppConstants.primaryBlue.withOpacity(0.2)),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.analytics_outlined,
-                  size: 48,
-                  color: AppConstants.primaryBlue,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Progress Terapi',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppConstants.primaryBlue,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Monitoring perkembangan anak',
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Progress Metrics
-          _buildProgressCard(
-            title: 'Komunikasi',
-            progress: 0.65,
-            color: const Color(0xFF8B7355),
-            icon: Icons.chat_outlined,
-          ),
-
-          const SizedBox(height: 12),
-
-          _buildProgressCard(
-            title: 'Motorik Halus',
-            progress: 0.72,
-            color: const Color(0xFF6B9B6E),
-            icon: Icons.touch_app_outlined,
-          ),
-
-          const SizedBox(height: 12),
-
-          _buildProgressCard(
-            title: 'Sosialisasi',
-            progress: 0.58,
-            color: const Color(0xFF5A8F5A),
-            icon: Icons.people_outline,
-          ),
-
-          const SizedBox(height: 12),
-
-          _buildProgressCard(
-            title: 'Kognitif',
-            progress: 0.70,
-            color: const Color(0xFF6B8F9B),
-            icon: Icons.psychology_outlined,
-          ),
-
-          const SizedBox(height: 24),
-
-          // Achievements
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.emoji_events, color: AppConstants.warningOrange),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Pencapaian',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildAchievementItem(
-                  '🎯 10 Sesi Terapi',
-                  'Selesai 3 hari yang lalu',
-                  true,
-                ),
-                const SizedBox(height: 8),
-                _buildAchievementItem(
-                  '🎤 Suara Jelas',
-                  'Selesai 1 minggu yang lalu',
-                  true,
-                ),
-                const SizedBox(height: 8),
-                _buildAchievementItem(
-                  '⭐ 100 Poin Game',
-                  'Dalam progres',
-                  false,
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 80),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressCard({
-    required String title,
-    required double progress,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${(progress * 100).toInt()}%',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAchievementItem(String title, String subtitle, bool completed) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: completed
-            ? AppConstants.successColor.withOpacity(0.05)
-            : Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            completed ? Icons.check_circle : Icons.pending,
-            color: completed ? AppConstants.successColor : Colors.grey,
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildRiwayatTab(AnakModel anak) {
+    final diagnosisState = ref.watch(diagnosisByChildProvider(anak.id));
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Riwayat Konsultasi
+          // Riwayat Diagnosa
           _buildRiwayatSection(
-            title: 'Riwayat Konsultasi',
+            title: 'Riwayat Diagnosa',
             icon: Icons.chat_outlined,
             iconColor: AppConstants.primaryBlue,
-            items: [
-              _buildRiwayatItem(
-                date: DateTime.now().subtract(const Duration(days: 7)),
-                title: 'Konsultasi Awal',
-                subtitle: 'Evaluasi perkembangan bicara',
-                status: 'completed',
+            trailing: TextButton(
+              onPressed: () => context.push('/diagnosa/${anak.id}'),
+              child: Text(
+                'Lihat Semua',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: AppConstants.primaryBlue,
+                ),
               ),
-              _buildRiwayatItem(
-                date: DateTime.now().subtract(const Duration(days: 30)),
-                title: 'Follow-up',
-                subtitle: 'Monitoring progress terapi',
-                status: 'completed',
-              ),
-            ],
+            ),
+            items: diagnosisState.isLoading
+                ? [
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  ]
+                : diagnosisState.diagnoses.isEmpty
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: Text(
+                          'Belum ada riwayat diagnosa',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ]
+                : diagnosisState.diagnoses
+                      .take(5)
+                      .map((d) => _buildDiagnosaItem(d))
+                      .toList(),
           ),
 
           const SizedBox(height: 16),
@@ -566,20 +367,43 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             title: 'Riwayat Terapi',
             icon: Icons.medical_services_outlined,
             iconColor: AppConstants.successColor,
-            items: [
-              _buildRiwayatItem(
-                date: DateTime.now().subtract(const Duration(days: 3)),
-                title: 'Terapi Wicara - Sesi 5',
-                subtitle: 'Latihan pengucapan kata',
-                status: 'completed',
-              ),
-              _buildRiwayatItem(
-                date: DateTime.now().subtract(const Duration(days: 10)),
-                title: 'Terapi Wicara - Sesi 4',
-                subtitle: 'Latihan artikulasi',
-                status: 'completed',
-              ),
-            ],
+            items: _isLoadingRiwayat
+                ? [
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  ]
+                : _therapySessions.isEmpty
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: Text(
+                          'Belum ada riwayat terapi',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ]
+                : _therapySessions.take(10).map((s) {
+                    final schedule = s['schedule'] != null
+                        ? DateTime.parse(s['schedule'])
+                        : DateTime.now();
+                    final therapistName = s['therapist']?['name'] ?? 'Terapis';
+                    final status = s['status'] ?? 'completed';
+                    return _buildRiwayatItem(
+                      date: schedule,
+                      title: 'Terapi Wicara - ${therapistName}',
+                      subtitle: status == 'completed' ? 'Selesai' : status,
+                      status: status == 'completed' ? 'completed' : 'pending',
+                    );
+                  }).toList(),
           ),
 
           const SizedBox(height: 16),
@@ -589,20 +413,41 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             title: 'Aktivitas Game',
             icon: Icons.games_outlined,
             iconColor: AppConstants.warningOrange,
-            items: [
-              _buildRiwayatItem(
-                date: DateTime.now().subtract(const Duration(days: 1)),
-                title: 'Latihan Suara',
-                subtitle: 'Skor: 85/100',
-                status: 'completed',
-              ),
-              _buildRiwayatItem(
-                date: DateTime.now().subtract(const Duration(days: 2)),
-                title: 'Tebak Gambar',
-                subtitle: 'Skor: 92/100',
-                status: 'completed',
-              ),
-            ],
+            items: _isLoadingRiwayat
+                ? [
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  ]
+                : _gameLogs.isEmpty
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: Text(
+                          'Belum ada aktivitas game',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ]
+                : _gameLogs
+                      .take(10)
+                      .map(
+                        (g) => _buildRiwayatItem(
+                          date: g.playedAt,
+                          title: g.gameType,
+                          subtitle: 'Skor: ${g.gameScore}/100',
+                          status: 'completed',
+                        ),
+                      )
+                      .toList(),
           ),
 
           const SizedBox(height: 80),
@@ -611,10 +456,75 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
     );
   }
 
+  Widget _buildDiagnosaItem(DiagnosisModel d) {
+    final color = Color(d.riskLevelColorValue);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.push('/diagnosa/${d.childId}/${d.id}'),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                d.riskLevel == 'HIGH'
+                    ? Icons.warning
+                    : d.riskLevel == 'MEDIUM'
+                    ? Icons.info_outline
+                    : Icons.check_circle,
+                color: color,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    d.riskLevelDisplay,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Skor: ${d.score}%  |  ${d.ageCategory}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              _formatRelativeDate(d.createdAt),
+              style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildRiwayatSection({
     required String title,
     required IconData icon,
     required Color iconColor,
+    Widget? trailing,
     required List<Widget> items,
   }) {
     return Container(
@@ -624,7 +534,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -637,13 +547,16 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             children: [
               Icon(icon, color: iconColor),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
+              if (trailing != null) trailing,
             ],
           ),
           const SizedBox(height: 12),
@@ -672,8 +585,8 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             height: 48,
             decoration: BoxDecoration(
               color: status == 'completed'
-                  ? AppConstants.successColor.withOpacity(0.1)
-                  : AppConstants.warningOrange.withOpacity(0.1),
+                  ? AppConstants.successColor.withValues(alpha: 0.1)
+                  : AppConstants.warningOrange.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -709,10 +622,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
           ),
           Text(
             _formatRelativeDate(date),
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              color: Colors.grey[500],
-            ),
+            style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -726,7 +636,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -779,9 +689,9 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -815,7 +725,7 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -854,19 +764,14 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
             width: 120,
             child: Text(
               label,
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: Colors.grey[600],
-              ),
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
             ),
           ),
           const Text(':', style: TextStyle(color: Colors.grey)),
           const SizedBox(width: 8),
           Expanded(
             child: Container(
-              padding: isHighlight
-                  ? const EdgeInsets.all(12)
-                  : EdgeInsets.zero,
+              padding: isHighlight ? const EdgeInsets.all(12) : EdgeInsets.zero,
               decoration: isHighlight
                   ? BoxDecoration(
                       color: const Color(0xFFF8FAFC),
@@ -889,10 +794,21 @@ class _AnakDetailPageState extends ConsumerState<AnakDetailPage>
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Tidak tersedia';
     const months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }

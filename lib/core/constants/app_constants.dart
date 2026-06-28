@@ -4,7 +4,21 @@ import 'package:flutter/material.dart';
 /// Berisi konstanta-konstanta aplikasi seperti URL API, konfigurasi, dll
 class AppConstants {
   // API Configuration
-  static const String baseUrl = 'https://api.speechtherapy.com/v1';
+  /// Override in development using:
+  /// flutter run --dart-define=API_BASE_URL=http://localhost:4000/api
+  /// For Android emulator, use: http://10.0.2.2:4000/api
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://103.253.213.239/api',
+  );
+
+  /// Override in development using:
+  /// flutter run --dart-define=WS_BASE_URL=http://localhost:4000
+  static const String wsUrl = String.fromEnvironment(
+    'WS_BASE_URL',
+    defaultValue: 'http://103.253.213.239',
+  );
+
   static const String midtransBaseUrl = 'https://app.sandbox.midtrans.com/snap/v1';
 
   // Midtrans Configuration
@@ -12,7 +26,7 @@ class AppConstants {
   static const String midtransServerKey = 'SB-Mid-server-YOUR_SERVER_KEY';
 
   // App Configuration
-  static const String appName = 'Talkio';
+  static const String appName = 'Terapi Wicara';
   static const String appVersion = '1.0.0';
 
   // Premier Blue Color Palette - Warna Utama Aplikasi
@@ -41,11 +55,15 @@ class AppConstants {
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
   static const String isFirstTimeKey = 'is_first_time';
+  static const String useMockDataKey = 'use_mock_data';
+
+  // Mock Mode Configuration
+  static const bool defaultMockMode = false; // Default false - use real API
   
-  // Role Types
-  static const String roleOrangTua = 'orang_tua';
-  static const String roleTerapis = 'terapis';
-  static const String roleAdmin = 'admin';
+  // Role Types - matching backend API values
+  static const String roleOrangTua = 'PARENT';
+  static const String roleTerapis = 'THERAPIST';
+  static const String roleAdmin = 'ADMIN';
   
   // Payment Status
   static const String paymentPending = 'pending';
@@ -57,4 +75,13 @@ class AppConstants {
   static const String sessionOngoing = 'ongoing';
   static const String sessionCompleted = 'completed';
   static const String sessionCancelled = 'cancelled';
+
+  // Cloudinary Configuration
+  static const String cloudinaryCloudName = 'dztyts5m1';
+  // Buat unsigned upload preset di https://cloudinary.com/console → Settings → Upload → Upload presets
+  // Ganti nilai ini sesuai nama preset yang dibuat
+  static const String cloudinaryUploadPreset = 'talkio_progress';
+
+  // Admin Contact (forgot password fallback)
+  static const String adminWhatsApp = '6281234567890';
 }

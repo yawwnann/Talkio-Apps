@@ -1,0 +1,112 @@
+{
+  "success": true,
+  "message": "Mock data anak loaded successfully",
+  "data": [
+    {
+      "id": "1",
+      "parent_id": "1",
+      "name": "Ahmad Rizki",
+      "birth_date": "2020-05-15T00:00:00.000Z",
+      "gender": "L",
+      "medical_history": "Tidak ada riwayat penyakit khusus",
+      "current_condition": "Belum bisa mengucapkan kata dengan jelas",
+      "created_at": "2024-01-15T08:30:00.000Z",
+      "updated_at": "2024-01-15T08:30:00.000Z"
+    },
+    {
+      "id": "2",
+      "parent_id": "1",
+      "name": "Siti Aisyah",
+      "birth_date": "2019-08-20T00:00:00.000Z",
+      "gender": "P",
+      "medical_history": "Lahir prematur",
+      "current_condition": "Kesulitan dalam komunikasi verbal",
+      "created_at": "2024-01-15T08:35:00.000Z",
+      "updated_at": "2024-01-15T08:35:00.000Z"
+    },
+    {
+      "id": "3",
+      "parent_id": "4",
+      "name": "Muhammad Fikri",
+      "birth_date": "2021-03-10T00:00:00.000Z",
+      "gender": "L",
+      "medical_history": "Riwayat alergi susu sapi",
+      "current_condition": "Perbendaharaan kata terbatas untuk usianya",
+      "created_at": "2024-02-01T10:00:00.000Z",
+      "updated_at": "2024-02-01T10:00:00.000Z"
+    },
+    {
+      "id": "4",
+      "parent_id": "4",
+      "name": "Nurul Hidayah",
+      "birth_date": "2020-11-25T00:00:00.000Z",
+      "gender": "P",
+      "medical_history": "Tidak ada",
+      "current_condition": "Pengucapan huruf R dan S kurang jelas",
+      "created_at": "2024-02-01T10:05:00.000Z",
+      "updated_at": "2024-02-01T10:05:00.000Z"
+    }
+  ],
+  "endpoints": {
+    "get_by_parent_id": {
+      "success": {
+        "success": true,
+        "message": "Data anak berhasil diambil",
+        "data": []
+      },
+      "empty": {
+        "success": true,
+        "message": "Belum ada data anak",
+        "data": []
+      }
+    },
+    "get_by_id": {
+      "success": {
+        "success": true,
+        "message": "Detail anak berhasil diambil",
+        "data": {}
+      },
+      "not_found": {
+        "success": false,
+        "message": "Data anak tidak ditemukan",
+        "data": null
+      }
+    },
+    "create": {
+      "success": {
+        "success": true,
+        "message": "Data anak berhasil ditambahkan",
+        "data": {}
+      },
+      "error": {
+        "success": false,
+        "message": "Gagal menambahkan data anak",
+        "data": null
+      }
+    },
+    "update": {
+      "success": {
+        "success": true,
+        "message": "Data anak berhasil diupdate",
+        "data": {}
+      },
+      "not_found": {
+        "success": false,
+        "message": "Data anak tidak ditemukan",
+        "data": null
+      }
+    },
+    "delete": {
+      "success": {
+        "success": true,
+        "message": "Data anak berhasil dihapus",
+        "data": null
+      },
+      "error": {
+        "success": false,
+        "message": "Gagal menghapus data anak",
+        "data": null
+      }
+    }
+  }
+}

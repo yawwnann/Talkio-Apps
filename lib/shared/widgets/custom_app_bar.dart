@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_constants.dart';
+import '../../features/auth/providers/auth_provider.dart';
+import 'profile_avatar.dart';
+import 'notification_badge.dart';
 
 /// Custom App Bar Widget
 /// Widget header yang konsisten untuk semua halaman
-class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
   final bool? showBackButton;
   final bool? showLogo;
   final bool? showUserMenu;
+  final bool? showNotifications; // New parameter to show notification badge
   final List<Widget>? actions;
   final VoidCallback? onBackPress;
   final VoidCallback? onLogoTap;
@@ -26,6 +31,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showBackButton,
     this.showLogo,
     this.showUserMenu,
+    this.showNotifications,
     this.actions,
     this.onBackPress,
     this.onLogoTap,
@@ -41,13 +47,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final bgColor = backgroundColor ?? Colors.white;
     final fgColor = foregroundColor ?? AppConstants.primaryBlue;
     final isCenterTitle = centerTitle ?? true;
     final shouldShowBackButton = showBackButton ?? false;
     final shouldShowLogo = showLogo ?? false;
     final shouldShowUserMenu = showUserMenu ?? true;
+    // Default: show notifications if not explicitly set to false
+    final shouldShowNotifications = showNotifications ?? true;
 
     return AppBar(
       backgroundColor: bgColor,
@@ -57,7 +65,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       leading: leading ?? (shouldShowBackButton ? _buildLeading(context, fgColor) : null),
       title: _buildTitle(context, fgColor, shouldShowLogo, isCenterTitle: isCenterTitle),
-      actions: _buildActions(context, fgColor, shouldShowUserMenu),
+      actions: _buildActions(context, fgColor, shouldShowUserMenu, shouldShowNotifications, ref),
       bottom: bottom,
     );
   }
@@ -123,90 +131,38 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  List<Widget> _buildActions(BuildContext context, Color fgColor, bool showUserMenu) {
+  List<Widget> _buildActions(BuildContext context, Color fgColor, bool showUserMenu, bool showNotifications, WidgetRef ref) {
     final actionsList = <Widget>[];
 
     if (actions != null) {
       actionsList.addAll(actions!);
     }
 
+    // Show notification badge if showNotifications is true, or if showUserMenu is true (default behavior)
+    if (showNotifications || showUserMenu) {
+      actionsList.add(const NotificationBadge());
+      actionsList.add(const SizedBox(width: 8));
+    }
+
     if (showUserMenu) {
-      actionsList.add(_buildUserMenu(context, fgColor));
+      actionsList.add(_buildUserMenu(context, fgColor, ref));
       actionsList.add(const SizedBox(width: 16));
     }
 
     return actionsList;
   }
 
-  Widget _buildUserMenu(BuildContext context, Color fgColor) {
-    return PopupMenuButton<String>(
-      onSelected: (value) => _handleMenuAction(context, value),
-      offset: const Offset(0, 50),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: CircleAvatar(
-        radius: 18,
-        backgroundColor: fgColor.withOpacity(0.1),
-        child: Text(
-          'U',
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: fgColor,
-          ),
-        ),
-      ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'profile',
-          child: Row(
-            children: [
-              Icon(Icons.person_outline, size: 20, color: AppConstants.primaryBlue),
-              const SizedBox(width: 12),
-              Text('Profil', style: GoogleFonts.poppins(fontSize: 14)),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'settings',
-          child: Row(
-            children: [
-              Icon(Icons.settings_outlined, size: 20, color: AppConstants.primaryBlue),
-              const SizedBox(width: 12),
-              Text('Pengaturan', style: GoogleFonts.poppins(fontSize: 14)),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'logout',
-          child: Row(
-            children: [
-              const Icon(Icons.logout, size: 20, color: Colors.red),
-              const SizedBox(width: 12),
-              Text('Keluar', style: GoogleFonts.poppins(fontSize: 14, color: Colors.red)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _buildUserMenu(BuildContext context, Color fgColor, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final userName = authState.user?.name ?? 'User';
 
-  void _handleMenuAction(BuildContext context, String action) {
-    switch (action) {
-      case 'profile':
-      case 'settings':
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Fitur akan segera hadir'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
-        break;
-      case 'logout':
-        _showLogoutDialog(context);
-        break;
-    }
+    return GestureDetector(
+      onTap: () => context.push('/profile'),
+      child: ProfileAvatar(
+        name: userName,
+        radius: 18,
+      ),
+    );
   }
 
   Future<void> _showLogoutDialog(BuildContext context) async {
@@ -216,7 +172,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.logout, color: AppConstants.primaryBlue),
+            const Icon(Icons.logout, color: Colors.red),
             const SizedBox(width: 12),
             Text('Keluar', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
           ],
@@ -243,10 +199,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      // TODO: Implement logout
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Logout - Coming soon')),
-      );
+      // Call logout through Riverpod
+      final ref = ProviderScope.containerOf(context, listen: false);
+      await ref.read(authProvider.notifier).logout();
+      
+      if (context.mounted) {
+        // Navigate to login page
+        context.go('/login');
+      }
     }
   }
 }

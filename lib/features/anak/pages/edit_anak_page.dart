@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/anak_provider.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../../../core/models/anak_model.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/constants/app_constants.dart';
@@ -14,10 +13,7 @@ import '../../../shared/widgets/custom_app_bar.dart';
 class EditAnakPage extends ConsumerStatefulWidget {
   final String anakId;
 
-  const EditAnakPage({
-    super.key,
-    required this.anakId,
-  });
+  const EditAnakPage({super.key, required this.anakId});
 
   @override
   ConsumerState<EditAnakPage> createState() => _EditAnakPageState();
@@ -26,8 +22,6 @@ class EditAnakPage extends ConsumerStatefulWidget {
 class _EditAnakPageState extends ConsumerState<EditAnakPage> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
-  late TextEditingController _medicalHistoryController;
-  late TextEditingController _currentConditionController;
   DateTime? _selectedBirthDate;
   late String _selectedGender;
 
@@ -56,8 +50,8 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
           id: '',
           parentId: '',
           name: '',
-          birthDate: DateTime.now(),
-          gender: 'L',
+          dateOfBirth: DateTime.now(),
+          gender: 'MALE',
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
@@ -72,13 +66,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
   void _initializeData(AnakModel anak) {
     setState(() {
       _nameController = TextEditingController(text: anak.name);
-      _medicalHistoryController = TextEditingController(
-        text: anak.medicalHistory ?? '',
-      );
-      _currentConditionController = TextEditingController(
-        text: anak.currentCondition ?? '',
-      );
-      _selectedBirthDate = anak.birthDate;
+      _selectedBirthDate = anak.dateOfBirth;
       _selectedGender = anak.gender;
       _isLoading = false;
     });
@@ -87,8 +75,6 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _medicalHistoryController.dispose();
-    _currentConditionController.dispose();
     super.dispose();
   }
 
@@ -146,20 +132,17 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
 
     final updatedAnak = _anak!.copyWith(
       name: _nameController.text.trim(),
-      birthDate: _selectedBirthDate!,
+      dateOfBirth: _selectedBirthDate!,
       gender: _selectedGender,
-      medicalHistory: _medicalHistoryController.text.trim().isEmpty
-          ? null
-          : _medicalHistoryController.text.trim(),
-      currentCondition: _currentConditionController.text.trim().isEmpty
-          ? null
-          : _currentConditionController.text.trim(),
-      updatedAt: DateTime.now(),
     );
 
-    final success = await ref.read(anakProvider.notifier).updateAnak(updatedAnak);
+    final success = await ref
+        .read(anakProvider.notifier)
+        .updateAnak(updatedAnak);
 
-    if (success && mounted) {
+    if (!mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Data anak berhasil diupdate'),
@@ -187,9 +170,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
     if (_isLoading) {
       return Scaffold(
         appBar: const SimpleAppBar(title: 'Edit Data Anak'),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -208,13 +189,13 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppConstants.primaryBlue.withOpacity(0.1),
-                      AppConstants.darkBlue.withOpacity(0.05),
+                      AppConstants.primaryBlue.withValues(alpha: 0.1),
+                      AppConstants.darkBlue.withValues(alpha: 0.05),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppConstants.primaryBlue.withOpacity(0.2),
+                    color: AppConstants.primaryBlue.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -255,7 +236,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -341,7 +322,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
                       children: [
                         Expanded(
                           child: _buildGenderOption(
-                            'L',
+                            'MALE',
                             'Laki-laki',
                             Icons.male,
                           ),
@@ -349,52 +330,12 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildGenderOption(
-                            'P',
+                            'FEMALE',
                             'Perempuan',
                             Icons.female,
                           ),
                         ),
                       ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Riwayat Medis
-                    Text(
-                      'Riwayat Medis',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _medicalHistoryController,
-                      maxLines: 3,
-                      decoration: _buildInputDecoration(
-                        'Masukkan riwayat medis (opsional)',
-                        Icons.medical_services_outlined,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Kondisi Saat Ini
-                    Text(
-                      'Kondisi Saat Ini',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _currentConditionController,
-                      maxLines: 3,
-                      decoration: _buildInputDecoration(
-                        'Deskripsikan kondisi anak (opsional)',
-                        Icons.description_outlined,
-                      ),
                     ),
                   ],
                 ),
@@ -474,7 +415,11 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                      const Icon(
+                        Icons.delete_outline,
+                        size: 20,
+                        color: Colors.red,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Hapus Data Anak',
@@ -497,7 +442,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
 
   Widget _buildGenderOption(String value, String label, IconData icon) {
     final isSelected = _selectedGender == value;
-    final color = value == 'L'
+    final color = value == 'MALE'
         ? const Color(0xFF2563EB)
         : const Color(0xFFFF6584);
 
@@ -506,33 +451,30 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected
-              ? color.withOpacity(0.1)
-              : const Color(0xFFF8FAFC),
+          color: isSelected ? color.withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
           border: Border.all(
             color: isSelected ? color : const Color(0xFFE2E8F0),
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: isSelected ? color : Colors.grey,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? color : Colors.grey,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20, color: isSelected ? color : Colors.grey),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? color : Colors.grey,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -554,19 +496,13 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-          color: AppConstants.primaryBlue,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: AppConstants.primaryBlue, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.red),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 
@@ -574,9 +510,7 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         icon: Icon(
           Icons.warning_amber_rounded,
           color: AppConstants.warningOrange,
@@ -616,7 +550,9 @@ class _EditAnakPageState extends ConsumerState<EditAnakPage> {
     );
 
     if (confirmed == true) {
-      final success = await ref.read(anakProvider.notifier).deleteAnak(widget.anakId);
+      final success = await ref
+          .read(anakProvider.notifier)
+          .deleteAnak(widget.anakId);
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

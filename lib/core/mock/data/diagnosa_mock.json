@@ -1,0 +1,71 @@
+{
+  "success": true,
+  "message": "Mock data diagnosa loaded successfully",
+  "data": [
+    {
+      "id": "1",
+      "anak_id": "1",
+      "terapis_id": "2",
+      "konsultasi_id": "1",
+      "diagnosis_code": "F80.0",
+      "diagnosis_name": "Gangguan Artikulasi",
+      "severity": "ringan",
+      "recommendation": "Terapi wicara 2x seminggu, latihan motorik oral di rumah",
+      "notes": "Anak mampu mengikuti instruksi sederhana, perlu motivasi lebih",
+      "created_at": "2024-01-20T10:00:00.000Z",
+      "updated_at": "2024-01-20T10:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "anak_id": "2",
+      "terapis_id": "2",
+      "konsultasi_id": "2",
+      "diagnosis_code": "F80.1",
+      "diagnosis_name": "Gangguan Ekspresi Bahasa",
+      "severity": "sedang",
+      "recommendation": "Terapi intensif 3x seminggu, gunakan media gambar",
+      "notes": "Perlu stimulasi visual untuk membantu pemahaman",
+      "created_at": "2024-01-22T14:00:00.000Z",
+      "updated_at": "2024-01-22T14:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "anak_id": "3",
+      "terapis_id": "5",
+      "konsultasi_id": "3",
+      "diagnosis_code": "F80.2",
+      "diagnosis_name": "Gangguan Reseptif Bahasa",
+      "severity": "ringan",
+      "recommendation": "Latihan pemahaman instruksi, terapi 2x seminggu",
+      "notes": "Anak responsif terhadap suara, perlu konsistensi latihan",
+      "created_at": "2024-02-05T09:00:00.000Z",
+      "updated_at": "2024-02-05T09:00:00.000Z"
+    }
+  ],
+  "endpoints": {
+    "get_by_anak_id": {
+      "success": {
+        "success": true,
+        "message": "Riwayat diagnosa berhasil diambil",
+        "data": []
+      },
+      "empty": {
+        "success": true,
+        "message": "Belum ada riwayat diagnosa",
+        "data": []
+      }
+    },
+    "create": {
+      "success": {
+        "success": true,
+        "message": "Diagnosa berhasil ditambahkan",
+        "data": {}
+      },
+      "error": {
+        "success": false,
+        "message": "Gagal menambahkan diagnosa",
+        "data": null
+      }
+    }
+  }
+}

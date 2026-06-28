@@ -1,3 +1,4 @@
+import 'dart:async'; // Completer
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/api_service.dart';
@@ -35,8 +36,28 @@ class AuthState {
 
 /// Auth Provider
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(ApiService apiService) : super(const AuthState()) {
-    _checkAuthStatus();
+  final ApiService _apiService;
+  final Completer<void> _initCompleter = Completer<void>();
+
+  AuthNotifier(this._apiService) : super(const AuthState()) {
+    _init();
+  }
+
+  /// Await this future to know when [_init()] has fully completed.
+  /// SplashPage uses this to avoid navigating before auth check is done.
+  Future<void> waitForInitComplete() {
+    if (_initCompleter.isCompleted) return Future.value();
+    return _initCompleter.future;
+  }
+
+  /// Initialize - check auth status on app start
+  Future<void> _init() async {
+    await _apiService.initMockConfig();
+    await _checkAuthStatus();
+    // Signal that init is complete (even if _checkAuthStatus failed)
+    if (!_initCompleter.isCompleted) {
+      _initCompleter.complete();
+    }
   }
 
   /// Check if user is already authenticated
@@ -62,52 +83,77 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Login with email and password (No validation for testing)
+  /// Login with email and password
   Future<bool> login(String email, String password) async {
+    print('📡 [AUTH] login() called - setting isLoading=true');
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Mock API call - replace with actual API
-      await Future.delayed(const Duration(seconds: 1));
+      print('📡 [AUTH] Calling ApiService.login()');
+      final response = await _apiService.login(email, password);
+      print('📡 [AUTH] Response received - statusCode: ${response.statusCode}');
+      print('📡 [AUTH] Response data type: ${response.data.runtimeType}');
 
-      // Determine role based on email for testing
-      String role = AppConstants.roleOrangTua;
-      String name = 'User Demo';
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          print('📡 [AUTH] Data is Map - keys: ${data.keys.toList()}');
+          // Backend format: { status: "success", message: "...", data: { token: "...", user: {...} } }
+          // Mock format: { status: "success", data: { token: "...", user: {...} } }
+          final responseData = data['data'] as Map<String, dynamic>?;
+          print('📡 [AUTH] responseData: $responseData');
 
-      if (email.toLowerCase().contains('terapis')) {
-        role = AppConstants.roleTerapis;
-        name = 'Dr. Terapis Demo';
-      } else if (email.toLowerCase().contains('admin')) {
-        role = AppConstants.roleAdmin;
-        name = 'Admin Demo';
+          if (responseData != null) {
+            final token = responseData['token'] as String?;
+            final userData = responseData['user'] as Map<String, dynamic>?;
+
+            print('📡 [AUTH] Token found: ${token != null}');
+            print('📡 [AUTH] UserData found: ${userData != null}');
+            print('📡 [AUTH] UserData content: $userData');
+
+            if (token != null && userData != null) {
+              final user = UserModel.fromJson(userData);
+              print('📡 [AUTH] UserModel created: id=${user.id}, role=${user.role}, name=${user.name}');
+
+              // Save to storage
+              print('📡 [AUTH] Saving to storage...');
+              await StorageService.setString(AppConstants.tokenKey, token);
+              await StorageService.setObject(AppConstants.userKey, user.toJson());
+              print('📡 [AUTH] Storage saved');
+
+              print('📡 [AUTH] Updating state - isAuthenticated=true');
+              state = state.copyWith(
+                user: user,
+                isAuthenticated: true,
+                isLoading: false,
+              );
+              print('📡 [AUTH] State updated successfully');
+
+              return true;
+            } else {
+              print('📡 [AUTH] ERROR: token or userData is null');
+            }
+          } else {
+            print('📡 [AUTH] ERROR: responseData is null');
+          }
+        } else {
+          print('📡 [AUTH] ERROR: data is not Map<String, dynamic>, type: ${data.runtimeType}');
+        }
+
+        final message = data is Map<String, dynamic>
+            ? data['message'] ?? 'Login gagal'
+            : 'Login gagal';
+        print('📡 [AUTH] Login failed: $message');
+        state = state.copyWith(error: message, isLoading: false);
+        return false;
+      } else {
+        print('📡 [AUTH] Login failed - statusCode: ${response.statusCode}');
+        state = state.copyWith(error: 'Login gagal', isLoading: false);
+        return false;
       }
-
-      // Mock user data - accept any email/password
-      final userData = {
-        'id': '1',
-        'email': email.isEmpty ? 'demo@example.com' : email,
-        'name': name,
-        'phone': '081234567890',
-        'role': role,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-
-      final user = UserModel.fromJson(userData);
-      const token = 'mock_token_123';
-
-      // Save to storage
-      await StorageService.setString(AppConstants.tokenKey, token);
-      await StorageService.setObject(AppConstants.userKey, userData);
-
-      state = state.copyWith(
-        user: user,
-        isAuthenticated: true,
-        isLoading: false,
-      );
-
-      return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('📡 [AUTH] EXCEPTION: $e');
+      print('📡 [AUTH] Stack trace: $stackTrace');
       state = state.copyWith(error: e.toString(), isLoading: false);
       return false;
     }
@@ -118,40 +164,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String name,
     required String email,
     required String password,
-    required String phone,
-    String role = AppConstants.roleOrangTua,
+    String role = 'PARENT',
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Mock API call - replace with actual API
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Mock user data
-      final userData = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'email': email,
-        'name': name,
-        'phone': phone,
-        'role': role,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-
-      final user = UserModel.fromJson(userData);
-      const token = 'mock_token_123';
-
-      // Save to storage
-      await StorageService.setString(AppConstants.tokenKey, token);
-      await StorageService.setObject(AppConstants.userKey, userData);
-
-      state = state.copyWith(
-        user: user,
-        isAuthenticated: true,
-        isLoading: false,
+      final response = await _apiService.register(
+        name: name,
+        email: email,
+        password: password,
+        role: role,
       );
 
-      return true;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        state = state.copyWith(isLoading: false);
+        return true;
+      } else {
+        state = state.copyWith(error: 'Registrasi gagal', isLoading: false);
+        return false;
+      }
     } catch (e) {
       state = state.copyWith(error: e.toString(), isLoading: false);
       return false;
@@ -163,38 +194,64 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
 
     try {
+      // Call API logout (optional, for cleanup)
+      await _apiService.logout();
+
       // Clear storage
       await StorageService.remove(AppConstants.tokenKey);
       await StorageService.remove(AppConstants.userKey);
 
       state = const AuthState();
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      // Even if API fails, clear local data
+      await StorageService.remove(AppConstants.tokenKey);
+      await StorageService.remove(AppConstants.userKey);
+      state = const AuthState();
+    }
+  }
+
+  /// Refresh user profile from API
+  Future<void> refreshProfile() async {
+    try {
+      final response = await _apiService.getMyProfile();
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          final userData = data['data'];
+          if (userData is Map<String, dynamic>) {
+            final user = UserModel.fromJson(userData);
+            await StorageService.setObject(AppConstants.userKey, user.toJson());
+            state = state.copyWith(user: user);
+          }
+        }
+      }
+    } catch (e) {
+      print('⚠️ [AUTH] Failed to refresh profile: $e');
     }
   }
 
   /// Update user profile
   Future<bool> updateProfile(UserModel updatedUser) async {
-    state = state.copyWith(isLoading: true, error: null);
-
     try {
-      // Mock API call - replace with actual API
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Save to storage
       await StorageService.setObject(
         AppConstants.userKey,
         updatedUser.toJson(),
       );
-
-      state = state.copyWith(user: updatedUser, isLoading: false);
-
+      // Update state without triggering isLoading to avoid splash screen
+      state = state.copyWith(user: updatedUser);
       return true;
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
       return false;
     }
   }
+
+  /// Toggle mock mode
+  Future<void> toggleMockMode(bool enabled) async {
+    await _apiService.toggleMockMode(enabled);
+  }
+
+  /// Get current mock mode
+  bool get useMockData => _apiService.useMockData;
 
   /// Clear error
   void clearError() {
@@ -204,6 +261,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 /// Auth Provider Instance
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  // dioProvider and uploadDioProvider are not needed for auth (handled internally)
   return AuthNotifier(ApiService());
 });
 
@@ -215,4 +273,9 @@ final currentUserProvider = Provider<UserModel?>((ref) {
 /// Is Authenticated Provider
 final isAuthenticatedProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).isAuthenticated;
+});
+
+/// Mock Mode Provider
+final mockModeProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider.notifier).useMockData;
 });
