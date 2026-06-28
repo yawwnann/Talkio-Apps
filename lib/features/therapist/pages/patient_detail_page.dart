@@ -1217,7 +1217,7 @@ class _TherapistPatientDetailPageState
           height: 48,
           child: OutlinedButton.icon(
             onPressed: () =>
-                context.push('/therapist/laporan/add', extra: widget.patientId),
+                context.push('/therapist/laporan/add', extra: {'patientId': widget.patientId}),
             icon: const Icon(Icons.description_outlined, size: 18),
             label: Text(
               'Buat Laporan',

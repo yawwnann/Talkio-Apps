@@ -337,6 +337,8 @@ class _LatihanArtikulasiPageState extends ConsumerState<LatihanArtikulasiPage>
           durationSeconds: elapsed,
           childId: widget.childId,
           gameType: LatihanArtikulasiData.gameType,
+          hideScore: true,
+          completionMessage: 'Latihan berhasil diselesaikan. Hasil latihan telah dikirim dan akan dievaluasi oleh terapis untuk memantau perkembangan artikulasi anak.',
           onMainLagi: () {
             Navigator.of(context).pop();
             setState(() {

@@ -18,11 +18,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _pinController = TextEditingController();
-  final _pinConfirmController = TextEditingController();
   bool _obscurePassword = true;
-  bool _obscurePin = true;
-  bool _obscurePinConfirm = true;
   bool _agreeToTerms = false;
   bool _isSubmitting = false;
   
@@ -31,8 +27,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _pinController.dispose();
-    _pinConfirmController.dispose();
     super.dispose();
   }
   
@@ -60,7 +54,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         role: 'PARENT',
-        recoveryPin: _pinController.text.trim(),
       );
       
       if (!mounted) return;
@@ -238,79 +231,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 
                 const SizedBox(height: 20),
 
-                // Recovery PIN
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppConstants.primaryBlue.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppConstants.primaryBlue.withValues(alpha: 0.15)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.shield_outlined, size: 16, color: AppConstants.primaryBlue),
-                          const SizedBox(width: 6),
-                          Text('PIN Pemulihan Akun', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppConstants.primaryBlue)),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text('Gunakan PIN 6 digit untuk memulihkan akun jika lupa password.', style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF64748B))),
-                      const SizedBox(height: 12),
-                      Text('PIN Pemulihan (6 digit)', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF334155))),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _pinController,
-                        obscureText: _obscurePin,
-                        keyboardType: TextInputType.number,
-                        maxLength: 6,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) return null; // optional
-                          if (value.length != 6) return 'PIN harus 6 digit';
-                          if (!RegExp(r'^\d{6}$').hasMatch(value)) return 'PIN hanya boleh angka';
-                          return null;
-                        },
-                        style: GoogleFonts.poppins(fontSize: 14),
-                        decoration: _buildInputDecoration(
-                          hintText: '123456',
-                          prefixIcon: Icons.pin_outlined,
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscurePin ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: const Color(0xFF94A3B8), size: 20),
-                            onPressed: () => setState(() => _obscurePin = !_obscurePin),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text('Konfirmasi PIN', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: const Color(0xFF334155))),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _pinConfirmController,
-                        obscureText: _obscurePinConfirm,
-                        keyboardType: TextInputType.number,
-                        maxLength: 6,
-                        validator: (value) {
-                          if (_pinController.text.isEmpty) return null;
-                          if (value != _pinController.text) return 'PIN tidak cocok';
-                          return null;
-                        },
-                        style: GoogleFonts.poppins(fontSize: 14),
-                        decoration: _buildInputDecoration(
-                          hintText: '123456',
-                          prefixIcon: Icons.pin_outlined,
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscurePinConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: const Color(0xFF94A3B8), size: 20),
-                            onPressed: () => setState(() => _obscurePinConfirm = !_obscurePinConfirm),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 20),
-                
                 // Terms Checkbox
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

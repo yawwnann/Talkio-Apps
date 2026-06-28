@@ -17,6 +17,8 @@ class GameResultScreen extends ConsumerStatefulWidget {
   final String gameType;
   final VoidCallback? onMainLagi;
   final VoidCallback? onKembaliMenu;
+  final bool hideScore;
+  final String? completionMessage;
 
   const GameResultScreen({
     super.key,
@@ -28,6 +30,8 @@ class GameResultScreen extends ConsumerStatefulWidget {
     required this.gameType,
     this.onMainLagi,
     this.onKembaliMenu,
+    this.hideScore = false,
+    this.completionMessage,
   });
 
   @override
@@ -168,7 +172,7 @@ class _GameResultScreenState extends ConsumerState<GameResultScreen>
                     ),
                     const SizedBox(height: 32),
 
-                    // Skor Card
+                    if (!widget.hideScore) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
@@ -231,7 +235,39 @@ class _GameResultScreenState extends ConsumerState<GameResultScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    ],
+
+                    if (widget.completionMessage != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppConstants.borderColor),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              color: AppConstants.successGreen,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                widget.completionMessage!,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: AppConstants.textDark,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Durasi
                     Container(
@@ -274,7 +310,7 @@ class _GameResultScreenState extends ConsumerState<GameResultScreen>
                         onPressed: widget.onMainLagi,
                         icon: const Icon(Icons.replay, color: Colors.white),
                         label: Text(
-                          'Main Lagi',
+                          widget.hideScore ? 'Latihan Lagi' : 'Main Lagi',
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/storage_service.dart';
 import '../../../shared/widgets/admin_bottom_nav.dart';
 import '../../../shared/widgets/profile_avatar.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -19,6 +23,7 @@ class _AdminReportPageState extends ConsumerState<AdminReportPage> {
   final List<String> _tabs = ['Semua', 'Terkirim', 'Draft'];
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _isDownloading = false;
 
   List<Map<String, dynamic>> get _filteredReports {
     final reports = ref.watch(adminReportProvider).reports;
@@ -456,6 +461,70 @@ class _AdminReportPageState extends ConsumerState<AdminReportPage> {
             onPressed: () => Navigator.pop(context),
             child: Text('Tutup', style: GoogleFonts.poppins(color: AppConstants.primaryBlue)),
           ),
+          if (report['childId'] != null)
+            ElevatedButton.icon(
+              onPressed: _isDownloading ? null : () async {
+                final childId = report['childId'];
+                final token = StorageService.getString(AppConstants.tokenKey);
+                if (token == null) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Sesi login telah habis')),
+                  );
+                  return;
+                }
+
+                setState(() => _isDownloading = true);
+                Navigator.pop(context);
+
+                try {
+                  final dio = Dio();
+                  final url = '${AppConstants.baseUrl}/therapist/report/$childId';
+                  final dir = await getTemporaryDirectory();
+                  final childName = report['childName'] ?? 'anak';
+                  final filePath = '${dir.path}/Laporan-Perkembangan-$childName.pdf';
+
+                  await dio.download(
+                    url,
+                    filePath,
+                    options: Options(
+                      headers: {'Authorization': 'Bearer $token'},
+                      responseType: ResponseType.bytes,
+                    ),
+                  );
+
+                  if (!mounted) return;
+
+                  final result = await OpenFile.open(filePath);
+                  if (result.type != ResultType.done) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal membuka PDF: ${result.message}')),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal mengunduh PDF: ${e.toString().replaceAll('Exception: ', '')}')),
+                    );
+                  }
+                } finally {
+                  if (mounted) {
+                    setState(() => _isDownloading = false);
+                  }
+                }
+              },
+              icon: _isDownloading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.picture_as_pdf, size: 18),
+              label: Text(
+                _isDownloading ? 'Mengunduh...' : 'Download PDF',
+                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
         ],
       ),
     );
