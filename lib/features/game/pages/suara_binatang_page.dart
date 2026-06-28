@@ -20,7 +20,7 @@ class SuaraBinatangPage extends ConsumerStatefulWidget {
     super.key,
     required this.childId,
     this.choicesCount = 2,
-    this.totalRounds = 5,
+    this.totalRounds = 8,
   });
 
   @override
@@ -306,8 +306,8 @@ class _SuaraBinatangPageState extends ConsumerState<SuaraBinatangPage>
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: widget.choicesCount,
-                  childAspectRatio: 0.85,
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.1,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                 ),

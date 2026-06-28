@@ -194,7 +194,7 @@ class _GameResultScreenState extends ConsumerState<GameResultScreen>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '${widget.score}',
+                            '$percent',
                             style: GoogleFonts.poppins(
                               fontSize: 56,
                               fontWeight: FontWeight.bold,
@@ -202,7 +202,7 @@ class _GameResultScreenState extends ConsumerState<GameResultScreen>
                             ),
                           ),
                           Text(
-                            'dari ${widget.maxScore}',
+                            'Skala 100',
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               color: AppConstants.textGray,
@@ -223,14 +223,6 @@ class _GameResultScreenState extends ConsumerState<GameResultScreen>
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            '$percent%',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: _accentColor,
-                            ),
-                          ),
                         ],
                       ),
                     ),

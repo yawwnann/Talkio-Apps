@@ -23,7 +23,7 @@ class LatihanArtikulasiPage extends ConsumerStatefulWidget {
   const LatihanArtikulasiPage({
     super.key,
     required this.childId,
-    this.totalRounds = 6,
+    this.totalRounds = 8,
     this.targetSound,
   });
 
@@ -286,16 +286,8 @@ class _LatihanArtikulasiPageState extends ConsumerState<LatihanArtikulasiPage>
         }
 
         // Tampilkan recommendation
-        final recommendation = innerData['nextRecommendation'] as String?;
-        if (recommendation != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('💡 $recommendation'),
-              backgroundColor: AppConstants.primaryBlue,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
+        // final recommendation = innerData['nextRecommendation'] as String?;
+        // (Removed snackbar based on user request)
       }
     } catch (e) {
       debugPrint('Artikulasi upload error: $e');

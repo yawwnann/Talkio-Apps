@@ -276,7 +276,7 @@ class AppRouter {
                 return SuaraBinatangPage(
                   childId: extra['childId']?.toString() ?? '',
                   choicesCount: extra['choicesCount'] ?? 2,
-                  totalRounds: extra['rounds'] ?? 5,
+                  totalRounds: extra['totalRounds'] ?? 8,
                 );
               },
             ),
@@ -288,7 +288,7 @@ class AppRouter {
                 final extra = state.extra as Map<String, dynamic>? ?? {};
                 return TebakSuaraPage(
                   childId: extra['childId']?.toString() ?? '',
-                  totalRounds: extra['rounds'] ?? 5,
+                  totalRounds: extra['totalRounds'] ?? 8,
                 );
               },
             ),
@@ -299,7 +299,7 @@ class AppRouter {
                 final extra = state.extra as Map<String, dynamic>? ?? {};
                 return LatihanArtikulasiPage(
                   childId: extra['childId']?.toString() ?? '',
-                  totalRounds: extra['rounds'] ?? 6,
+                  totalRounds: extra['totalRounds'] ?? 8,
                   targetSound: extra['targetSound']?.toString(),
                 );
               },
@@ -312,7 +312,7 @@ class AppRouter {
                 return KataBergambarPage(
                   childId: extra['childId']?.toString() ?? '',
                   choicesCount: extra['choicesCount'] ?? 3,
-                  totalRounds: extra['rounds'] ?? 6,
+                  totalRounds: extra['totalRounds'] ?? 8,
                   hintMode: extra['hintMode']?.toString() ?? 'none',
                 );
               },

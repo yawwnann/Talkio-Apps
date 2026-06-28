@@ -74,7 +74,11 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: Color(0xFFD97706), size: 20),
+                const Icon(
+                  Icons.info_outline,
+                  color: Color(0xFFD97706),
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -96,8 +100,10 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
             ),
             items: anakState.anakList
                 .map(
@@ -117,13 +123,16 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
   }
 
   Widget _buildRecommendationsSection(
-      BuildContext context, AnakModel? selectedAnak) {
+    BuildContext context,
+    AnakModel? selectedAnak,
+  ) {
     if (selectedAnak == null) {
       return const SizedBox.shrink();
     }
 
-    final recState =
-        ref.watch(gameRecommendationByChildProvider(selectedAnak.id));
+    final recState = ref.watch(
+      gameRecommendationByChildProvider(selectedAnak.id),
+    );
 
     if (recState.isLoading) {
       return const Center(
@@ -247,7 +256,10 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
   }
 
   Widget _buildRecommendationCard(
-      BuildContext context, GameRecommendationItem recItem, AnakModel selectedAnak) {
+    BuildContext context,
+    GameRecommendationItem recItem,
+    AnakModel selectedAnak,
+  ) {
     final title = recItem.gameType;
     final params = recItem.params;
 
@@ -269,35 +281,61 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
           style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
-          '${params['choicesCount'] ?? '-'} pilihan • ${params['rounds'] ?? '-'} ronde',
-          style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF64748B)),
+          ' 8 ronde',
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            color: const Color(0xFF64748B),
+          ),
         ),
         trailing: IconButton(
           onPressed: () {
             final childId = selectedAnak.id;
             switch (recItem.gameType) {
               case 'Suara Binatang':
-                context.pushNamed(
-                  'suara-binatang',
-                  extra: {
-                    'childId': childId,
-                    'choicesCount': params['choicesCount'] ?? 2,
-                    'rounds': params['rounds'] ?? 5,
-                  },
-                );
-                break;
+              context.pushNamed(
+                'suara-binatang',
+                extra: {
+                  'childId': childId,
+                  'choicesCount': params['choicesCount'] ?? 2,
+                  'totalRounds': 8, // Fixed to 8 rounds
+                },
+              );
+              break;
               case 'Tebak Suara':
-                context.pushNamed('tebak-suara', extra: {'childId': childId});
-                break;
+              context.pushNamed(
+                'tebak-suara',
+                extra: {
+                  'childId': childId,
+                  'totalRounds': 8, // Fixed to 8 rounds
+                },
+              );
+              break;
               case 'Latihan Artikulasi':
-                context.pushNamed('latihan-artikulasi', extra: {'childId': childId});
-                break;
+              context.pushNamed(
+                'latihan-artikulasi',
+                extra: {
+                  'childId': childId,
+                  'totalRounds': 8, // Fixed to 8 rounds
+                },
+              );
+              break;
               case 'Kata Bergambar':
-                context.pushNamed('kata-bergambar', extra: {'childId': childId});
-                break;
+              context.pushNamed(
+                'kata-bergambar',
+                extra: {
+                  'childId': childId,
+                  'totalRounds': 8, // Fixed to 8 rounds
+                },
+              );
+              break;
               case 'Cerita Interaktif':
-                context.pushNamed('cerita-interaktif', extra: {'childId': childId});
-                break;
+              context.pushNamed(
+                'cerita-interaktif',
+                extra: {
+                  'childId': childId,
+                },
+              );
+              break;
               default:
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -320,28 +358,48 @@ class _GameMenuPageState extends ConsumerState<GameMenuPage> {
                 extra: {
                   'childId': childId,
                   'choicesCount': params['choicesCount'] ?? 2,
-                  'rounds': params['rounds'] ?? 5,
+                  'totalRounds': 8, // Fixed to 8 rounds
                 },
               );
               break;
             case 'Tebak Suara':
-              context.pushNamed('tebak-suara', extra: {'childId': childId});
+              context.pushNamed(
+                'tebak-suara',
+                extra: {
+                  'childId': childId,
+                  'totalRounds': 8, // Fixed to 8 rounds
+                },
+              );
               break;
             case 'Latihan Artikulasi':
-              context.pushNamed('latihan-artikulasi', extra: {'childId': childId});
+              context.pushNamed(
+                'latihan-artikulasi',
+                extra: {
+                  'childId': childId,
+                  'totalRounds': 8, // Fixed to 8 rounds
+                },
+              );
               break;
             case 'Kata Bergambar':
-              context.pushNamed('kata-bergambar', extra: {'childId': childId});
+              context.pushNamed(
+                'kata-bergambar',
+                extra: {
+                  'childId': childId,
+                  'totalRounds': 8, // Fixed to 8 rounds
+                },
+              );
               break;
             case 'Cerita Interaktif':
-              context.pushNamed('cerita-interaktif', extra: {'childId': childId});
+              context.pushNamed(
+                'cerita-interaktif',
+                extra: {
+                  'childId': childId,
+                },
+              );
               break;
           }
         },
       ),
     );
   }
-
-  }
-
-
+}

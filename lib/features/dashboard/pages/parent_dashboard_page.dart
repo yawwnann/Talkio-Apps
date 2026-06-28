@@ -225,17 +225,17 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: anak.gender == 'L'
+                  color: anak.gender == 'MALE'
                       ? const Color(0xFFE3F2FD)
                       : const Color(0xFFFCE4EC),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  anak.gender == 'L' ? 'Laki-laki' : 'Perempuan',
+                  anak.gender == 'MALE' ? 'Laki-laki' : 'Perempuan',
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: anak.gender == 'L'
+                    color: anak.gender == 'MALE'
                         ? const Color(0xFF1976D2)
                         : const Color(0xFFC2185B),
                   ),
@@ -429,7 +429,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Jadwal Telah di Booking',
+            'Sesi Terapi Mendatang',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -457,7 +457,7 @@ class _ParentDashboardPageState extends ConsumerState<ParentDashboardPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Belum ada jadwal booking',
+                      'Belum ada sesi terapi mendatang',
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: Colors.grey[600],

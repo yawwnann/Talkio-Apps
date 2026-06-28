@@ -18,7 +18,7 @@ class TebakSuaraPage extends ConsumerStatefulWidget {
   const TebakSuaraPage({
     super.key,
     required this.childId,
-    this.totalRounds = 5,
+    this.totalRounds = 8,
   });
 
   @override

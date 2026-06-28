@@ -68,10 +68,8 @@ class _DiagnosaDetailPageState extends ConsumerState<DiagnosaDetailPage> {
                       const SizedBox(height: 16),
                       _buildScoreCard(),
                       const SizedBox(height: 16),
-                      _buildAnalysisCard(),
+                      _buildFindingsCard(),
                       const SizedBox(height: 16),
-                      if (_diagnosis!.findings.isNotEmpty) _buildFindingsCard(),
-                      if (_diagnosis!.findings.isNotEmpty) const SizedBox(height: 16),
                       _buildRecommendationsCard(),
                       const SizedBox(height: 16),
                       _buildInfoCard(),
@@ -149,6 +147,14 @@ class _DiagnosaDetailPageState extends ConsumerState<DiagnosaDetailPage> {
               _scoreItem('${d.triggeredRules.length}', 'Rules', const Color(0xFF9C27B0)),
             ],
           ),
+          if (d.ageCategory.isNotEmpty) ...[            
+            const SizedBox(height: 12),
+            _detailRow('Kategori Usia', d.ageCategory),
+          ],
+          if (d.summary != null && d.summary!.isNotEmpty) ...[            
+            const SizedBox(height: 4),
+            _buildSummarySection(d.summary!),
+          ],
         ],
       ),
     );
@@ -165,23 +171,6 @@ class _DiagnosaDetailPageState extends ConsumerState<DiagnosaDetailPage> {
         const SizedBox(height: 4),
         Text(label, style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF94A3B8))),
       ],
-    );
-  }
-
-  Widget _buildAnalysisCard() {
-    final d = _diagnosis!;
-    return _card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionTitle('Analisis'),
-          const SizedBox(height: 12),
-          if (d.ageCategory.isNotEmpty) _detailRow('Kategori Usia', d.ageCategory),
-          if (d.derivedFacts.isNotEmpty) _detailRow('Fakta Terdeteksi', d.derivedFacts.join(', ')),
-          if (d.triggeredRules.isNotEmpty) _detailRow('Rules Terpicu', '${d.triggeredRules.length} rule(s)'),
-          if (d.summary != null && d.summary!.isNotEmpty) _buildSummarySection(d.summary!),
-        ],
-      ),
     );
   }
 

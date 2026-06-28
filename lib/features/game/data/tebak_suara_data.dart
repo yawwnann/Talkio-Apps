@@ -40,7 +40,7 @@ class TebakSuaraData {
     int choiceCount,
   ) {
     final others = items
-        .where((item) => item['id'] != correctAnswer['id'])
+        .where((item) => item['id'] != correctAnswer['id'] && item['category'] == correctAnswer['category'])
         .toList()
       ..shuffle();
     final distractors = others.take(choiceCount - 1).toList();
