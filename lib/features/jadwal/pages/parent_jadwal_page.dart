@@ -17,7 +17,6 @@ class ParentJadwalPage extends ConsumerStatefulWidget {
 }
 
 class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
-  int _selectedWeekDay = 0;
   String _selectedFilter = 'all'; // 'all', 'active', 'pending', 'completed'
 
   @override
@@ -28,27 +27,7 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
     });
   }
 
-  List<DateTime> _getWeekDates() {
-    final today = DateTime.now();
-    return List.generate(30, (index) => today.add(Duration(days: index)));
-  }
 
-  /// Get sessions for the selected day
-  List<Map<String, dynamic>> _getSelectedDaySessions(List<Map<String, dynamic>> sessions) {
-    final weekDates = _getWeekDates();
-    final selectedDate = weekDates[_selectedWeekDay];
-
-    return sessions.where((session) {
-      try {
-        final scheduleDate = DateTime.parse(session['schedule']);
-        return scheduleDate.year == selectedDate.year &&
-            scheduleDate.month == selectedDate.month &&
-            scheduleDate.day == selectedDate.day;
-      } catch (e) {
-        return false;
-      }
-    }).toList();
-  }
 
   /// Get sessions filtered by status
   List<Map<String, dynamic>> _getFilteredSessions(List<Map<String, dynamic>> allSessions) {
@@ -66,13 +45,11 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
 
   @override
   Widget build(BuildContext context) {
-    final weekDates = _getWeekDates();
     final scheduleState = ref.watch(parentScheduleProvider);
     final allSessions = scheduleState.scheduleList;
 
-    // Filter sessions by selected day AND status filter
-    List<Map<String, dynamic>> daySessions = _getSelectedDaySessions(allSessions);
-    List<Map<String, dynamic>> filteredSessions = _getFilteredSessions(daySessions);
+    // Filter sessions by status filter only
+    List<Map<String, dynamic>> filteredSessions = _getFilteredSessions(allSessions);
 
     // Calculate stats from ALL sessions (not just selected day)
     final activeCount = allSessions.where((s) => s['isActive'] == true && s['paymentStatus'] == 'SUCCESS').length;
@@ -163,87 +140,7 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
     );
   }
 
-  Widget _buildDateStrip(List<DateTime> weekDates) {
-    final today = DateTime.now();
-    // Nama hari Indonesia - mapping dari weekday number
-    final dayNames = ['', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
-    return Container(
-      height: 68,
-      color: Colors.white,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: weekDates.length,
-        itemBuilder: (context, index) {
-          final date = weekDates[index];
-          final isToday = date.day == today.day && date.month == today.month;
-          final isSelected = index == _selectedWeekDay;
-          // Gunakan weekday dari date object (1=Sen...7=Min)
-          final dayName = dayNames[date.weekday];
-
-          return GestureDetector(
-            onTap: () => setState(() => _selectedWeekDay = index),
-            child: Container(
-              width: 40,
-              margin: const EdgeInsets.only(right: 6),
-              decoration: BoxDecoration(
-                color: isSelected ? AppConstants.primaryBlue : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppConstants.primaryBlue.withValues(alpha: 0.25),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    dayName,
-                    style: GoogleFonts.poppins(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : const Color(0xFF6B7280),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: isToday && !isSelected
-                          ? AppConstants.primaryBlue.withValues(alpha: 0.1)
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${date.day}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected
-                              ? Colors.white
-                              : isToday
-                                  ? AppConstants.primaryBlue
-                                  : const Color(0xFF111827),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   Widget _buildFilterTabs(int active, int pending, int completed) {
     return Container(
@@ -723,7 +620,7 @@ class _ParentJadwalPageState extends ConsumerState<ParentJadwalPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Jadwal akan muncul setelah pembayaran dikonfirmasi',
+            'Pilih tanggal lain atau buat jadwal baru',
             style: GoogleFonts.poppins(
               fontSize: 12,
               color: const Color(0xFF9CA3AF),

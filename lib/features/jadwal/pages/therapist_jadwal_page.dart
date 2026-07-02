@@ -17,7 +17,6 @@ class TherapistJadwalPage extends ConsumerStatefulWidget {
 }
 
 class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
-  int _selectedDay = 0;
   String _filter = 'all';
 
   @override
@@ -28,23 +27,13 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
     });
   }
 
-  List<DateTime> _weekDates() {
-    final today = DateTime.now();
-    return List.generate(30, (i) => today.add(Duration(days: i)));
-  }
 
   @override
   Widget build(BuildContext context) {
-    final dates = _weekDates();
     final state = ref.watch(jadwalProvider);
     final all = state.jadwalList;
-    final daySessions = all.where((s) {
-      final d = s.scheduledDate;
-      final sel = dates[_selectedDay];
-      return d.year == sel.year && d.month == sel.month && d.day == sel.day;
-    }).toList();
 
-    final filtered = _filtered(daySessions);
+    final filtered = _filtered(all);
     final sched = all.where((s) => s.status == 'SCHEDULED').length;
     final ongoing = all.where((s) => s.status == 'ONGOING').length;
     final done = all.where((s) =>
@@ -54,7 +43,6 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: _appBar(),
       body: Column(children: [
-        _dateStrip(dates),
         _filterTabs(sched, ongoing, done),
         Expanded(
           child: state.isLoading
@@ -122,74 +110,6 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _dateStrip(List<DateTime> dates) {
-    final now = DateTime.now();
-    final names = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-    return Container(
-      height: 68,
-      color: Colors.white,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: dates.length,
-        itemBuilder: (ctx, i) {
-          final d = dates[i];
-          final sel = _selectedDay == i;
-          final today = d.day == now.day && d.month == now.month;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedDay = i),
-            child: Container(
-              width: 40,
-              margin: const EdgeInsets.only(right: 6),
-              decoration: BoxDecoration(
-                color: sel ? AppConstants.primaryBlue : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: sel ? [
-                  BoxShadow(color: AppConstants.primaryBlue.withValues(alpha: 0.25)),
-                ] : null,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(names[d.weekday - 1], style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: sel ? Colors.white : const Color(0xFF6B7280),
-                  )),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: today && !sel
-                          ? AppConstants.primaryBlue.withValues(alpha: 0.1)
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${d.day}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: sel
-                              ? Colors.white
-                              : today
-                                  ? AppConstants.primaryBlue
-                                  : const Color(0xFF111827),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
       ),
     );
   }
@@ -346,11 +266,20 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
             ]),
           ),
           const Spacer(),
-          Text(s.timeSlot, style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF1F2937),
-          )),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(DateFormat('dd MMM yyyy').format(schedDate), style: GoogleFonts.poppins(
+                fontSize: 11,
+                color: const Color(0xFF6B7280),
+              )),
+              Text(s.timeSlot, style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1F2937),
+              )),
+            ],
+          ),
         ]),
         const SizedBox(height: 12),
         Row(children: [
@@ -646,21 +575,24 @@ class _TherapistJadwalPageState extends ConsumerState<TherapistJadwalPage> {
 
   Widget _emptyState() {
     return Center(
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.calendar_today_outlined, size: 64, color: const Color(0xFFD1D5DB)),
-        const SizedBox(height: 16),
-        Text('Belum ada jadwal', style: GoogleFonts.poppins(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: const Color(0xFF6B7280),
-        )),
-        const SizedBox(height: 4),
-        Text('Tidak ada sesi terapi pada tanggal ini', style: GoogleFonts.poppins(
-          fontSize: 12,
-          color: const Color(0xFF9CA3AF),
-        )),
-        const SizedBox(height: 24),
-      ]),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.calendar_today_outlined, size: 64, color: const Color(0xFFD1D5DB)),
+          const SizedBox(height: 16),
+          Text('Belum ada jadwal', style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF6B7280),
+          )),
+          const SizedBox(height: 4),
+          Text(
+            'Pilih tanggal lain',
+            style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF9CA3AF)),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 }
